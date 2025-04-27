@@ -22,7 +22,7 @@ from secretflow.device import PYU, HEUObject, PYUObject
 from secretflow.device.device.heu import HEUMoveConfig
 from secretflow.ml.boost.sgb_v.core.params import default_params
 
-from ..component import Component, Devices, print_params
+from ..component import Component, Devices, print_params, set_params_from_dict
 from ..logging import LoggingParams, LoggingTools
 
 
@@ -95,24 +95,11 @@ class GradientEncryptor(Component):
         LoggingTools.logging_params_write_dict(params, self.logging_params)
 
     def set_params(self, params: dict):
-        # validation
-        fxp_r = params.get(
-            'fixed_point_parameter', default_params.fixed_point_parameter
-        )
-        enable_batch_encoding = params.get(
-            'batch_encoding_enabled', default_params.batch_encoding_enabled
-        )
-        audit_paths = params.get('audit_paths', {})
-        label_holder_feature_only = params.get('label_holder_feature_only', False)
-        # set params
-        self.params.label_holder_feature_only = label_holder_feature_only
-        self.params.fixed_point_parameter = fxp_r
-        self.params.batch_encoding_enabled = enable_batch_encoding
-        self.params.audit_paths = audit_paths
+        set_params_from_dict(self.params, params)
 
         # calculate attributes
         self.gh_encoder = define_encoder(self.params)
-        self.logging_params = LoggingTools.logging_params_from_dict(params)
+        LoggingTools.logging_params_from_dict(params, self.logging_params)
 
     def pack(self, g: PYUObject, h: PYUObject) -> PYUObject:
         return self.label_holder(lambda g, h: np.concatenate([g, h], axis=1))(g, h)
@@ -137,20 +124,17 @@ class GradientEncryptor(Component):
     @LoggingTools.enable_logging
     def cache_to_workers(
         self, encrypted_gh: HEUObject, gh: PYUObject
-    ) -> Dict[PYU, Union[HEUObject, PYUObject]]:
+    ) -> Dict[PYU, HEUObject]:
         if self.params.label_holder_feature_only:
-            cache = {
-                worker: worker(lambda: None)()
-                for worker in self.workers
-                if worker != self.label_holder
-            }
+            cache = {worker: worker(lambda: None)() for worker in self.workers}
+            cache[self.label_holder] = gh.to(
+                self.heu, move_config(self.label_holder, self.gh_encoder)
+            )
         else:
             cache = {
                 worker: encrypted_gh.to(self.heu, move_config(worker, self.gh_encoder))
                 for worker in self.workers
-                if worker != self.label_holder
             }
-        cache[self.label_holder] = gh
         return cache
 
     def get_move_config(self, pyu):

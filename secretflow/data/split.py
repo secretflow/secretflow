@@ -13,15 +13,60 @@
 # limitations under the License.
 
 import logging
+import math
 from typing import Tuple, Union
 
 import numpy as np
 import pandas as pd
-from sklearn.model_selection import train_test_split as _train_test_split
 
 from .horizontal.dataframe import HDataFrame
 from .ndarray import FedNdarray
 from .vertical.dataframe import VDataFrame
+
+
+def _train_test_split_pd(
+    in_table: pd.DataFrame,
+    train_size: float = None,
+    test_size: float = None,
+    random_state: int = None,
+    shuffle: bool = True,
+):
+    assert (
+        train_size is not None or test_size is not None
+    ), "train_size and test_size can not be both None"
+
+    total = in_table.shape[0]
+    if train_size is not None and test_size is not None:
+        assert train_size > 0 and train_size < 1, "train_size must be in (0, 1)"
+        assert test_size > 0 and test_size < 1, "test_size must be in (0, 1)"
+        assert (
+            train_size + test_size > 0 and train_size + test_size <= 1
+        ), "train_size + test_size must be in (0, 1]"
+        train_size = math.ceil(total * train_size)
+        test_size = math.ceil(total * test_size)
+    elif train_size is not None:
+        assert train_size > 0 and train_size < 1, "train_size must be in (0, 1)"
+        train_size = math.ceil(total * train_size)
+        test_size = total - train_size
+    else:
+        assert test_size > 0 and test_size < 1, "test_size must be in (0, 1)"
+        test_size = math.ceil(total * test_size)
+        train_size = total - test_size
+
+    if shuffle:
+        if random_state is not None:
+            np.random.seed(random_state)
+
+        in_table = in_table.sample(frac=1, random_state=random_state).reset_index(
+            drop=True
+        )
+        test_set = in_table[:test_size]
+        train_set = in_table[test_size : train_size + test_size]
+    else:
+        train_set = in_table[:train_size]
+        test_set = in_table[train_size : train_size + test_size]
+
+    return train_set, test_set
 
 
 def train_test_split(
@@ -89,17 +134,31 @@ def train_test_split(
 
     def split(*args, **kwargs) -> Tuple[object, object]:
         # FIXME: the input may be pl.DataFrame or others.
-        # assert type(args[0]) in [np.ndarray, pd.DataFrame]
-        if len(args[0].shape) == 0:
-            if isinstance(args[0], np.ndarray):
-                return np.array(None), np.array(None)
-            else:
-                return pd.DataFrame(None), pd.DataFrame(None)
-        results = _train_test_split(*args, **kwargs)
-        if isinstance(args[0], pd.DataFrame):
-            results[0] = results[0].reset_index(drop=True)
-            results[1] = results[1].reset_index(drop=True)
+        assert type(args[0]) in [np.ndarray, pd.DataFrame]
+        data = args[0]
 
+        if isinstance(data, pd.DataFrame):
+            if len(data.shape) == 0:
+                return np.array(None), np.array(None)
+            is_pd_data = True
+        else:
+            if len(data.shape) == 0:
+                return pd.DataFrame(None), pd.DataFrame(None)
+            data = pd.DataFrame(data)
+            is_pd_data = False
+
+        new_args = (data, *args[1:])
+        results = _train_test_split_pd(*new_args, **kwargs)
+        if is_pd_data:
+            results = (
+                results[0].reset_index(drop=True),
+                results[1].reset_index(drop=True),
+            )
+        else:
+            results = (
+                results[0].to_numpy(),
+                results[1].to_numpy(),
+            )
         return results[0], results[1]
 
     parts_train, parts_test = {}, {}

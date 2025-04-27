@@ -5,9 +5,9 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: SecretFlow\n"
+"Project-Id-Version:  SecretFlow\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-03-19 12:20+0800\n"
+"POT-Creation-Date: 2024-07-22 12:05+0000\n"
 "PO-Revision-Date: 2023-08-31 19:33+0800\n"
 "Last-Translator: Tony Wu <tonywu6@protonmail.com>\n"
 "Language: zh\n"
@@ -16,7 +16,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.14.0\n"
+"Generated-By: Babel 2.15.0\n"
 
 #: ../../tutorial/CustomDataLoaderTF.ipynb:9
 msgid "Using Custom DataBuilder in SecretFlow (TensorFlow)"
@@ -27,7 +27,7 @@ msgid ""
 "The following codes are demos only. It’s **NOT for production** due to "
 "system security concerns, please **DO NOT** use it directly in "
 "production."
-msgstr "以下代码仅作为示例，请勿在生产环境直接使用。"
+msgstr "注意： 以下代码仅供演示用途，在演示过程中可能会揭露部分信息。请勿直接将此示例代码用于实际生产环境中。在实际部署前，请根据您的具体需求和安全标准进行必要的修改和调整。"
 
 #: ../../tutorial/CustomDataLoaderTF.ipynb:31
 msgid ""
@@ -127,7 +127,7 @@ msgid ""
 msgstr "下载地址: http://download.tensorflow.org/example_images/flower_photos.tgz"
 
 #: ../../tutorial/CustomDataLoaderTF.ipynb:187
-msgid "|6133e74366ba439e9fcde0315a4aa359|"
+msgid "|c5e74757807b42c19029ce40a57279f8|"
 msgstr ""
 
 #: ../../tutorial/CustomDataLoaderTF.ipynb:189

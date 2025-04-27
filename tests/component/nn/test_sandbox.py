@@ -14,12 +14,12 @@
 
 import pytest
 
-from secretflow.component.ml.nn.core.sandbox import (
+from secretflow_fl.component.ml.nn.core.sandbox import (
     dynamic_sandbox,
     runner,
     static_sandbox,
 )
-from secretflow.component.ml.nn.core.sandbox.whitelists import (
+from secretflow_fl.component.ml.nn.core.sandbox.whitelists import (
     applications,
     tensorflow_wrapper,
 )

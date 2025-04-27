@@ -12,208 +12,127 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from secretflow.component.component import Component, IoType, TableColParam
-from secretflow.component.data_utils import DistDataType, load_table
-from secretflow.device.driver import reveal
-from secretflow.spec.v1.component_pb2 import Attribute
-from secretflow.spec.v1.data_pb2 import DistData
-from secretflow.spec.v1.report_pb2 import Div, Report, Tab, Table
+import pandas as pd
+
+from secretflow.component.core import (
+    Component,
+    Context,
+    DistDataType,
+    Field,
+    Input,
+    Interval,
+    Output,
+    Reporter,
+    VTable,
+    VTableFieldKind,
+    register,
+)
+from secretflow.device import reveal
 from secretflow.stats.core.prediction_bias_core import PredictionBiasReport
 from secretflow.stats.prediction_bias_eval import prediction_bias_eval
 
-prediction_bias_comp = Component(
-    "prediction_bias_eval",
-    domain="ml.eval",
-    version="0.0.1",
-    desc="Calculate prediction bias, ie. average of predictions - average of labels.",
-)
 
-prediction_bias_comp.int_attr(
-    name="bucket_num",
-    desc="Num of bucket.",
-    is_list=False,
-    is_optional=True,
-    default_value=10,
-    lower_bound=1,
-    lower_bound_inclusive=True,
-)
+@register(domain="ml.eval", version="1.0.0", name="prediction_bias_eval")
+class PredictionBiasEval(Component):
+    '''
+    Calculate prediction bias, ie. average of predictions - average of labels.
+    '''
 
-prediction_bias_comp.int_attr(
-    name="min_item_cnt_per_bucket",
-    desc="Min item cnt per bucket. If any bucket doesn't meet the requirement, error raises. For security reasons, we require this parameter to be at least 2.",
-    is_list=False,
-    is_optional=True,
-    default_value=2,
-    lower_bound=2,
-    lower_bound_inclusive=True,
-)
-
-prediction_bias_comp.str_attr(
-    name="bucket_method",
-    desc="Bucket method.",
-    is_list=False,
-    is_optional=True,
-    default_value="equal_width",
-    allowed_values=["equal_width", "equal_frequency"],
-)
-
-prediction_bias_comp.io(
-    io_type=IoType.INPUT,
-    name="in_ds",
-    desc="Input table with prediction and label, usually is a result from a prediction component.",
-    types=[DistDataType.VERTICAL_TABLE, DistDataType.INDIVIDUAL_TABLE],
-    col_params=[
-        TableColParam(
-            name="label",
-            desc="The label name to use in the dataset.",
-            col_min_cnt_inclusive=1,
-            col_max_cnt_inclusive=1,
-        ),
-        TableColParam(
-            name="prediction",
-            desc="The prediction result column name to use in the dataset.",
-            col_min_cnt_inclusive=1,
-            col_max_cnt_inclusive=1,
-        ),
-    ],
-)
-
-prediction_bias_comp.io(
-    io_type=IoType.OUTPUT,
-    name="result",
-    desc="Output report.",
-    types=[DistDataType.REPORT],
-)
-
-
-def dump_report(name, system_info, report: PredictionBiasReport) -> DistData:
-    table = Table(
-        name="Prediction Bias Table",
-        desc="Calculate prediction bias, ie. average of predictions - average of labels.",
-        headers=[
-            Table.HeaderItem(name="interval", desc="prediction interval", type="str"),
-            Table.HeaderItem(
-                name="left_endpoint",
-                desc="left endpoint of interval",
-                type="float",
-            ),
-            Table.HeaderItem(
-                name="left_closed",
-                desc="indicate if left endpoint of interval is closed",
-                type="bool",
-            ),
-            Table.HeaderItem(
-                name="right_endpoint",
-                desc="right endpoint of interval",
-                type="float",
-            ),
-            Table.HeaderItem(
-                name="right_closed",
-                desc="indicate if right endpoint of interval is closed",
-                type="bool",
-            ),
-            Table.HeaderItem(
-                name="avg_prediction",
-                desc="average prediction of interval",
-                type="float",
-            ),
-            Table.HeaderItem(
-                name="avg_label",
-                desc="average label of interval",
-                type="float",
-            ),
-            Table.HeaderItem(
-                name="bias",
-                desc="prediction bias of interval",
-                type="float",
-            ),
-        ],
+    bucket_num: int = Field.attr(
+        desc="Num of bucket.",
+        default=10,
+        bound_limit=Interval.closed(1, None),
+    )
+    min_item_cnt_per_bucket: int = Field.attr(
+        desc="Min item cnt per bucket. If any bucket doesn't meet the requirement, error raises. For security reasons, we require this parameter to be at least 2.",
+        default=2,
+        bound_limit=Interval.closed(2, None),
+    )
+    bucket_method: str = Field.attr(
+        desc="Bucket method.",
+        default="equal_width",
+        choices=["equal_width", "equal_frequency"],
+    )
+    label: str = Field.table_column_attr(
+        "input_ds",
+        desc="The label name to use in the dataset.",
+    )
+    prediction: str = Field.table_column_attr(
+        "input_ds",
+        desc="The prediction result column name to use in the dataset.",
+    )
+    input_ds: Input = Field.input(
+        desc="Input table with prediction and label, usually is a result from a prediction component.",
+        types=[DistDataType.VERTICAL_TABLE, DistDataType.INDIVIDUAL_TABLE],
+    )
+    report: Output = Field.output(
+        desc="Output report.",
+        types=[DistDataType.REPORT],
     )
 
-    def gen_interval_str(left_endpoint, left_closed, right_endpoint, right_closed):
-        return f"{'[' if left_closed else '('}{left_endpoint}, {right_endpoint}{']' if right_closed else ')'}"
+    def evaluate(self, ctx: Context):
+        tbl = VTable.from_distdata(self.input_ds, [self.label, self.prediction])
+        tbl.check_kinds(VTableFieldKind.FEATURE_LABEL)
 
-    for i, b in enumerate(report.buckets):
-        table.rows.append(
-            Table.Row(
-                name=str(i),
-                items=[
-                    Attribute(
-                        s=gen_interval_str(
-                            b.left_endpoint,
-                            b.left_closed,
-                            b.right_endpoint,
-                            b.right_closed,
-                        )
-                    ),
-                    Attribute(f=b.left_endpoint),
-                    Attribute(b=b.left_closed),
-                    Attribute(f=b.right_endpoint),
-                    Attribute(b=b.right_closed),
-                    Attribute(f=b.avg_prediction),
-                    Attribute(f=b.avg_label),
-                    Attribute(f=b.bias),
-                ],
+        label_prediction_df = ctx.load_table(tbl).to_pandas(
+            check_null=False
+        )  # FIXME: avoid to_pandas, use pa.Table
+
+        with ctx.trace_running():
+            res: PredictionBiasReport = reveal(
+                prediction_bias_eval(
+                    prediction=label_prediction_df[[self.prediction]],
+                    label=label_prediction_df[[self.label]],
+                    bucket_num=self.bucket_num,
+                    absolute=True,
+                    bucket_method=self.bucket_method,
+                    min_item_cnt_per_bucket=self.min_item_cnt_per_bucket,
+                )
             )
+
+        def gen_interval_str(left_endpoint, left_closed, right_endpoint, right_closed):
+            return f"{'[' if left_closed else '('}{left_endpoint}, {right_endpoint}{']' if right_closed else ')'}"
+
+        columns = {
+            "interval": "prediction interval",
+            "left_endpoint": "left endpoint of interval",
+            "left_closed": "indicate if left endpoint of interval is closed",
+            "right_endpoint": "right endpoint of interval",
+            "right_closed": "indicate if right endpoint of interval is closed",
+            "avg_prediction": "average prediction of interval",
+            "avg_label": "average label of interval",
+            "bias": "prediction bias of interval",
+        }
+        rows = []
+        for b in res.buckets:
+            interval_str = gen_interval_str(
+                b.left_endpoint,
+                b.left_closed,
+                b.right_endpoint,
+                b.right_closed,
+            )
+            rows.append(
+                [
+                    interval_str,
+                    b.left_endpoint,
+                    b.left_closed,
+                    b.right_endpoint,
+                    b.right_closed,
+                    b.avg_prediction,
+                    b.avg_label,
+                    b.bias,
+                ]
+            )
+
+        report_df = pd.DataFrame(rows, columns=columns.keys())
+        tbl_div = Reporter.build_table(
+            report_df,
+            name="Prediction Bias Table",
+            desc="Calculate prediction bias, ie. average of predictions - average of labels.",
+            columns=columns,
         )
 
-    report_meta = Report(
-        name="Prediction Bias Report",
-        tabs=[
-            Tab(
-                divs=[
-                    Div(
-                        children=[
-                            Div.Child(
-                                type="table",
-                                table=table,
-                            )
-                        ],
-                    )
-                ],
-            )
-        ],
-    )
-
-    report_dd = DistData(
-        name=name,
-        type=str(DistDataType.REPORT),
-        system_info=system_info,
-    )
-    report_dd.meta.Pack(report_meta)
-
-    return report_dd
-
-
-@prediction_bias_comp.eval_fn
-def prediction_bias_eval_fn(
-    *,
-    ctx,
-    bucket_num,
-    min_item_cnt_per_bucket,
-    bucket_method,
-    in_ds,
-    in_ds_label,
-    in_ds_prediction,
-    result,
-):
-    label_prediction_df = load_table(
-        ctx,
-        in_ds,
-        load_labels=True,
-        col_selects=in_ds_label + in_ds_prediction,
-    )
-
-    with ctx.tracer.trace_running():
-        res = reveal(
-            prediction_bias_eval(
-                prediction=label_prediction_df[in_ds_prediction],
-                label=label_prediction_df[in_ds_label],
-                bucket_num=bucket_num,
-                absolute=True,
-                bucket_method=bucket_method,
-                min_item_cnt_per_bucket=min_item_cnt_per_bucket,
-            )
-        )
-
-    return {"result": dump_report(result, in_ds.system_info, res)}
+        system_info = self.input_ds.system_info
+        r = Reporter(name="Prediction Bias Report", system_info=system_info)
+        r.add_tab(tbl_div)
+        self.report.data = r.to_distdata()

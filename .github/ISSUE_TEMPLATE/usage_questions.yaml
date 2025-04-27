@@ -1,0 +1,112 @@
+name: Secretflow Usage Question Template
+description: Welcome to the Secretflow community! Feel free to ask any questions you have.
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Welcome to the Secretflow community! We're here to help with any questions you have about using Secretflow. If you're unsure whether your query is a bug or a request, don't hesitate to ask here!
+
+  - type: dropdown
+    id: issue-type
+    attributes:
+      label: Question Category
+      description: What type of question do you have?
+      multiple: false
+      options:
+        - Build/Installation
+        - Performance
+        - Usability
+        - Documentation
+        - Correctness/Accuracy
+        - Others
+    validations:
+      required: true
+    
+  - type: dropdown
+    id: source
+    attributes:
+      label: Installation Source
+      description: How did you install Secretflow?
+      options:
+        - Binary
+        - Source
+    validations:
+      required: true
+
+  - type: input
+    id: sfversion
+    attributes:
+      label: Secretflow Version
+      description: Please specify the version of Secretflow you are using.
+      placeholder: e.g., secretflow 0.6.13b0
+    validations:
+      required: true
+
+  - type: input
+    id: OS
+    attributes:
+      label: Operating System and Distribution
+      description: Please specify your operating system and distribution.
+      placeholder: e.g., Linux Ubuntu 18.04
+    validations:
+      required: true
+
+  - type: input
+    id: Python
+    attributes:
+      label: Python Version
+      description: Please specify the version of Python you are using.
+      placeholder: e.g., 3.10.13
+    validations:
+      required: true
+
+  - type: input
+    id: Bazel
+    attributes:
+      label: Bazel Version
+      description: Please specify the Bazel version if compiling from source.
+      placeholder: e.g., 4.2.1
+    validations:
+      required: false
+
+  - type: input
+    id: Compiler
+    attributes:
+      label: GCC/Compiler Version
+      description: Please specify the GCC/Compiler version if compiling from source.
+      placeholder: e.g., GCC 9.3.0
+    validations:
+      required: false
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: Question Details
+      description: Describe your objective, the issue you are facing, and your expected outcome.
+      placeholder: I'm trying to achieve this, but I'm encountering this issue.
+      value: 
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction-code
+    attributes:
+      label: Reproduction Code
+      description: If applicable, provide minimal code necessary to illustrate the issue. Include any relevant data.
+      placeholder: Include a short code snippet if it helps explain your question.
+      value: 
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context or Logs
+      description: Include any additional information that may help clarify your question, such as logs or screenshots.
+      placeholder: Attach logs, screenshots, or any additional relevant information here.
+      value: 
+      render: shell
+    validations:
+      required: false

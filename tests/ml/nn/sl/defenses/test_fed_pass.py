@@ -21,9 +21,9 @@ from torch.utils.data import DataLoader, Dataset
 from torchmetrics import AUROC, Accuracy, Precision
 
 from secretflow.data.ndarray import FedNdarray, PartitionWay
-from secretflow.ml.nn import SLModel
-from secretflow.ml.nn.applications.sl_dnn_torch import DnnBase, DnnFuse
-from secretflow.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
+from secretflow_fl.ml.nn import SLModel
+from secretflow_fl.ml.nn.applications.sl_dnn_torch import DnnBase, DnnFuse
+from secretflow_fl.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
 
 
 class TabDatasetLeft(Dataset):
@@ -101,10 +101,10 @@ def create_model_def(use_passport=False):
         optim_fn=optim_fn,
         metrics=[
             metric_wrapper(
-                Accuracy, task="multiclass", num_classes=10, average='micro'
+                Accuracy, task="multiclass", num_classes=10, average="micro"
             ),
             metric_wrapper(
-                Precision, task="multiclass", num_classes=10, average='micro'
+                Precision, task="multiclass", num_classes=10, average="micro"
             ),
             metric_wrapper(AUROC, task="multiclass", num_classes=10),
         ],
@@ -155,8 +155,8 @@ def test_fed_pass(sf_simulation_setup_devices):
         model_fuse=fuse_model,
         simulation=True,
         random_seed=1234,
-        backend='torch',
-        strategy='split_nn',
+        backend="torch",
+        strategy="split_nn",
     )
 
     sl_model_fedpass = SLModel(
@@ -165,8 +165,8 @@ def test_fed_pass(sf_simulation_setup_devices):
         model_fuse=fuse_model_fedpass,
         simulation=True,
         random_seed=1234,
-        backend='torch',
-        strategy='split_nn',
+        backend="torch",
+        strategy="split_nn",
     )
 
     train_data = torch.rand(data_num, 256)

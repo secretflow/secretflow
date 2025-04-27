@@ -29,3 +29,55 @@ message LinearModel {
   float bias = 2;
   string model_hash = 3;
 }
+
+// ss-glm prediction equation: pred = jnp.matmul(x, w) + bias + offset_col; pred
+// = link.response(pred) * y_scale
+message PublicInfo {
+  // support 'Logit'(log(mu / (1 - mu))), 'Log'(log(mu)), 'Reciprocal'(1 / mu),
+  // 'Identity'(mu)
+  string link = 1;
+  /*
+   * scale y into appropriate range for ss-glm, fixed as 1 in plain text
+   * training. If range of y is (-infinity, +infinity), the intermediate results
+   * of ss-glm training may exceed the range of fixed-point numbers in MPC,
+   * leading to non-convergence of model.
+   */
+  double y_scale = 2;
+  // per-row "bias value" that is used during model training
+  string offset_col = 3;
+  string label_col = 4;
+  /*
+   * exp mode selection(1: use high-precision exp pade, 2:
+   * use taylor approximation, 3: use best-precision exp prime)
+   * pade: high precision high cost.
+   * taylor: variable precision, variable cost.
+   * prime: best-precision high precision, 3/4 cost of taylor-8. (experimental)
+   */
+  int32 fxp_exp_mode = 5;
+  /*
+   * number of iterations of exp taylor approx (takes effect when fxp_exp_mode
+   * is 2). Increase will improve the accuracy of exp approx, but will quickly
+   * degrade performance
+   */
+  int32 fxp_exp_iters = 6;
+  // The offset parameter for exp prime methods.
+  // control the valid range of exp prime method.
+  // valid range is:
+  // ((47 - offset - 2fxp)/log_2(e), (125 - 2fxp - offset)/log_2(e))
+  // clamp to value would be
+  //                lower bound: (48 - offset - 2fxp)/log_2(e)
+  //                higher bound: (124 - 2fxp - offset)/log_2(e)
+  // default offset is 13, 0 offset is not supported.
+  uint32 experimental_exp_prime_offset = 7;
+  // whether to apply the clamping lower bound
+  // default to enable it
+  bool experimental_exp_prime_disable_lower_bound = 8;
+  // whether to apply the clamping upper bound
+  // default to disable it
+  bool experimental_exp_prime_enable_upper_bound = 9;
+}
+
+message GeneralizedLinearModel {
+  PublicInfo public_info = 1;
+  LinearModel model = 2;
+}

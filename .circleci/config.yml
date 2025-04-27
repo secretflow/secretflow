@@ -52,28 +52,30 @@ workflows:
             dev-requirements.txt          base               true
             circleci/continue-config.yml  base               true
             .circleci/continue-config.yml base               true
-            secretflow/data/*             infra              true
-            secretflow/device/*           infra              true
-            secretflow/distributed/*      infra              true
-            secreflow/kuscia/*            infra              true
-            secretflow/security/*         infra              true
-            secretflow/utils/*            infra              true
-            secretflow/maths/*            sf_maths           true
-            secretflow/ml/*               sf_ml              true
-            secretflow/preprocessing/*    sf_preprocessing   true
-            secretflow/stats/*            sf_stats           true
-            secretflow/component/*        sf_component       true
-            secretflow/*                  sf_any             true
-            tests/ml/*                    test_ml            true
-            tests/preprocessing/*         test_preprocessing true
-            tests/stats/*                 test_stats         true
-            tests/data/*                  test_infra         true
-            tests/device/*                test_infra         true
-            tests/security/*              test_infra         true
-            tests/utils/*                 test_infra         true
-            tests/kuscia/*                test_infra         true
-            tests/component/*             test_component     true
-            tests/*                       test_any           true
+            secretflow/data/.*            infra              true
+            secretflow/device/.*          infra              true
+            secretflow/distributed/.*     infra              true
+            secreflow/kuscia/.*           infra              true
+            secretflow/security/.*        infra              true
+            secretflow/utils/.*           infra              true
+            secretflow/maths/.*           sf_maths           true
+            secretflow/ml/.*              sf_ml              true
+            secretflow/preprocessing/.*   sf_preprocessing   true
+            secretflow/stats/.*           sf_stats           true
+            secretflow/component/.*       sf_component       true
+            secretflow/.*                 sf_any             true
+            secretflow_fl/.*              sf_fl              true
+            tests/ml/.*                   test_ml            true
+            tests/ml/nn/.*                test_ml_nn         true
+            tests/preprocessing/.*        test_preprocessing true
+            tests/stats/.*                test_stats         true
+            tests/data/.*                 test_infra         true
+            tests/device/.*               test_infra         true
+            tests/security/.*             test_infra         true
+            tests/utils/.*                test_infra         true
+            tests/kuscia/.*               test_infra         true
+            tests/component/.*            test_component     true
+            tests/.*                      test_any           true
   publish-workflow:
     when:
       equal: ["publish_pypi", << pipeline.parameters.GHA_Meta >>]

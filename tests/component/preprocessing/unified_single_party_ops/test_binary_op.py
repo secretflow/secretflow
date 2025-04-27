@@ -14,22 +14,21 @@
 
 import logging
 import operator
+import time
 
 import numpy as np
 import pandas as pd
 import pytest
+from pyarrow import orc
 from sklearn.datasets import load_breast_cancer
 
-from secretflow.component.data_utils import DistDataType
-from secretflow.component.preprocessing.unified_single_party_ops.binary_op import (
-    binary_op_comp,
+from secretflow.component.core import (
+    VTable,
+    VTableParty,
+    build_node_eval_param,
+    make_storage,
 )
-from secretflow.component.preprocessing.unified_single_party_ops.substitution import (
-    substitution,
-)
-from secretflow.component.storage import ComponentStorage
-from secretflow.spec.v1.component_pb2 import Attribute
-from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
+from secretflow.component.entry import comp_eval
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 
 ops = {"+": operator.add, "-": operator.sub, "*": operator.mul, "/": operator.truediv}
@@ -73,7 +72,7 @@ def test_binary_op_sample(
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    comp_storage = ComponentStorage(storage_config)
+    storage = make_storage(storage_config)
 
     x = load_breast_cancer()["data"]
     alice_columns = [f"a{i}" for i in range(15)]
@@ -81,69 +80,59 @@ def test_binary_op_sample(
 
     if self_party == "alice":
         ds = pd.DataFrame(x[:, :15], columns=alice_columns)
-        ds.to_csv(comp_storage.get_writer(alice_input_path), index=False)
+        ds.to_csv(storage.get_writer(alice_input_path), index=False)
 
     elif self_party == "bob":
         ds = pd.DataFrame(x[:, 15:], columns=bob_columns)
-        ds.to_csv(comp_storage.get_writer(bob_input_path), index=False)
+        ds.to_csv(storage.get_writer(bob_input_path), index=False)
 
-    param = NodeEvalParam(
+    param = build_node_eval_param(
         domain="preprocessing",
         name="binary_op",
-        version="0.0.2",
-        attr_paths=[
-            "input/in_ds/f1",
-            "input/in_ds/f2",
-            "binary_op",
-            "as_label",
-            "new_feature_name",
-        ],
-        attrs=[
-            Attribute(ss=f1),
-            Attribute(ss=f2),
-            Attribute(s=binary_op),
-            Attribute(b=as_label),
-            Attribute(s=new_feature_name),
-        ],
+        version="1.0.0",
+        attrs={
+            "input/input_ds/f1": f1,
+            "input/input_ds/f2": f2,
+            "binary_op": binary_op,
+            "as_label": as_label,
+            "new_feature_name": new_feature_name,
+        },
         inputs=[
-            DistData(
+            VTable(
                 name="input",
-                type=str(DistDataType.VERTICAL_TABLE),
-                data_refs=[
-                    DistData.DataRef(uri=alice_input_path, party="alice", format="csv"),
-                    DistData.DataRef(uri=bob_input_path, party="bob", format="csv"),
+                parties=[
+                    VTableParty.from_dict(
+                        uri=alice_input_path,
+                        party="alice",
+                        format="csv",
+                        features={n: "float32" for n in alice_columns},
+                    ),
+                    VTableParty.from_dict(
+                        uri=bob_input_path,
+                        party="bob",
+                        format="csv",
+                        features={n: "float32" for n in bob_columns},
+                    ),
                 ],
             ),
         ],
         output_uris=[output_path, rule_path],
     )
 
-    meta = VerticalTable(
-        schemas=[
-            TableSchema(
-                feature_types=["float32"] * 15,
-                features=alice_columns,
-            ),
-            TableSchema(
-                feature_types=["float32"] * 15,
-                features=bob_columns,
-            ),
-        ],
-    )
-    param.inputs[0].meta.Pack(meta)
     bad_case = (
         (features[0] in alice_columns) and (new_feature_name in bob_columns)
     ) or ((features[0] in bob_columns) and (new_feature_name in alice_columns))
     if bad_case:
-        with pytest.raises(AssertionError):
-            res = binary_op_comp.eval(
+        with pytest.raises(Exception):
+            res = comp_eval(
                 param=param,
                 storage_config=storage_config,
                 cluster_config=sf_cluster_config,
             )
+        time.sleep(4)
         return
     else:
-        res = binary_op_comp.eval(
+        res = comp_eval(
             param=param,
             storage_config=storage_config,
             cluster_config=sf_cluster_config,
@@ -161,25 +150,24 @@ def test_binary_op_sample(
         )
 
     if features[0] in alice_columns and self_party == "alice":
-        comp_storage = ComponentStorage(storage_config)
-        df = pd.read_csv(comp_storage.get_reader(output_path))
+        df = orc.read_table(storage.get_reader(output_path)).to_pandas()
         df_in = pd.DataFrame(x[:, :15], columns=alice_columns)
         test(df, df_in)
     elif features[0] in bob_columns and self_party == "bob":
-        comp_storage = ComponentStorage(storage_config)
-        df = pd.read_csv(comp_storage.get_reader(output_path))
+        df = orc.read_table(storage.get_reader(output_path)).to_pandas()
         df_in = pd.DataFrame(x[:, 15:], columns=bob_columns)
         test(df, df_in)
 
-    param2 = NodeEvalParam(
+    param2 = build_node_eval_param(
         domain="preprocessing",
         name="substitution",
-        version="0.0.2",
+        version="1.0.0",
+        attrs=None,
         inputs=[param.inputs[0], res.outputs[1]],
         output_uris=[sub_path],
     )
 
-    res = substitution.eval(
+    res = comp_eval(
         param=param2,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,
@@ -187,5 +175,5 @@ def test_binary_op_sample(
 
     assert len(res.outputs) == 1
     if self_party == "alice":
-        a_out = pd.read_csv(comp_storage.get_reader(sub_path))
+        a_out = orc.read_table(storage.get_reader(sub_path)).to_pandas()
         logging.warning(f"....... \n{a_out}\n.,......")

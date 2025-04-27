@@ -23,13 +23,13 @@ from torchmetrics import AUROC
 
 import secretflow as sf
 from secretflow.data.split import train_test_split
-from secretflow.ml.nn import SLModel
-from secretflow.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
-from secretflow.ml.nn.sl.agglayer.agg_method import Concat
-from secretflow.ml.nn.sl.attacks.solving_linear_regression_fia_torch import (
+from secretflow.utils.simulation.data.dataframe import create_df
+from secretflow_fl.ml.nn import SLModel
+from secretflow_fl.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
+from secretflow_fl.ml.nn.sl.agglayer.agg_method import Concat
+from secretflow_fl.ml.nn.sl.attacks.solving_linear_regression_fia_torch import (
     SolvingLinearRegressionAttack,
 )
-from secretflow.utils.simulation.data.dataframe import create_df
 
 
 class BankModelAlice(nn.Module):
@@ -84,7 +84,7 @@ class BankModelFuse(nn.Module):
 
 def data_builder(data, label, batch_size):
     def prepare_data():
-        print('prepare_data num: ', data.shape)
+        print("prepare_data num: ", data.shape)
         alice_data = data[:, :28]
         bob_data = data[:, 28:]
 
@@ -102,7 +102,7 @@ def data_builder(data, label, batch_size):
             batch_size=batch_size,
         )
 
-        dataloader_dict = {'alice': alice_dataloader, 'bob': bob_dataloader}
+        dataloader_dict = {"alice": alice_dataloader, "bob": bob_dataloader}
         return dataloader_dict, dataloader_dict
 
     return prepare_data
@@ -149,7 +149,7 @@ def do_test_sl_and_fia(alice, bob):
     print(X.head(5))
 
     y = np.random.randint(0, 2, size=size)
-    y = pd.DataFrame(y, columns=['y']).astype(np.float32)
+    y = pd.DataFrame(y, columns=["y"]).astype(np.float32)
 
     data = create_df(
         source=X,
@@ -185,20 +185,20 @@ def do_test_sl_and_fia(alice, bob):
         model_fn=BankModelAlice,
         loss_fn=loss_fn,
         optim_fn=optim_fn,
-        metrics=[metric_wrapper(AUROC, task='binary')],
+        metrics=[metric_wrapper(AUROC, task="binary")],
     )
     bob_model = TorchModel(
         model_fn=BankModelBob,
         loss_fn=loss_fn,
         optim_fn=optim_fn,
-        metrics=[metric_wrapper(AUROC, task='binary')],
+        metrics=[metric_wrapper(AUROC, task="binary")],
     )
 
     fuse_model = TorchModel(
         model_fn=BankModelFuse,
         loss_fn=loss_fn,
         optim_fn=optim_fn,
-        metrics=[metric_wrapper(AUROC, task='binary')],
+        metrics=[metric_wrapper(AUROC, task="binary")],
     )
 
     base_model_dict = {
@@ -213,8 +213,8 @@ def do_test_sl_and_fia(alice, bob):
         compressor=None,
         simulation=True,
         random_seed=1234,
-        backend='torch',
-        strategy='split_nn',
+        backend="torch",
+        strategy="split_nn",
     )
 
     fia_callback = SolvingLinearRegressionAttack(

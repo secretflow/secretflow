@@ -13,122 +13,108 @@
 # limitations under the License.
 
 
-from secretflow.component.component import Component, IoType
-from secretflow.component.data_utils import (
-    DistDataType,
-    VerticalTableWrapper,
-    dump_vertical_table,
-    load_table,
-)
-from secretflow.data.split import train_test_split as train_test_split_fn
+import math
+from typing import Tuple
 
-train_test_split_comp = Component(
-    "train_test_split",
-    domain="data_prep",
-    version="0.0.1",
-    desc="""Split datasets into random train and test subsets.
+import numpy as np
+import pyarrow as pa
+
+from secretflow.component.core import (
+    Component,
+    CompVDataFrame,
+    CompVDataFrameReader,
+    CompVDataFrameWriter,
+    Context,
+    DistDataType,
+    Field,
+    Input,
+    Interval,
+    Output,
+    register,
+)
+
+
+@register(domain="data_prep", version="1.0.0")
+class TrainTestSplit(Component):
+    '''
+    Split datasets into random train and test subsets.
 
     - Please check: https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.train_test_split.html
-    """,
-)
+    '''
 
-
-train_test_split_comp.float_attr(
-    name="train_size",
-    desc="Proportion of the dataset to include in the train subset. The sum of test_size and train_size should be in the (0, 1] range.",
-    is_list=False,
-    is_optional=True,
-    default_value=0.75,
-    allowed_values=None,
-    lower_bound=0.0,
-    upper_bound=1.0,
-    lower_bound_inclusive=False,
-    upper_bound_inclusive=False,
-)
-train_test_split_comp.float_attr(
-    name="test_size",
-    desc="Proportion of the dataset to include in the test subset. The sum of test_size and train_size should be in the (0, 1] range.",
-    is_list=False,
-    is_optional=True,
-    default_value=0.25,
-    allowed_values=None,
-    lower_bound=0.0,
-    upper_bound=1.0,
-    lower_bound_inclusive=False,
-    upper_bound_inclusive=False,
-)
-train_test_split_comp.int_attr(
-    name="random_state",
-    desc="Specify the random seed of the shuffling.",
-    is_list=False,
-    is_optional=True,
-    default_value=1024,
-    lower_bound=0,
-    lower_bound_inclusive=False,
-)
-train_test_split_comp.bool_attr(
-    name="shuffle",
-    desc="Whether to shuffle the data before splitting.",
-    is_list=False,
-    is_optional=True,
-    default_value=True,
-)
-train_test_split_comp.io(
-    io_type=IoType.INPUT,
-    name="input_data",
-    desc="Input vertical table.",
-    types=[DistDataType.VERTICAL_TABLE],
-    col_params=None,
-)
-train_test_split_comp.io(
-    io_type=IoType.OUTPUT,
-    name="train",
-    desc="Output train dataset.",
-    types=[DistDataType.VERTICAL_TABLE],
-    col_params=None,
-)
-train_test_split_comp.io(
-    io_type=IoType.OUTPUT,
-    name="test",
-    desc="Output test dataset.",
-    types=[DistDataType.VERTICAL_TABLE],
-    col_params=None,
-)
-
-
-@train_test_split_comp.eval_fn
-def train_test_split_eval_fn(
-    *, ctx, train_size, test_size, random_state, shuffle, input_data, train, test
-):
-    input_df = load_table(
-        ctx, input_data, load_features=True, load_ids=True, load_labels=True
+    train_size: float = Field.attr(
+        desc="Proportion of the dataset to include in the train subset. The sum of test_size and train_size should be in the (0, 1] range.",
+        default=0.75,
+        bound_limit=Interval.open(0.0, 1.0),
+    )
+    test_size: float = Field.attr(
+        desc="Proportion of the dataset to include in the test subset. The sum of test_size and train_size should be in the (0, 1] range.",
+        default=0.25,
+        bound_limit=Interval.open(0.0, 1.0),
+    )
+    random_state: int = Field.attr(
+        desc="Specify the random seed of the shuffling.",
+        default=1024,
+        bound_limit=Interval.open(0.0, None),
+    )
+    shuffle: bool = Field.attr(
+        desc="Whether to shuffle the data before splitting.",
+        default=True,
+    )
+    input_ds: Input = Field.input(
+        desc="Input vertical table.",
+        types=[DistDataType.VERTICAL_TABLE],
+    )
+    train_ds: Output = Field.output(
+        desc="Output train dataset.",
+        types=[DistDataType.VERTICAL_TABLE],
+    )
+    test_ds: Output = Field.output(
+        desc="Output test dataset.",
+        types=[DistDataType.VERTICAL_TABLE],
     )
 
-    pyus = list(input_df.partitions.keys())
+    def evaluate(self, ctx: Context):
+        reader = CompVDataFrameReader(ctx.storage, ctx.tracer, self.input_ds)
+        train_writer = CompVDataFrameWriter(ctx.storage, ctx.tracer, self.train_ds.uri)
+        test_writer = CompVDataFrameWriter(ctx.storage, ctx.tracer, self.test_ds.uri)
 
-    with ctx.tracer.trace_running():
-        train_df, test_df = train_test_split_fn(
-            input_df,
-            train_size=train_size,
-            test_size=test_size,
-            random_state=random_state,
-            shuffle=shuffle,
-        )
+        def split_fn(
+            in_table: pa.Table,
+            train_size: float,
+            test_size: float,
+            seed: int,
+            shuffle: bool,
+        ) -> Tuple[pa.Table, pa.Table]:
+            total = in_table.shape[0]
+            train = math.ceil(total * train_size)
+            test = math.ceil(total * test_size)
+            if shuffle:
+                rand = np.random.RandomState(seed)
+                indices = rand.permutation(total)
+            else:
+                indices = np.arange(total)
 
-    train_db = dump_vertical_table(
-        ctx,
-        train_df,
-        train,
-        VerticalTableWrapper.from_dist_data(input_data, train_df.shape[0]),
-        input_data.system_info,
-    )
+            return in_table.take(indices[:train]), in_table.take(
+                indices[total - test :]
+            )
 
-    test_db = dump_vertical_table(
-        ctx,
-        test_df,
-        test,
-        VerticalTableWrapper.from_dist_data(input_data, test_df.shape[0]),
-        input_data.system_info,
-    )
+        with train_writer, test_writer:
+            for batch in reader:
+                train_df = CompVDataFrame({}, batch.system_info)
+                test_df = CompVDataFrame({}, batch.system_info)
+                for pyu, table in batch.partitions.items():
+                    train_data, test_data = pyu(split_fn)(
+                        table.data,
+                        self.train_size,
+                        self.test_size,
+                        self.random_state,
+                        self.shuffle,
+                    )
+                    train_df.set_data(train_data)
+                    test_df.set_data(test_data)
+                train_writer.write(train_df)
+                test_writer.write(test_df)
 
-    return {"train": train_db, "test": test_db}
+        train_writer.dump_to(self.train_ds)
+        test_writer.dump_to(self.test_ds)

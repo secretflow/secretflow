@@ -36,7 +36,7 @@ from secretflow.data.ndarray import (
 from secretflow.data.split import train_test_split
 from secretflow.data.vertical import VDataFrame
 from secretflow.utils.errors import InvalidArgumentError
-from secretflow.utils.simulation.datasets import create_ndarray
+from secretflow_fl.utils.simulation.datasets_fl import create_ndarray
 
 
 def array_equal(a: np.ndarray, b: np.ndarray) -> bool:

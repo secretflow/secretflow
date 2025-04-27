@@ -83,29 +83,19 @@ def calculate_gains(
     return gain
 
 
-def find_best_splits(
-    level_nodes_G: List[np.array],
-    level_nodes_H: List[np.array],
-    reg_lambda: float,
-    gamma: float,
-) -> Tuple[np.ndarray, np.ndarray]:
-    """find the best split buckets and if gains > gamma"""
-    gain = calculate_gains(level_nodes_G, level_nodes_H, reg_lambda)
-    split_buckets = np.argmax(gain, 1)
-    should_split = (
-        (np.max(gain, 1) - gamma) > 0
-        if gamma > 0
-        else np.ones(split_buckets.shape).astype(bool)
-    )
-    return (split_buckets, should_split)
-
-
 def find_best_splits_with_gains(
     nodes_G: List[np.array], nodes_H: List[np.array], reg_lambda: float, gamma: float
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """find split split and return statistics of best splits
+
+    Returns:
+        Tuple[np.ndarray, np.ndarray, np.ndarray]: split_buckets, split gains, should split
+    """
     gain = calculate_gains(nodes_G, nodes_H, reg_lambda)
     split_buckets = np.argmax(gain, 1)
     split_gains = np.max(gain, 1)
+    # protect label holder's info by adding small randomness to split_gains after comparison
+    split_gains += np.random.uniform(0, 1e-7, split_gains.shape)
     should_split = (split_gains - gamma) > 0
     return (split_buckets, split_gains, should_split)
 

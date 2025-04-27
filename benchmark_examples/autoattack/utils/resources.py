@@ -28,7 +28,7 @@ class ResourceDict(dict):
                 you will need to fill in the participation method here. e.g. alice = 0.01.
     """
 
-    def __init__(self, gpu_mem: float, CPU: int = 1, memory: int = 0, **kwargs):
+    def __init__(self, gpu_mem: float, CPU: float = 1, memory: float = 0, **kwargs):
         super().__init__(
             CPU=CPU,
             memory=memory,

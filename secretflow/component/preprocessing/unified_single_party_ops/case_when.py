@@ -12,77 +12,33 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List
 
 import numpy as np
-import pandas as pd
 import pyarrow as pa
 from google.protobuf.json_format import MessageToJson, Parse
 
 import secretflow.compute as sc
-from secretflow.component.component import Component, IoType
-from secretflow.component.data_utils import DistDataType
-from secretflow.component.preprocessing.core.table_utils import (
+from secretflow.component.core import (
+    Component,
+    Context,
+    DistDataType,
+    Field,
+    Input,
+    Output,
+    ServingBuilder,
+    VTable,
+    VTableField,
+    VTableFieldKind,
     float_almost_equal,
-    v_preprocessing_transform,
+    register,
+)
+from secretflow.error_system.exceptions import (
+    EvalParamError,
+    SFTrainingHyperparameterError,
 )
 from secretflow.spec.extend.case_when_rules_pb2 import CaseWhenRule
 
-case_when = Component(
-    "case_when",
-    domain="preprocessing",
-    version="0.0.1",
-    desc="case_when",
-)
-
-case_when.custom_pb_attr(
-    name="rules",
-    desc="input CaseWhen rules",
-    pb_cls=CaseWhenRule,
-)
-
-
-case_when.io(
-    io_type=IoType.INPUT,
-    name="input_dataset",
-    desc="Input vertical table.",
-    types=[DistDataType.VERTICAL_TABLE],
-)
-
-case_when.io(
-    io_type=IoType.OUTPUT,
-    name="output_dataset",
-    desc="output_dataset",
-    types=[DistDataType.VERTICAL_TABLE],
-    col_params=None,
-)
-
-case_when.io(
-    io_type=IoType.OUTPUT,
-    name="out_rules",
-    desc="case when substitution rule",
-    types=[DistDataType.PREPROCESSING_RULE],
-    col_params=None,
-)
-
-
-def get_rule_features(rules: CaseWhenRule) -> List[str]:
-    fs = []
-
-    def _get_value_f(value: CaseWhenRule.ValueExpr):
-        assert value.type != CaseWhenRule.ValueExpr.ValueType.INVAL
-        if value.type == CaseWhenRule.ValueExpr.ValueType.COLUMN:
-            fs.append(value.column_name)
-
-    for when in rules.whens:
-        for cond in when.conds:
-            fs.append(cond.cond_column)
-            _get_value_f(cond.cond_value)
-        _get_value_f(when.then)
-
-    _get_value_f(rules.else_value)
-
-    return list(set(fs))
+from ..preprocessing import PreprocessingMixin
 
 
 def apply_case_when_rule(table: sc.Table, rules: CaseWhenRule) -> sc.Table:
@@ -165,49 +121,75 @@ def apply_case_when_rule(table: sc.Table, rules: CaseWhenRule) -> sc.Table:
         n = rules.output_column
         table = table.set_column(table.column_names.index(n), n, new_col)
     else:
-        table = table.append_column(rules.output_column, new_col)
+        kind = VTableFieldKind.LABEL if rules.as_label else VTableFieldKind.FEATURE
+        field = VTableField.pa_field(rules.output_column, new_col.dtype, kind)
+        table = table.append_column(field, new_col)
 
     return table
 
 
-@case_when.eval_fn
-def case_when_eval_fn(
-    *,
-    ctx,
-    rules: CaseWhenRule,
-    input_dataset,
-    out_rules,
-    output_dataset,
-):
-    assert (
-        input_dataset.type == DistDataType.VERTICAL_TABLE
-    ), "only support vtable for now"
+@register(domain='preprocessing', version='1.0.0')
+class CaseWhen(PreprocessingMixin, Component):
+    '''
+    case_when
+    '''
 
-    assert len(rules.output_column), "output_column can not be empty"
-    assert (
-        rules.float_epsilon > 0 and rules.float_epsilon < 1
-    ), f"float_epsilon range (0, 1), got {rules.float_epsilon}"
-
-    rule_features = get_rule_features(rules)
-
-    str_rule = MessageToJson(rules, indent=0)
-
-    def _transform(data: pd.DataFrame):
-        import secretflow.spec.extend.case_when_rules_pb2 as pb
-
-        rules = Parse(str_rule, pb.CaseWhenRule())
-        data = apply_case_when_rule(sc.Table.from_pandas(data), rules)
-        rules_cols = [rules.output_column] if rules.as_label else []
-        return data, rules_cols, None
-
-    (output_dd, model_dd, _) = v_preprocessing_transform(
-        ctx,
-        input_dataset,
-        rule_features,
-        _transform,
-        output_dataset,
-        out_rules,
-        "Case When",
+    rules: CaseWhenRule = Field.custom_attr(desc="input CaseWhen rules")
+    input_ds: Input = Field.input(
+        desc="Input vertical table.",
+        types=[DistDataType.VERTICAL_TABLE],
+    )
+    output_ds: Output = Field.output(
+        desc="output_dataset",
+        types=[DistDataType.VERTICAL_TABLE],
+    )
+    output_rule: Output = Field.output(
+        desc="case when substitution rule",
+        types=[DistDataType.PREPROCESSING_RULE],
     )
 
-    return {"out_rules": model_dd, "output_dataset": output_dd}
+    def evaluate(self, ctx: Context):
+        if len(self.rules.output_column) == 0:
+            raise EvalParamError.missing_or_none_param("output_column can not be empty")
+        if not (self.rules.float_epsilon > 0 and self.rules.float_epsilon < 1):
+            SFTrainingHyperparameterError.out_of_range(
+                f"float_epsilon range (0, 1), got {self.rules.float_epsilon}"
+            )
+
+        rule_features = self.get_rule_features()
+
+        str_rule = MessageToJson(self.rules, indent=0)
+
+        def _fit(df: sc.Table) -> sc.Table:
+            import secretflow.spec.extend.case_when_rules_pb2 as pb
+
+            rules = Parse(str_rule, pb.CaseWhenRule())
+            data = apply_case_when_rule(df, rules)
+            return data
+
+        input_tbl = VTable.from_distdata(self.input_ds)
+        tran_tbl = input_tbl.select(rule_features)
+        rule = self.fit(ctx, self.output_rule, tran_tbl, _fit)
+        self.transform(ctx, self.output_ds, input_tbl, rule)
+
+    def get_rule_features(self) -> list[str]:
+        fs = []
+
+        def _get_value_f(value: CaseWhenRule.ValueExpr):
+            assert value.type != CaseWhenRule.ValueExpr.ValueType.INVAL
+            if value.type == CaseWhenRule.ValueExpr.ValueType.COLUMN:
+                fs.append(value.column_name)
+
+        for when in self.rules.whens:
+            for cond in when.conds:
+                fs.append(cond.cond_column)
+                _get_value_f(cond.cond_value)
+            _get_value_f(when.then)
+
+        _get_value_f(self.rules.else_value)
+
+        fs_map = {n: idx for idx, n in enumerate(fs)}
+        return list(fs_map.keys())
+
+    def export(self, ctx: Context, builder: ServingBuilder) -> None:
+        self.do_export(ctx, builder, self.input_ds, self.output_rule.data)

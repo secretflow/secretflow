@@ -62,11 +62,8 @@ class RayConfig:
                 f'--worker-port-list={",".join(map(str, self.ray_worker_ports))}'
             )
         elif self.ray_min_worker_port & self.ray_max_worker_port:
-            ray_cmd += (
-                f" --min-worker-port={self.ray_min_worker_port}"
-                f" --max-worker-port={self.ray_max_worker_port}"
-            )
-
+            ray_cmd.append(f"--min-worker-port={self.ray_min_worker_port}")
+            ray_cmd.append(f"--max-worker-port={self.ray_max_worker_port}")
         return ray_cmd, envs
 
     @classmethod

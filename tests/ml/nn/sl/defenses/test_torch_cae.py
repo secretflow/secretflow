@@ -25,10 +25,10 @@ from torchvision import datasets, transforms
 
 import secretflow as sf
 from secretflow.data.ndarray import FedNdarray, PartitionWay
-from secretflow.ml.nn import SLModel
-from secretflow.ml.nn.applications.sl_resnet_torch import NaiveSumSoftmax
-from secretflow.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
-from secretflow.ml.nn.sl.defenses.confusional_autoencoder import CAEDefense
+from secretflow_fl.ml.nn import SLModel
+from secretflow_fl.ml.nn.applications.sl_resnet_torch import NaiveSumSoftmax
+from secretflow_fl.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
+from secretflow_fl.ml.nn.sl.defenses.confusional_autoencoder import CAEDefense
 from tests.ml.nn.sl.attack.model_def import (
     BottomModelForCifar10,
     BottomModelPlus,
@@ -65,10 +65,10 @@ def test_sl_and_defense(sf_simulation_setup_devices):
         optim_fn=optim_fn,
         metrics=[
             metric_wrapper(
-                Accuracy, task="multiclass", num_classes=10, average='micro'
+                Accuracy, task="multiclass", num_classes=10, average="micro"
             ),
             metric_wrapper(
-                Precision, task="multiclass", num_classes=10, average='micro'
+                Precision, task="multiclass", num_classes=10, average="micro"
             ),
         ],
     )
@@ -79,10 +79,10 @@ def test_sl_and_defense(sf_simulation_setup_devices):
         optim_fn=optim_fn,
         metrics=[
             metric_wrapper(
-                Accuracy, task="multiclass", num_classes=10, average='micro'
+                Accuracy, task="multiclass", num_classes=10, average="micro"
             ),
             metric_wrapper(
-                Precision, task="multiclass", num_classes=10, average='micro'
+                Precision, task="multiclass", num_classes=10, average="micro"
             ),
         ],
     )
@@ -100,13 +100,13 @@ def test_sl_and_defense(sf_simulation_setup_devices):
         compressor=None,
         simulation=True,
         random_seed=1234,
-        backend='torch',
-        strategy='split_nn',
+        backend="torch",
+        strategy="split_nn",
     )
 
     cae_cb = CAEDefense(
         defense_party=device_y,
-        exec_device='cpu',
+        exec_device="cpu",
         autoencoder_epochs=1,
         train_sample_size=10000,
         test_sample_size=2000,
@@ -122,7 +122,7 @@ def test_sl_and_defense(sf_simulation_setup_devices):
         random_seed=1234,
         callbacks=[cae_cb],
     )
-    print('history: ', history)
+    print("history: ", history)
 
     res = sf.reveal(sl_model.predict(fed_data, callbacks=[cae_cb]))
     assert res[0].size()[0] == sample_size

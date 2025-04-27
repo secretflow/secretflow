@@ -21,8 +21,8 @@ from benchmark_examples.autoattack.applications.base import (
 from benchmark_examples.autoattack.attacks.base import AttackBase, AttackType
 from benchmark_examples.autoattack.utils.resources import ResourcesPack
 from secretflow import reveal
-from secretflow.ml.nn.callbacks.attack import AttackCallback
-from secretflow.ml.nn.sl.attacks.norm_torch import NormAttack
+from secretflow_fl.ml.nn.callbacks.attack import AttackCallback
+from secretflow_fl.ml.nn.sl.attacks.norm_torch import NormAttack
 
 
 class NormAttackCase(AttackBase):

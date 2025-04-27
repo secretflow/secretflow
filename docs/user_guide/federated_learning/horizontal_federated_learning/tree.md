@@ -46,7 +46,7 @@ from secretflow.data.horizontal import read_csv
 from secretflow.security.aggregation import SecureAggregator
 from secretflow.security.compare import SPUComparator
 from secretflow.utils.simulation.datasets import load_dermatology
-from secretflow.ml.boost.homo_boost import SFXgboost
+from secretflow_fl.ml.boost.homo_boost import SFXgboost
 import secretflow as sf
 
 # In case you have a running secretflow runtime already.

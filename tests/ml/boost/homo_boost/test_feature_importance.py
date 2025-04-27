@@ -14,7 +14,7 @@
 
 import copy
 
-from secretflow.ml.boost.homo_boost.tree_core.feature_importance import (
+from secretflow_fl.ml.boost.homo_boost.tree_core.feature_importance import (
     FeatureImportance,
 )
 
@@ -22,7 +22,7 @@ from secretflow.ml.boost.homo_boost.tree_core.feature_importance import (
 class TestFeatureImportance:
     def test_feature_importance_split(self):
         feature_importance = FeatureImportance(
-            main_importance=5, other_importance=2.57, main_type='split'
+            main_importance=5, other_importance=2.57, main_type="split"
         )
 
         # test add_gain
@@ -63,7 +63,7 @@ class TestFeatureImportance:
 
     def test_feature_importance_gain(self):
         feature_importance = FeatureImportance(
-            main_importance=2.57, other_importance=5, main_type='gain'
+            main_importance=2.57, other_importance=5, main_type="gain"
         )
 
         # test add_gain

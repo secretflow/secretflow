@@ -1,0 +1,68 @@
+name: SecretFlow Feature Request Template
+description: Submit a request for a new feature
+title: "[Feature]: "
+body:
+  - type: dropdown
+    id: feature-type
+    attributes:
+      label: Feature Request Type
+      description: What category does your feature request fall under?
+      multiple: false
+      options:
+        - Build/Installation
+        - Performance
+        - Support
+        - Usability
+        - Documentation
+        - Currentness/Accuracy
+        - Others
+    validations:
+      required: true
+
+  - type: dropdown
+    id: resolution-preference
+    attributes:
+      label: Resolution Preference
+      description: Would you like to work on this feature yourself, or would you prefer the SecretFlow Team or Community to handle it?
+      multiple: false
+      options:
+        - I would like to contribute!
+        - I hope the SecretFlow Team or Community can assist!
+    validations:
+      required: true
+
+  - type: dropdown
+    id: search-check
+    attributes:
+      label: Existing Issue Search
+      description: Have you checked for existing issues to avoid duplication?
+      options: ['Yes', 'No']
+    validations:
+      required: true
+
+  - type: textarea
+    id: justification
+    attributes:
+      label: Feature Justification
+      description: Please explain why this feature is important or necessary.
+      value: 
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-feature
+    attributes:
+      label: Feature Description
+      description: Provide a clear and concise description of the desired feature.
+      value: 
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Describe any alternative solutions or features you've considered.
+      value: 
+    validations:
+      required: true

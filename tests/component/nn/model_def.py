@@ -18,7 +18,7 @@ MODELS_CODE = """
 # from tensorflow import Module, keras
 # from tensorflow.keras import Model, layers
 # from tensorflow.keras.layers import Layer
-# from secretflow.ml.nn import applications as apps
+# from secretflow_fl.ml.nn import applications as apps
 
 
 def create_base_model(input_dim, output_dim):

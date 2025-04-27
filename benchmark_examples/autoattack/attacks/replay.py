@@ -20,8 +20,8 @@ from benchmark_examples.autoattack import global_config
 from benchmark_examples.autoattack.applications.base import ApplicationBase
 from benchmark_examples.autoattack.attacks.base import AttackBase, AttackType
 from benchmark_examples.autoattack.utils.resources import ResourcesPack
-from secretflow.ml.nn.callbacks.attack import AttackCallback
-from secretflow.ml.nn.sl.attacks.replay_attack_torch import ReplayAttack
+from secretflow_fl.ml.nn.callbacks.attack import AttackCallback
+from secretflow_fl.ml.nn.sl.attacks.replay_attack_torch import ReplayAttack
 
 
 class ReplayAttackCase(AttackBase):
@@ -82,7 +82,7 @@ class ReplayAttackCase(AttackBase):
     def update_resources_consumptions(
         self, cluster_resources_pack: ResourcesPack, app: ApplicationBase
     ) -> ResourcesPack:
-        func = lambda x: x * 1.16
+        update_gpu = lambda x: x * 1.16
         return cluster_resources_pack.apply_debug_resources(
-            'gpu_mem', func
-        ).apply_sim_resources(app.device_f.party, 'gpu_mem', func)
+            'gpu_mem', update_gpu
+        ).apply_sim_resources(app.device_f.party, 'gpu_mem', update_gpu)

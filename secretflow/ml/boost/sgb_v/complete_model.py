@@ -26,11 +26,9 @@ import numpy as np
 
 from secretflow.device import PYU, PYUObject
 
-from .complete_tree import (
-    CompleteTree,
-    from_dict as complete_tree_from_dict,
-    from_distributed_tree,
-)
+from .complete_tree import CompleteTree
+from .complete_tree import from_dict as complete_tree_from_dict
+from .complete_tree import from_distributed_tree
 from .core.params import RegType
 from .core.pure_numpy_ops.pred import sigmoid
 from .model import SgbModel

@@ -25,9 +25,9 @@ from torchmetrics import AUROC, Accuracy, Precision
 
 import secretflow as sf
 from secretflow.data.vertical import read_csv
-from secretflow.ml.nn import SLModel
-from secretflow.ml.nn.core.torch import metric_wrapper, optim_wrapper
-from secretflow.ml.nn.utils import TorchModel
+from secretflow_fl.ml.nn import SLModel
+from secretflow_fl.ml.nn.core.torch import metric_wrapper, optim_wrapper
+from secretflow_fl.ml.nn.utils import TorchModel
 
 # Check the version of your SecretFlow
 print('The version of SecretFlow: {}'.format(sf.__version__))
