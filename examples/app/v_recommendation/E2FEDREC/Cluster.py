@@ -39,7 +39,7 @@ def k_means(num_clusters, embeddings):
     return centroids_matrix, cluster_labels
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     dataset_names = ["movie", "music", "book"]
     num_clusters = 64
     k_size = 8
@@ -53,8 +53,11 @@ if __name__ == '__main__':
         node_vectors = torch.tensor(model.wv.vectors, dtype=torch.float32)
 
         all_node_keys = [str(i) for i in range(num_users + num_items)]
-        valid_indices = [model.wv.key_to_index[key]
-                         for key in all_node_keys if key in model.wv.key_to_index]
+        valid_indices = [
+            model.wv.key_to_index[key]
+            for key in all_node_keys
+            if key in model.wv.key_to_index
+        ]
         node_vectors = node_vectors[valid_indices]
 
         user_indices = np.arange(num_users)
@@ -73,12 +76,13 @@ if __name__ == '__main__':
 
         # Save clustering results
         results = {
-            'user_centroids': user_centroids,
-            'user_labels': user_labels,
-            'item_centroids': item_centroids,
-            'item_labels': item_labels
+            "user_centroids": user_centroids,
+            "user_labels": user_labels,
+            "item_centroids": item_centroids,
+            "item_labels": item_labels,
         }
-        with open(f'clustering_results_{dataset_name}.pkl', 'wb') as f:
+        with open(f"clustering_results_{dataset_name}.pkl", "wb") as f:
             pickle.dump(results, f)
         print(
-            f"Clustering results for {dataset_name} saved as clustering_results_{dataset_name}.pkl")
+            f"Clustering results for {dataset_name} saved as clustering_results_{dataset_name}.pkl"
+        )

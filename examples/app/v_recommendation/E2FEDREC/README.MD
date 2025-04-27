@@ -1,6 +1,20 @@
-# E2FedRec: Dual-Augmentation Based Cross-Domain Recommendation
+# Copyright 2024 Ant Group Co., Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-**E2FedRec** is a contrastive-learning-based cross-domain recommendation framework designed to tackle data sparsity and domain discrepancy problems. It leverages both **intra-domain** and **inter-domain** contrastive learning to enhance user and item embeddings and improve recommendation performance across domains.
+# E2Rec: Dual-Augmentation Based Cross-Domain Recommendation
+
+**E2Rec** is a contrastive-learning-based cross-domain recommendation framework designed to tackle data sparsity and domain discrepancy problems. It leverages both **intra-domain** and **inter-domain** contrastive learning to enhance user and item embeddings and improve recommendation performance across domains.
 
 ---
 
@@ -11,7 +25,7 @@ Traditional cross-domain recommendation models struggle with:
 - Significant differences in user behaviors and item semantics;
 - Ineffective representation transfer across heterogeneous domains.
 
-To address these challenges, **E2FedRec** introduces a dual-augmentation framework:
+To address these challenges, **E2Rec** introduces a dual-augmentation framework:
 - **Intra-domain contrastive learning** to improve local embedding quality.
 - **Inter-domain contrastive learning** to align user embeddings across domains.
 
@@ -19,7 +33,7 @@ To address these challenges, **E2FedRec** introduces a dual-augmentation framewo
 
 ## 🧠 Technical Architecture
 
-E2FedRec includes two main modules and one joint training objective:
+E2Rec includes two main modules and one joint training objective:
 
 ### 1. Intra-domain Contrastive Learning
 

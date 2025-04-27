@@ -29,11 +29,11 @@ class DataSet(object):
 
     def getData(self, fileName):
         data = []
-        filePath = './Data/' + fileName + '/ratings.dat'
+        filePath = "./Data/" + fileName + "/ratings.dat"
         u = 0
         i = 0
         maxr = 0.0
-        with open(filePath, 'r') as f:
+        with open(filePath, "r") as f:
             for line in f:
                 if line:
                     lines = line.split("\t")
