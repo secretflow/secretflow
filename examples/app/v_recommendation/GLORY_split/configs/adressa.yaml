@@ -1,0 +1,49 @@
+# @package _global_
+
+# specify here default configuration
+# order of defaults determines the order in which configs override each other
+defaults:
+  - default
+  - override dataset: AdressaSmall
+  - override model: GLORY
+  - _self_
+
+optimizer:
+  lr: 0.00001
+
+num_epochs: 5
+batch_size: 32            # dataloaders'batch_size = batch_size / gpu_num
+accumulation_steps: 1   # final acutal batch_size = batch_size * accumulation_steps
+gpu_num: 4
+
+# load or not
+load_checkpoint: false
+load_mark: base_e4
+train_mode: true
+val_mode: true
+
+model:
+  use_entity: false
+  entity_neighbors: 10
+  head_num: 20
+  head_dim: 20
+  use_graph_type: 0
+  directed: true
+  num_neighbors: 8
+  k_hops: 2
+  
+logger:
+  exp_name: Final_Version
+  run_name: ${model.model_name}_${dataset.dataset_name}_b${batch_size}
+
+ml_label: adressa
+
+num_workers: 4
+early_stop_patience: 5
+reprocess: false
+reprocess_neighbors: false
+warmup_ratio: 0.1
+log_steps: 1000
+
+val_skip_epochs: 2
+val_steps: 1000

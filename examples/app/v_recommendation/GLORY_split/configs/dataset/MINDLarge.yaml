@@ -1,0 +1,19 @@
+defaults:
+  - _self_
+  - default
+
+dataset_name: MINDlarge
+dataset_dir: ${path.data_dir}/MINDlarge
+dataset_lang: english
+
+train_len: 2232748
+val_len: 376471
+test_len: 2370727
+
+pos_count: 3383656
+
+# Info
+word_num: 101232
+user_num: 711223
+category_num: 18
+subcategory_num: 285

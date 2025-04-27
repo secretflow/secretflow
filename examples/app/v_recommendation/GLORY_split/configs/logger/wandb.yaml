@@ -1,0 +1,2 @@
+exp_name: News_Recommendation
+run_name: ${model.model_name}_${dataset.dataset_name}_b${batch_size}
