@@ -1,0 +1,8 @@
+dataset
+acc
+result
+.idea
+
+*.pth
+*.npy
+
