@@ -12,7 +12,9 @@ from torch import nn
 
 @proxy(PYUObject)
 class Server(object):
-    def __init__(self, train_global, test_global, all_train_data_num, client_num, dev, args):
+    def __init__(
+        self, train_global, test_global, all_train_data_num, client_num, dev, args
+    ):
         self.train_global = train_global
         self.test_global = test_global
         self.all_train_data_num = all_train_data_num
@@ -42,13 +44,31 @@ class Server(object):
         criterion = nn.CrossEntropyLoss().to(self.dev)
         if self.args.stage == "search":
             if self.args.dataset == "mnist":
-                model = EMNIST(self.args.init_channels, self.args.num_classes, self.args.layers, criterion, self.dev)
+                model = EMNIST(
+                    self.args.init_channels,
+                    self.args.num_classes,
+                    self.args.layers,
+                    criterion,
+                    self.dev,
+                )
             else:
-                model = Network(self.args.init_channels, self.args.num_classes, self.args.layers, criterion, self.dev)
+                model = Network(
+                    self.args.init_channels,
+                    self.args.num_classes,
+                    self.args.layers,
+                    criterion,
+                    self.dev,
+                )
         else:
             genotype = genotypes.FedNAS_V1
             logging.info(genotype)
-            model = NetworkCIFAR(self.args.init_channels, self.args.num_classes, self.args.layers, self.args.auxiliary, genotype)
+            model = NetworkCIFAR(
+                self.args.init_channels,
+                self.args.num_classes,
+                self.args.layers,
+                self.args.auxiliary,
+                genotype,
+            )
         return model
 
     def get_model(self):
@@ -81,7 +101,6 @@ class Server(object):
         if self.args.stage == "search":
             averaged_alphas = self.__aggregate_alpha()
             self.__update_arch(averaged_alphas)
-
 
     def __update_arch(self, alphas):
         logging.info("update_arch. server.")
@@ -139,23 +158,29 @@ class Server(object):
         train_loss_list = self.train_loss_dict.values()
         train_loss_avg = sum(train_loss_list) / len(train_loss_list)
 
-        log_msg = f'Round {round_idx:3d}, Average Train Accuracy {self.train_acc_avg:.3f}, ' \
-                  f'Average Train Loss {train_loss_avg:.3f}\n'
+        log_msg = (
+            f"Round {round_idx:3d}, Average Train Accuracy {self.train_acc_avg:.3f}, "
+            f"Average Train Loss {train_loss_avg:.3f}\n"
+        )
 
-        log_msg += f'Round {round_idx:3d}, Average Validation Accuracy {self.test_acc_avg:.3f}, ' \
-                   f'Average Validation Loss {self.test_loss_avg:.3f}\n'
+        log_msg += (
+            f"Round {round_idx:3d}, Average Validation Accuracy {self.test_acc_avg:.3f}, "
+            f"Average Validation Loss {self.test_loss_avg:.3f}\n"
+        )
 
         acc_gap = self.train_acc_avg - self.test_loss_avg
         log_msg += f"search_train_valid_acc_gap {acc_gap:.3f}\n"
 
-        with open("./result/Acc_and_loss.log", 'a') as log_file:
+        with open("./result/Acc_and_loss.log", "a") as log_file:
             log_file.write(log_msg)
-
 
     def infer(self, round_idx):
         self.model.eval()
         self.model.to(self.dev)
-        if round_idx % self.args.report_freq == 0 or round_idx == self.args.comm_round - 1:
+        if (
+            round_idx % self.args.report_freq == 0
+            or round_idx == self.args.comm_round - 1
+        ):
             start_time = time.time()
             test_correct = 0.0
             test_loss = 0.0
@@ -179,7 +204,10 @@ class Server(object):
                     test_correct += correct.item()
                     test_loss += loss.item() * target.size(0)
                     test_sample_number += target.size(0)
-                logging.info("server test. round_idx = %d, test_loss = %s" % (round_idx, test_loss))
+                logging.info(
+                    "server test. round_idx = %d, test_loss = %s"
+                    % (round_idx, test_loss)
+                )
 
             self.test_acc_avg = test_correct / test_sample_number
             self.test_loss_avg = test_loss
@@ -191,11 +219,13 @@ class Server(object):
         genotype, normal_cnn_count, reduce_cnn_count = self.model.genotype()
 
         logging.info("(n:%d,r:%d)" % (normal_cnn_count, reduce_cnn_count))
-        logging.info('genotype = %s', genotype)
+        logging.info("genotype = %s", genotype)
         self.architecture_file.write(f"Round {round_idx}: Genotype = {str(genotype)}\n")
 
         cnn_count = normal_cnn_count * 10 + reduce_cnn_count
-        self.architecture_file.write(f"searching_cnn_count({cnn_count}): {self.test_acc_avg}, epoch: {round_idx}\n")
+        self.architecture_file.write(
+            f"searching_cnn_count({cnn_count}): {self.test_acc_avg}, epoch: {round_idx}\n"
+        )
 
         if cnn_count not in self.best_accuracy_different_cnn_counts.keys():
             self.best_accuracy_different_cnn_counts[cnn_count] = self.test_acc_avg
@@ -205,7 +235,8 @@ class Server(object):
 
         if self.test_acc_avg > self.best_accuracy:
             self.best_accuracy = self.test_acc_avg
-            self.best_valid_accuracy_file.write(f"Round {round_idx}: New Best validation accuracy: {self.best_accuracy}\n")
+            self.best_valid_accuracy_file.write(
+                f"Round {round_idx}: New Best validation accuracy: {self.best_accuracy}\n"
+            )
             with open("./result/global_model.txt", "w") as file:
                 file.write(f"Genotype = {str(genotype)}")
-
