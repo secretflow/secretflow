@@ -194,7 +194,7 @@ def create_fuse_model_agglayer(input_dim, output_dim, name='fuse_model'):
 
 - 使用builtin的`agg_method`
 ```python
-from secretflow.ml.nn.sl.agglayer.agg_method import Average, Sum, Concat
+from secretflow_fl.ml.nn.sl.agglayer.agg_method import Average, Sum, Concat
 sl_model = SLModel(
     base_model_dict=reload_base_model_dict,
     device_y=device_y,

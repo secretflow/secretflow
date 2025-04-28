@@ -20,14 +20,14 @@ from torchmetrics import AUROC, Accuracy, Precision
 
 from secretflow.data.ndarray import FedNdarray, PartitionWay
 from secretflow.device import reveal
-from secretflow.ml.nn import SLModel
-from secretflow.ml.nn.applications.sl_resnet_torch import (
+from secretflow_fl.ml.nn import SLModel
+from secretflow_fl.ml.nn.applications.sl_resnet_torch import (
     BasicBlock,
     NaiveSumSoftmax,
     ResNetBase,
 )
-from secretflow.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
-from secretflow.ml.nn.sl.attacks.replay_attack_torch import ReplayAttack
+from secretflow_fl.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
+from secretflow_fl.ml.nn.sl.attacks.replay_attack_torch import ReplayAttack
 
 batch_size = 8
 
@@ -108,10 +108,10 @@ def test_replay_attack(sf_simulation_setup_devices):
         optim_fn=optim_fn,
         metrics=[
             metric_wrapper(
-                Accuracy, task="multiclass", num_classes=10, average='micro'
+                Accuracy, task="multiclass", num_classes=10, average="micro"
             ),
             metric_wrapper(
-                Precision, task="multiclass", num_classes=10, average='micro'
+                Precision, task="multiclass", num_classes=10, average="micro"
             ),
             metric_wrapper(AUROC, task="multiclass", num_classes=10),
         ],
@@ -126,10 +126,10 @@ def test_replay_attack(sf_simulation_setup_devices):
         optim_fn=optim_fn,
         metrics=[
             metric_wrapper(
-                Accuracy, task="multiclass", num_classes=10, average='micro'
+                Accuracy, task="multiclass", num_classes=10, average="micro"
             ),
             metric_wrapper(
-                Precision, task="multiclass", num_classes=10, average='micro'
+                Precision, task="multiclass", num_classes=10, average="micro"
             ),
             metric_wrapper(AUROC, task="multiclass", num_classes=10),
         ],
@@ -158,8 +158,8 @@ def test_replay_attack(sf_simulation_setup_devices):
         model_fuse=fuse_model,
         simulation=True,
         random_seed=1234,
-        backend='torch',
-        strategy='split_nn',
+        backend="torch",
+        strategy="split_nn",
     )
 
     # just to pass fit(data, label), dataloader will generate data itself

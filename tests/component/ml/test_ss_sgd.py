@@ -18,55 +18,41 @@ import numpy as np
 import pandas as pd
 import pytest
 from google.protobuf.json_format import MessageToJson
-from secretflow.component.data_utils import DistDataType
-from secretflow.component.ml.eval.regression_eval import regression_eval_comp
-from secretflow.component.ml.linear.ss_sgd import ss_sgd_predict_comp, ss_sgd_train_comp
-from secretflow.component.storage import ComponentStorage
-from secretflow.spec.v1.component_pb2 import Attribute
+from sklearn.datasets import load_breast_cancer
+from sklearn.metrics import r2_score
+from sklearn.preprocessing import StandardScaler
+
+from secretflow.component.core import DistDataType, build_node_eval_param, make_storage
+from secretflow.component.entry import comp_eval
 from secretflow.spec.v1.data_pb2 import (
     DistData,
     IndividualTable,
     TableSchema,
     VerticalTable,
 )
-from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 from secretflow.spec.v1.report_pb2 import Report
-from sklearn.datasets import load_breast_cancer
-from sklearn.metrics import r2_score
-from sklearn.preprocessing import StandardScaler
 
 g_test_epoch = 3
 
 
 def get_train_param(alice_path, bob_path, model_path, report_path, checkpoint_path):
-    return NodeEvalParam(
+    return build_node_eval_param(
         domain="ml.train",
         name="ss_sgd_train",
-        version="0.0.1",
-        attr_paths=[
-            "epochs",
-            "learning_rate",
-            "batch_size",
-            "sig_type",
-            "reg_type",
-            "penalty",
-            "l2_norm",
-            "report_weights",
-            "input/train_dataset/label",
-            "input/train_dataset/feature_selects",
-        ],
-        attrs=[
-            Attribute(i64=g_test_epoch),
-            Attribute(f=0.3),
-            Attribute(i64=128),
-            Attribute(s="t1"),
-            Attribute(s="logistic"),
-            Attribute(s="l2"),
-            Attribute(f=0.05),
-            Attribute(b=True),
-            Attribute(ss=["y"]),
-            Attribute(ss=[f"a{i}" for i in range(15)] + [f"b{i}" for i in range(15)]),
-        ],
+        version="1.0.0",
+        attrs={
+            "epochs": g_test_epoch,
+            "learning_rate": 0.3,
+            "batch_size": 128,
+            "sig_type": "t1",
+            "reg_type": "logistic",
+            "penalty": "l2",
+            "l2_norm": 0.05,
+            "report_weights": True,
+            "input/input_ds/label": ["y"],
+            "input/input_ds/feature_selects": [f"a{i}" for i in range(15)]
+            + [f"b{i}" for i in range(15)],
+        },
         inputs=[
             DistData(
                 name="train_dataset",
@@ -83,24 +69,17 @@ def get_train_param(alice_path, bob_path, model_path, report_path, checkpoint_pa
 
 
 def get_pred_param(alice_path, bob_path, train_res, predict_path):
-    return NodeEvalParam(
+    return build_node_eval_param(
         domain="ml.predict",
         name="ss_sgd_predict",
-        version="0.0.2",
-        attr_paths=[
-            "batch_size",
-            "receiver",
-            "save_ids",
-            "save_label",
-            "input/feature_dataset/saved_features",
-        ],
-        attrs=[
-            Attribute(i64=128),
-            Attribute(ss=["alice"]),
-            Attribute(b=False),
-            Attribute(b=True),
-            Attribute(ss=["a2", "a10"]),
-        ],
+        version="1.0.0",
+        attrs={
+            "batch_size": 128,
+            "receiver": ["alice"],
+            "save_ids": False,
+            "save_label": True,
+            "input/input_ds/saved_features": ["a2", "a10"],
+        },
         inputs=[
             train_res.outputs[0],
             DistData(
@@ -117,26 +96,21 @@ def get_pred_param(alice_path, bob_path, train_res, predict_path):
 
 
 def get_eval_param(predict_path):
-    return NodeEvalParam(
+    return build_node_eval_param(
         domain="ml.eval",
         name="regression_eval",
-        version="0.0.1",
-        attr_paths=[
-            "bucket_size",
-            "input/in_ds/label",
-            "input/in_ds/prediction",
-        ],
-        attrs=[
-            Attribute(i64=2),
-            Attribute(ss=["y"]),
-            Attribute(ss=["pred"]),
-        ],
+        version="1.0.0",
+        attrs={
+            "bucket_size": 2,
+            "input/input_ds/label": ["y"],
+            "input/input_ds/prediction": ["pred"],
+        },
         inputs=[
             DistData(
                 name="in_ds",
                 type=str(DistDataType.INDIVIDUAL_TABLE),
                 data_refs=[
-                    DistData.DataRef(uri=predict_path, party="alice", format="csv"),
+                    DistData.DataRef(uri=predict_path, party="alice", format="orc"),
                 ],
             ),
         ],
@@ -147,7 +121,7 @@ def get_eval_param(predict_path):
 def get_meta_and_dump_data(comp_prod_sf_cluster_config, alice_path, bob_path):
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    comp_storage = ComponentStorage(storage_config)
+    storage = make_storage(storage_config)
     scaler = StandardScaler()
     ds = load_breast_cancer()
     x, y = scaler.fit_transform(ds["data"]), ds["target"]
@@ -155,11 +129,11 @@ def get_meta_and_dump_data(comp_prod_sf_cluster_config, alice_path, bob_path):
         x = pd.DataFrame(x[:, :15], columns=[f"a{i}" for i in range(15)])
         y = pd.DataFrame(y, columns=["y"])
         ds = pd.concat([x, y], axis=1)
-        ds.to_csv(comp_storage.get_writer(alice_path), index=False)
+        ds.to_csv(storage.get_writer(alice_path), index=False)
 
     elif self_party == "bob":
         ds = pd.DataFrame(x[:, 15:], columns=[f"b{i}" for i in range(15)])
-        ds.to_csv(comp_storage.get_writer(bob_path), index=False)
+        ds.to_csv(storage.get_writer(bob_path), index=False)
 
     return VerticalTable(
         schemas=[
@@ -195,7 +169,7 @@ def test_ss_sgd(comp_prod_sf_cluster_config, with_checkpoint):
     meta = get_meta_and_dump_data(comp_prod_sf_cluster_config, alice_path, bob_path)
     train_param.inputs[0].meta.Pack(meta)
 
-    train_res = ss_sgd_train_comp.eval(
+    train_res = comp_eval(
         param=train_param,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,
@@ -212,7 +186,7 @@ def test_ss_sgd(comp_prod_sf_cluster_config, with_checkpoint):
         predict_param = get_pred_param(alice_path, bob_path, train_res, predict_path)
         predict_param.inputs[1].meta.Pack(meta)
 
-        predict_res = ss_sgd_predict_comp.eval(
+        predict_res = comp_eval(
             param=predict_param,
             storage_config=storage_config,
             cluster_config=sf_cluster_config,
@@ -221,9 +195,11 @@ def test_ss_sgd(comp_prod_sf_cluster_config, with_checkpoint):
         assert len(predict_res.outputs) == 1
 
         if "alice" == sf_cluster_config.private_config.self_party:
-            comp_storage = ComponentStorage(storage_config)
-            input_y = pd.read_csv(comp_storage.get_reader(alice_path))
-            output_y = pd.read_csv(comp_storage.get_reader(predict_path))
+            storage = make_storage(storage_config)
+            input_y = pd.read_csv(storage.get_reader(alice_path))
+            from pyarrow import orc
+
+            output_y = orc.read_table(storage.get_reader(predict_path)).to_pandas()
 
             # label & pred
             assert output_y.shape[1] == 4
@@ -241,7 +217,7 @@ def test_ss_sgd(comp_prod_sf_cluster_config, with_checkpoint):
         )
         eval_param.inputs[0].meta.Pack(eval_meta)
 
-        eval_res = regression_eval_comp.eval(
+        eval_res = comp_eval(
             param=eval_param,
             storage_config=storage_config,
             cluster_config=sf_cluster_config,
@@ -262,13 +238,13 @@ def test_ss_sgd(comp_prod_sf_cluster_config, with_checkpoint):
     if with_checkpoint:
         cp_num = g_test_epoch - 1
         if 'alice' == sf_cluster_config.private_config.self_party:
-            comp_storage = ComponentStorage(storage_config)
+            storage = make_storage(storage_config)
             for i in range(int(cp_num / 2), cp_num):
-                with comp_storage.get_writer(f"{checkpoint_path}_{i}") as f:
+                with storage.get_writer(f"{checkpoint_path}_{i}") as f:
                     # destroy some checkpoint to rollback train progress
                     f.write(b"....")
         train_param.output_uris[0] = f"{work_path}/model.sf.2"
-        train_res = ss_sgd_train_comp.eval(
+        train_res = comp_eval(
             param=train_param,
             storage_config=storage_config,
             cluster_config=sf_cluster_config,

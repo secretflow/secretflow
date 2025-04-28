@@ -43,6 +43,8 @@ header: # <1>
     - '**/*.tmpl'
     - '**/*.policy'
     - '**/*_pb2.py'
+    - '**/*_grpc.py'
+    - '**/*.pyi'
     - 'LICENSE'
     - 'NOTICE'
     - '.bazelversion'

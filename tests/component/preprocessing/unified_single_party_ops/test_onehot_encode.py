@@ -14,23 +14,25 @@
 
 import logging
 
-import numpy as np
 import pandas as pd
+import pyarrow as pa
+from pyarrow import orc
 
 import secretflow.compute as sc
-from secretflow.component.data_utils import DistDataType, VerticalTableWrapper
+from secretflow.component.core import (
+    VTable,
+    VTableField,
+    VTableFieldKind,
+    VTableParty,
+    build_node_eval_param,
+    make_storage,
+)
+from secretflow.component.entry import comp_eval
 from secretflow.component.preprocessing.unified_single_party_ops.onehot_encode import (
-    apply_onehot_rule_on_table,
-    onehot_encode,
     _onehot_encode_fit,
+    apply_onehot_rule_on_table,
 )
-from secretflow.component.preprocessing.unified_single_party_ops.substitution import (
-    substitution,
-)
-from secretflow.component.storage import ComponentStorage
-from secretflow.spec.v1.component_pb2 import Attribute
-from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
-from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
+from secretflow.spec.v1.data_pb2 import VerticalTable
 from secretflow.spec.v1.report_pb2 import Report
 
 
@@ -44,7 +46,7 @@ def test_onehot_encode(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    comp_storage = ComponentStorage(storage_config)
+    storage = make_storage(storage_config)
 
     if self_party == "alice":
         df_alice = pd.DataFrame(
@@ -57,7 +59,7 @@ def test_onehot_encode(comp_prod_sf_cluster_config):
             }
         )
         df_alice.to_csv(
-            comp_storage.get_writer(alice_input_path),
+            storage.get_writer(alice_input_path),
             index=False,
         )
     elif self_party == "bob":
@@ -69,31 +71,38 @@ def test_onehot_encode(comp_prod_sf_cluster_config):
             }
         )
         df_bob.to_csv(
-            comp_storage.get_writer(bob_input_path),
+            storage.get_writer(bob_input_path),
             index=False,
         )
 
-    param = NodeEvalParam(
+    param = build_node_eval_param(
         domain="preprocessing",
         name="onehot_encode",
-        version="0.0.3",
-        attr_paths=[
-            "drop",
-            "min_frequency",
-            "input/input_dataset/features",
-        ],
-        attrs=[
-            Attribute(s="first"),
-            Attribute(f=0.1),
-            Attribute(ss=["a1", "a2", "a3", "b5"]),
-        ],
+        version="1.0.0",
+        attrs={
+            "drop": "first",
+            "min_frequency": 0.1,
+            "input/input_ds/features": ["a1", "a2", "a3", "b5"],
+        },
         inputs=[
-            DistData(
+            VTable(
                 name="input_data",
-                type=str(DistDataType.VERTICAL_TABLE),
-                data_refs=[
-                    DistData.DataRef(uri=bob_input_path, party="bob", format="csv"),
-                    DistData.DataRef(uri=alice_input_path, party="alice", format="csv"),
+                parties=[
+                    VTableParty.from_dict(
+                        uri=bob_input_path,
+                        party="bob",
+                        format="csv",
+                        ids={"id2": "str"},
+                        features={"b4": "int32", "b5": "int32"},
+                    ),
+                    VTableParty.from_dict(
+                        uri=alice_input_path,
+                        party="alice",
+                        format="csv",
+                        ids={"id1": "str"},
+                        features={"a1": "str", "a2": "float32", "a3": "int32"},
+                        labels={"y": "float32"},
+                    ),
                 ],
             )
         ],
@@ -104,27 +113,7 @@ def test_onehot_encode(comp_prod_sf_cluster_config):
         ],
     )
 
-    meta = VerticalTable(
-        schemas=[
-            TableSchema(
-                id_types=["str"],
-                ids=["id2"],
-                feature_types=["int32", "int32"],
-                features=["b4", "b5"],
-            ),
-            TableSchema(
-                id_types=["str"],
-                ids=["id1"],
-                feature_types=["str", "float32", "int32"],
-                features=["a1", "a2", "a3"],
-                label_types=["float32"],
-                labels=["y"],
-            ),
-        ],
-    )
-    param.inputs[0].meta.Pack(meta)
-
-    res = onehot_encode.eval(
+    res = comp_eval(
         param=param,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,
@@ -137,19 +126,21 @@ def test_onehot_encode(comp_prod_sf_cluster_config):
 
     logging.warning(f"....... \n{report}\n.,......")
 
-    meta = VerticalTableWrapper.from_dist_data(res.outputs[0], 0)
+    meta = VerticalTable()
+    res.outputs[0].meta.Unpack(meta)
 
     logging.warning(f"...meta.... \n{meta}\n.,......")
 
-    param2 = NodeEvalParam(
+    param2 = build_node_eval_param(
         domain="preprocessing",
         name="substitution",
-        version="0.0.2",
+        version="1.0.0",
+        attrs=None,
         inputs=[param.inputs[0], res.outputs[1]],
         output_uris=[sub_path],
     )
 
-    res = substitution.eval(
+    res = comp_eval(
         param=param2,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,
@@ -158,25 +149,40 @@ def test_onehot_encode(comp_prod_sf_cluster_config):
     assert len(res.outputs) == 1
 
     if "alice" == sf_cluster_config.private_config.self_party:
-        comp_storage = ComponentStorage(storage_config)
-        a_out = pd.read_csv(comp_storage.get_reader(sub_path))
-        inplace_a_out = pd.read_csv(comp_storage.get_reader(inplace_encode_path))
+        a_out = orc.read_table(storage.get_reader(sub_path))
+        inplace_a_out = orc.read_table(storage.get_reader(inplace_encode_path))
 
-        logging.warning(f"....... \n{a_out}\n.,......")
+        assert set(a_out.column_names) == set(inplace_a_out.column_names)
+        col1 = a_out.column('y').combine_chunks()
+        col2 = inplace_a_out.column('y').combine_chunks()
+        diff = col1.diff(col2)
 
-        assert a_out.equals(inplace_a_out)
+        logging.debug(f'diff {diff}')
+
+        for col in a_out.column_names:
+            assert a_out.column(col).equals(
+                inplace_a_out.column(col)
+            ), f"column<{col}> different"
 
     if "alice" == sf_cluster_config.private_config.self_party:
-        comp_storage = ComponentStorage(storage_config)
-        b_out = pd.read_csv(comp_storage.get_reader(sub_path))
-        inplace_b_out = pd.read_csv(comp_storage.get_reader(inplace_encode_path))
+        b_out = orc.read_table(storage.get_reader(sub_path))
+        inplace_b_out = orc.read_table(storage.get_reader(inplace_encode_path))
 
-        assert b_out.equals(inplace_b_out)
-        logging.warning(f"....... \n{b_out}\n.,......")
+        assert set(b_out.column_names) == set(inplace_b_out.column_names)
+        for col in b_out.column_names:
+            assert b_out.column(col).equals(inplace_b_out.column(col))
 
     # example for how to trace compte without real data
     # for example, we only knows the schema of input
-    in_table = sc.Table.from_schema({"a": np.int32, "b": np.float32, "c": object})
+    in_table = sc.Table.from_schema(
+        pa.schema(
+            [
+                VTableField.pa_field("a", pa.int32(), VTableFieldKind.FEATURE),
+                VTableField.pa_field("b", pa.float32(), VTableFieldKind.FEATURE),
+                VTableField.pa_field("c", pa.string(), VTableFieldKind.FEATURE),
+            ]
+        )
+    )
     # and the onehot rules.
     rules = {"a": [[1], [2, 3]], "c": [["k", "m"]], "b": [[1.11]]}
     # build table from schema and apply rules on it.
@@ -206,32 +212,15 @@ def test_onehot_encode_fit(comp_prod_sf_cluster_config):
             "y": [0] * 17,
         }
     )
+    df = pa.Table.from_pandas(df)
 
     test_datas = [
         {
             "drop": "no_drop",
             "min_frequency": 0,
             "expected": {
-                'id1': [
-                    ['0'],
-                    ['1'],
-                    ['10'],
-                    ['11'],
-                    ['12'],
-                    ['13'],
-                    ['14'],
-                    ['15'],
-                    ['16'],
-                    ['2'],
-                    ['3'],
-                    ['4'],
-                    ['5'],
-                    ['6'],
-                    ['7'],
-                    ['8'],
-                    ['9'],
-                ],
-                'a1': [[''], ['F'], ['K'], ['M'], ['N']],
+                'id1': [[str(i)] for i in range(17)],
+                'a1': [['K'], ['F'], [''], ['M'], ['N']],
                 'a2': [[0.1], [0.2], [0.3], [0.4]],
                 'a3': [[1]],
                 'y': [[0]],
@@ -241,28 +230,8 @@ def test_onehot_encode_fit(comp_prod_sf_cluster_config):
             "drop": "no_drop",
             "min_frequency": 0.1,
             "expected": {
-                'id1': [
-                    [
-                        '0',
-                        '1',
-                        '10',
-                        '11',
-                        '12',
-                        '13',
-                        '14',
-                        '15',
-                        '16',
-                        '2',
-                        '3',
-                        '4',
-                        '5',
-                        '6',
-                        '7',
-                        '8',
-                        '9',
-                    ]
-                ],
-                'a1': [['K'], ['', 'F', 'M', 'N']],
+                'id1': [[str(i) for i in range(17)]],
+                'a1': [['K'], ['F', '', 'M', 'N']],
                 'a2': [[0.1], [0.2], [0.3], [0.4]],
                 'a3': [[1]],
                 'y': [[0]],
@@ -272,25 +241,8 @@ def test_onehot_encode_fit(comp_prod_sf_cluster_config):
             "drop": "mode",
             "min_frequency": 0,
             "expected": {
-                'id1': [
-                    ['1'],
-                    ['10'],
-                    ['11'],
-                    ['12'],
-                    ['13'],
-                    ['14'],
-                    ['15'],
-                    ['16'],
-                    ['2'],
-                    ['3'],
-                    ['4'],
-                    ['5'],
-                    ['6'],
-                    ['7'],
-                    ['8'],
-                    ['9'],
-                ],
-                'a1': [[''], ['F'], ['M'], ['N']],
+                'id1': [[str(i + 1)] for i in range(16)],
+                'a1': [['F'], [''], ['M'], ['N']],
                 'a2': [[0.2], [0.3], [0.4]],
                 'a3': [],
                 'y': [],
@@ -300,27 +252,8 @@ def test_onehot_encode_fit(comp_prod_sf_cluster_config):
             "drop": "mode",
             "min_frequency": 0.1,
             "expected": {
-                'id1': [
-                    [
-                        '1',
-                        '10',
-                        '11',
-                        '12',
-                        '13',
-                        '14',
-                        '15',
-                        '16',
-                        '2',
-                        '3',
-                        '4',
-                        '5',
-                        '6',
-                        '7',
-                        '8',
-                        '9',
-                    ]
-                ],
-                'a1': [['', 'F', 'M', 'N']],
+                'id1': [[str(i + 1) for i in range(16)]],
+                'a1': [['F', '', 'M', 'N']],
                 'a2': [[0.2], [0.3], [0.4]],
                 'a3': [],
                 'y': [],
@@ -330,25 +263,8 @@ def test_onehot_encode_fit(comp_prod_sf_cluster_config):
             "drop": "first",
             "min_frequency": 0,
             "expected": {
-                'id1': [
-                    ['1'],
-                    ['10'],
-                    ['11'],
-                    ['12'],
-                    ['13'],
-                    ['14'],
-                    ['15'],
-                    ['16'],
-                    ['2'],
-                    ['3'],
-                    ['4'],
-                    ['5'],
-                    ['6'],
-                    ['7'],
-                    ['8'],
-                    ['9'],
-                ],
-                'a1': [['F'], ['K'], ['M'], ['N']],
+                'id1': [[str(i + 1)] for i in range(16)],
+                'a1': [['F'], [''], ['M'], ['N']],
                 'a2': [[0.2], [0.3], [0.4]],
                 'a3': [],
                 'y': [],
@@ -358,27 +274,8 @@ def test_onehot_encode_fit(comp_prod_sf_cluster_config):
             "drop": "first",
             "min_frequency": 0.1,
             "expected": {
-                'id1': [
-                    [
-                        '1',
-                        '10',
-                        '11',
-                        '12',
-                        '13',
-                        '14',
-                        '15',
-                        '16',
-                        '2',
-                        '3',
-                        '4',
-                        '5',
-                        '6',
-                        '7',
-                        '8',
-                        '9',
-                    ]
-                ],
-                'a1': [['', 'F', 'M', 'N']],
+                'id1': [[str(i + 1) for i in range(16)]],
+                'a1': [['F', '', 'M', 'N']],
                 'a2': [[0.2], [0.3], [0.4]],
                 'a3': [],
                 'y': [],
@@ -390,9 +287,6 @@ def test_onehot_encode_fit(comp_prod_sf_cluster_config):
         drop = item['drop']
         min_frequency = item['min_frequency']
         onehot_rules, drop_rules = _onehot_encode_fit(df, drop, min_frequency)
-        # logging.warning(
-        #     f"drop_type: {drop}, min_frequency: {min_frequency}, rules: {onehot_rules}, drop: {drop_rules}"
-        # )
         assert (
             onehot_rules == item['expected']
         ), f"drop: {drop}, min_frequency: {min_frequency}, rules: {onehot_rules}, drop_rules: {drop_rules}"

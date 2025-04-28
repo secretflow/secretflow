@@ -14,12 +14,12 @@
 
 import pytest
 
-from secretflow.component.ml.nn.core.sandbox import (
+from secretflow_fl.component.ml.nn.core.sandbox import (
     dynamic_sandbox,
     runner,
     static_sandbox,
 )
-from secretflow.component.ml.nn.core.sandbox.whitelists import (
+from secretflow_fl.component.ml.nn.core.sandbox.whitelists import (
     applications,
     tensorflow_wrapper,
 )
@@ -130,6 +130,14 @@ def test_check_and_transform():
     with pytest.raises(
         SyntaxError, match="base class must be one of: object, Layer, Model, Module"
     ):
+        static_sandbox.check_and_transform(code)
+
+    code = "g = (g.gi_frame for x in [1])"
+    with pytest.raises(AttributeError, match="attribute gi_frame is not allowed"):
+        static_sandbox.check_and_transform(code)
+
+    code = "b = g.f_builtins"
+    with pytest.raises(AttributeError, match="attribute f_builtins is not allowed"):
         static_sandbox.check_and_transform(code)
 
     # subscript_wrapper

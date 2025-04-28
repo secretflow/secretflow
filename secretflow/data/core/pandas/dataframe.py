@@ -15,8 +15,8 @@
 from pathlib import Path
 from typing import Callable, List, Union
 
+import jax
 import pandas as pd
-from jax import tree_map
 from pandas import Index
 from pandas._typing import IgnoreRaise
 
@@ -38,8 +38,10 @@ class PdPartDataFrame(PartDataFrameBase):
         return self.data
 
     def __unwrap(self, args, kwargs):
-        new_args = tree_map(lambda x: x.data if (type(x) == type(self)) else x, args)
-        new_kwargs = tree_map(
+        new_args = jax.tree.map(
+            lambda x: x.data if (type(x) == type(self)) else x, args
+        )
+        new_kwargs = jax.tree.map(
             lambda x: x.data if (type(x) == type(self)) else x, kwargs
         )
         return new_args, new_kwargs

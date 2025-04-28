@@ -14,6 +14,8 @@
 
 import base64
 import gzip
+import importlib
+import importlib.util
 import json
 import logging
 import os
@@ -23,7 +25,11 @@ from contextlib import redirect_stderr, redirect_stdout
 import click
 from google.protobuf.json_format import MessageToJson
 
-from secretflow.component.entry import COMP_LIST, COMP_MAP, comp_eval
+from secretflow.component.core import Registry, get_comp_list_def
+from secretflow.component.core import get_translation as core_get_translation
+from secretflow.component.core import load_plugins
+from secretflow.component.core import translate as core_translate
+from secretflow.component.entry import comp_eval
 from secretflow.spec.extend.cluster_pb2 import SFClusterConfig
 from secretflow.spec.v1.data_pb2 import StorageConfig
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
@@ -59,58 +65,57 @@ def component():
 
 
 @component.command()
-def ls():
+@click.option(
+    "--enable_plugins",
+    required=False,
+    default=True,
+    help="Whether to enable loading plugins",
+)
+def ls(enable_plugins):
     """List all components."""
+    if enable_plugins:
+        load_plugins()
     click.echo("{:<40} {:<40} {:<20}".format("DOMAIN", "NAME", "VERSION"))
     click.echo("-" * 105)
-    for comp in COMP_LIST.comps:
+    for comp in Registry.get_definitions():
         click.echo("{:<40} {:<40} {:<20}".format(comp.domain, comp.name, comp.version))
 
 
 @component.command()
 @click.option("--file", "-f", required=False, type=click.File(mode="w"))
-@click.option(
-    "--all",
-    "-a",
-    is_flag=True,
-)
+@click.option("--all", "-a", is_flag=True)
 @click.argument("comp_id", required=False)
-def inspect(comp_id, all, file):
+@click.option(
+    "--enable_plugins",
+    required=False,
+    default=True,
+    help="Whether to enable loading plugins",
+)
+def inspect(comp_id, all, file, enable_plugins):
     """Display definition of components. The format of comp_id is {domain}/{name}:{version}"""
+    if enable_plugins:
+        load_plugins()
 
     if all:
-        click.echo(f"You are inspecting the compelete comp list.")
-        click.echo("-" * 105)
+        json_data = json.dumps(json.loads(MessageToJson(get_comp_list_def())), indent=2)
         if file:
-            click.echo(
-                json.dumps(json.loads(MessageToJson(COMP_LIST)), indent=2), file=file
-            )
+            click.echo(json_data, file=file)
             click.echo(f"Saved to {file.name}.")
         else:
-            click.echo(json.dumps(json.loads(MessageToJson(COMP_LIST)), indent=2))
+            click.echo(json_data)
 
     elif comp_id:
-        if comp_id in COMP_MAP:
-            click.echo(
-                f"You are inspecting definition of component with id [{comp_id}]."
+        comp_def = Registry.get_definition_by_id(comp_id)
+        if comp_def:
+            json_data = json.dumps(
+                json.loads(MessageToJson(comp_def.component_def)),
+                indent=2,
             )
-            click.echo("-" * 105)
             if file:
-                click.echo(
-                    json.dumps(
-                        json.loads(MessageToJson(COMP_MAP[comp_id].definition())),
-                        indent=2,
-                    ),
-                    file=file,
-                )
+                click.echo(json_data, file=file)
                 click.echo(f"Saved to {file.name}.")
             else:
-                click.echo(
-                    json.dumps(
-                        json.loads(MessageToJson(COMP_MAP[comp_id].definition())),
-                        indent=2,
-                    )
-                )
+                click.echo(json_data)
         else:
             click.echo(f"Component with id [{comp_id}] is not found.")
 
@@ -118,6 +123,100 @@ def inspect(comp_id, all, file):
         click.echo(
             "You must provide comp_id or use --all/-a for the compelete comp list."
         )
+
+
+@component.command()
+@click.option("--file", "-f", required=False, type=str, default="translation.json")
+@click.option(
+    "--entry_point",
+    "-e",
+    required=False,
+    type=str,
+    default="",
+    help="entry_point of plugin, for example 'my_plugin.entry:main'",
+)
+@click.option(
+    "--package",
+    "-p",
+    required=False,
+    default="",
+    help="root package name, if empty, it will be infered from entry_point dir",
+)
+def translate(file: str, entry_point: str, package: str):
+    def find_root_package_dir(dir: str) -> str:
+        while dir:
+            init_filename = os.path.join(dir, '__init__.py')
+            if not os.path.isfile(init_filename):
+                return dir
+            dir = os.path.dirname(dir)
+
+    curr_dir = os.getcwd()
+    root_pkg_dir = find_root_package_dir(curr_dir)
+
+    if root_pkg_dir not in sys.path:
+        sys.path.insert(0, root_pkg_dir)
+
+    if ':' in entry_point:
+        module_name, func_name = entry_point.split(':')
+    else:
+        module_name, func_name = entry_point, None
+
+    if module_name == "":
+        module_name = os.path.relpath(curr_dir, root_pkg_dir).replace(os.path.sep, '.')
+
+    try:
+        module = importlib.import_module(module_name)
+    except Exception as e:
+        click.echo(
+            f"import fail, root_dir={root_pkg_dir}, module={module_name}, err={e}"
+        )
+        return
+
+    if func_name:
+        try:
+            func = getattr(module, func_name)
+        except Exception:
+            click.echo(f"Module '{module_name}' has no attribute '{func_name}'")
+            return
+        if callable(func):
+            func()
+        else:
+            click.echo(f"{func_name} is not a func.")
+
+    if not package:
+        package = module.__package__.split('.')[0]
+
+    if not package:
+        click.echo(f"empty package")
+        return
+
+    archieve = None
+    if os.path.isfile(file):
+        with open(file, "r") as f:
+            archieve = json.load(f)
+
+    translation = core_translate(package, archieve)
+
+    click.echo(f"You are translating the compelete comp list.")
+    click.echo("-" * 105)
+    with open(file, "w") as f:
+        click.echo(json.dump(translation, f, indent=2, ensure_ascii=False), file=f)
+    click.echo(f"Saved to {file}.")
+
+
+@component.command(name='get_translation')
+@click.option(
+    "--enable_plugins",
+    required=False,
+    default=True,
+    help="Whether to enable loading plugins",
+)
+def get_translation(enable_plugins: bool):
+    if enable_plugins:
+        load_plugins()
+
+    translation = core_get_translation()
+    click.echo(json.dumps(translation, indent=2, ensure_ascii=False))
 
 
 @component.command()
@@ -141,6 +240,12 @@ def inspect(comp_id, all, file):
 @click.option(
     "--compressed_params", is_flag=True, help="compress params before base64 encode"
 )
+@click.option(
+    "--enable_plugins",
+    required=False,
+    default=False,
+    help="Whether to enable loading plugins",
+)
 def run(
     eval_param,
     storage,
@@ -150,7 +255,11 @@ def run(
     log_level,
     mem_trace,
     compressed_params,
+    enable_plugins: bool,
 ):
+    if enable_plugins:
+        load_plugins()
+
     def _get_peak_mem() -> float:
         # only works inside docker
         # use docker's default cgroup

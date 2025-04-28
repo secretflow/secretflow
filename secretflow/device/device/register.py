@@ -48,7 +48,7 @@ class Registrar:
         Args:
             device_type (DeviceType): Device type.
             name (str): Op kernel name.
-            op (Callable): Op kernel implementaion.
+            op (Callable): Op kernel implementation.
 
         Raises:
             KeyError: Duplicate device kernel registered.

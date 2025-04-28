@@ -12,73 +12,48 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from secretflow.component.component import Component, IoType, TableColParam
-from secretflow.component.data_utils import DistDataType, load_table
-from secretflow.device.driver import wait
-from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
-
-feature_filter_comp = Component(
-    "feature_filter",
-    domain="data_filter",
-    version="0.0.1",
-    desc="Drop features from the dataset.",
-)
-
-feature_filter_comp.io(
-    io_type=IoType.INPUT,
-    name="in_ds",
-    desc="Input vertical table.",
-    types=[DistDataType.VERTICAL_TABLE],
-    col_params=[TableColParam(name="drop_features", desc="Features to drop.")],
-)
-
-feature_filter_comp.io(
-    io_type=IoType.OUTPUT,
-    name="out_ds",
-    desc="Output vertical table.",
-    types=[DistDataType.VERTICAL_TABLE],
-    col_params=None,
+from secretflow.component.core import (
+    Component,
+    CompVDataFrameReader,
+    CompVDataFrameWriter,
+    Context,
+    DistDataType,
+    Field,
+    Input,
+    Interval,
+    Output,
+    VTable,
+    register,
 )
 
 
-@feature_filter_comp.eval_fn
-def feature_filter_eval_fn(*, ctx, in_ds, in_ds_drop_features, out_ds):
-    assert in_ds.type == DistDataType.VERTICAL_TABLE, "only support vtable for now"
+@register(domain="data_filter", version="1.0.0")
+class FeatureFilter(Component):
+    '''
+    Drop features from the dataset.
+    '''
 
-    in_meta = VerticalTable()
-    in_ds.meta.Unpack(in_meta)
+    drop_features: list[str] = Field.table_column_attr(
+        "input_ds",
+        desc="Features to drop.",
+        limit=Interval.closed(1, None),
+    )
+    input_ds: Input = Field.input(
+        desc="Input vertical table.",
+        types=[DistDataType.VERTICAL_TABLE],
+    )
+    output_ds: Output = Field.output(
+        desc="Output vertical table.",
+        types=[DistDataType.VERTICAL_TABLE],
+    )
 
-    out_meta = VerticalTable()
-    out_meta.line_count = in_meta.line_count
+    def evaluate(self, ctx: Context):
+        in_tbl = VTable.from_distdata(self.input_ds)
+        in_tbl = in_tbl.drop(self.drop_features)
+        reader = CompVDataFrameReader(ctx.storage, ctx.tracer, in_tbl)
+        writer = CompVDataFrameWriter(ctx.storage, ctx.tracer, self.output_ds.uri)
+        with writer:
+            for df in reader:
+                writer.write(df)
 
-    for s in in_meta.schemas:
-        s_meta = TableSchema()
-        for t, h in zip(s.feature_types, s.features):
-            if h not in in_ds_drop_features:
-                s_meta.feature_types.append(t)
-                s_meta.features.append(h)
-        s_meta.ids.extend(s.ids)
-        s_meta.id_types.extend(s.id_types)
-        s_meta.labels.extend(s.labels)
-        s_meta.label_types.extend(s.label_types)
-        out_meta.schemas.append(s_meta)
-
-    out_dist = DistData()
-    out_dist.CopyFrom(in_ds)
-    out_dist.name = out_ds
-    out_dist.meta.Pack(out_meta)
-
-    # TODO: streaming
-    with ctx.tracer.trace_running():
-        ds = load_table(
-            ctx, out_dist, load_features=True, load_ids=True, load_labels=True
-        )
-        out_path = {
-            p: lambda: ctx.comp_storage.get_writer(out_ds) for p in ds.partitions
-        }
-        wait(ds.to_csv(out_path, index=False))
-
-    for i in range(len(out_dist.data_refs)):
-        out_dist.data_refs[i].uri = out_ds
-
-    return {"out_ds": out_dist}
+        writer.dump_to(self.output_ds)

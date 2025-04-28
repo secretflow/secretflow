@@ -14,7 +14,7 @@
 
 import logging
 
-from secretflow import tune
+from secretflow_fl import tune
 from tests.ml.nn.sl.attack.test_torch_fia import do_test_sl_and_fia
 
 

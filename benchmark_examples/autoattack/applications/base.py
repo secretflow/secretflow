@@ -32,9 +32,9 @@ from benchmark_examples.autoattack.utils.data_utils import (
 from benchmark_examples.autoattack.utils.resources import ResourcesPack
 from secretflow import PYU
 from secretflow.data import FedNdarray
-from secretflow.ml.nn import SLModel
-from secretflow.ml.nn.callbacks.callback import Callback
-from secretflow.ml.nn.core.torch import TorchModel
+from secretflow_fl.ml.nn import SLModel
+from secretflow_fl.ml.nn.callbacks.callback import Callback
+from secretflow_fl.ml.nn.core.torch import TorchModel
 
 
 class ModelType(Enum):

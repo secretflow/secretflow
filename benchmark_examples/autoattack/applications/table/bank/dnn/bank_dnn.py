@@ -24,9 +24,9 @@ from benchmark_examples.autoattack.applications.base import InputMode, ModelType
 from benchmark_examples.autoattack.applications.table.bank.bank_base import BankBase
 from secretflow.data import FedNdarray
 from secretflow.data.split import train_test_split
-from secretflow.ml.nn.applications.sl_dnn_torch import DnnBase, DnnFuse
-from secretflow.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
-from secretflow.preprocessing import MinMaxScaler
+from secretflow_fl.ml.nn.applications.sl_dnn_torch import DnnBase, DnnFuse
+from secretflow_fl.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
+from secretflow_fl.preprocessing.scaler_fl import MinMaxScaler
 
 
 class BankDnn(BankBase):

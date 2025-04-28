@@ -11,109 +11,59 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import pandas as pd
 
-from secretflow.component.component import Component, IoType
-from secretflow.component.data_utils import (
+from secretflow.component.core import (
+    Component,
+    CompVDataFrameReader,
+    CompVDataFrameWriter,
+    Context,
     DistDataType,
-    VerticalTableWrapper,
-    dump_table,
-    load_table,
+    Field,
+    Input,
+    Output,
+    VTable,
+    register,
 )
-from secretflow.data.core import partition
-from secretflow.data.vertical.dataframe import VDataFrame
-from secretflow.device.device.pyu import PYU
-from secretflow.spec.v1.data_pb2 import DistData, IndividualTable
-
-union_comp = Component(
-    "union",
-    domain="data_prep",
-    version="0.0.1",
-    desc="Perform a horizontal merge of two data tables, supporting the individual table or vertical table on the same node.",
-)
-
-union_comp.io(
-    io_type=IoType.INPUT,
-    name="input1",
-    desc="The first input table",
-    types=[DistDataType.INDIVIDUAL_TABLE, DistDataType.VERTICAL_TABLE],
-    col_params=None,
-)
-
-union_comp.io(
-    io_type=IoType.INPUT,
-    name="input2",
-    desc="The second input table",
-    types=[DistDataType.INDIVIDUAL_TABLE, DistDataType.VERTICAL_TABLE],
-    col_params=None,
-)
-
-union_comp.io(
-    io_type=IoType.OUTPUT,
-    name="output_ds",
-    desc="Output table",
-    types=[DistDataType.INDIVIDUAL_TABLE, DistDataType.VERTICAL_TABLE],
-)
+from secretflow.error_system.exceptions import InvalidArgumentError
 
 
-@union_comp.eval_fn
-def union_eval_fn(
-    *,
-    ctx,
-    input1: DistData,
-    input2: DistData,
-    output_ds: DistData,
-):
-    assert (
-        input1.type.lower() == input2.type.lower()
-    ), f"input type not match, {input1.type}, {input2.type}"
+@register(domain="data_prep", version="1.0.0")
+class Union(Component):
+    '''
+    Perform a horizontal merge of two data tables, supporting the individual table or vertical table on the same node.
+    '''
 
-    tbl1 = load_table(
-        ctx,
-        input1,
-        load_features=True,
-        load_labels=True,
-        load_ids=True,
+    input_ds1: Input = Field.input(
+        desc="The first input table",
+        types=[DistDataType.INDIVIDUAL_TABLE, DistDataType.VERTICAL_TABLE],
     )
-    tbl2 = load_table(
-        ctx,
-        input2,
-        load_features=True,
-        load_labels=True,
-        load_ids=True,
+    input_ds2: Input = Field.input(
+        desc="The second input table",
+        types=[DistDataType.INDIVIDUAL_TABLE, DistDataType.VERTICAL_TABLE],
     )
 
-    assert len(tbl1.partitions) == len(tbl2.partitions), f"partitions not match"
-
-    def _apply(df1: pd.DataFrame, df2: pd.DataFrame):
-        return pd.concat([df1, df2], ignore_index=True)
-
-    with ctx.tracer.trace_running():
-        out_partitions = {}
-        for device, party1 in tbl1.partitions.items():
-            party2 = tbl2.partitions.get(device)
-            assert party2 is not None, f"party not match {device}"
-            assert (
-                party1.columns == party2.columns
-            ), f"columns not match, {party1.columns}, {party2.columns}"
-            out_data = device(_apply)(party1.data, party2.data)
-            out_partitions[device] = partition(out_data)
-
-    out_aligned = tbl1.aligned and tbl2.aligned
-    out_df = VDataFrame(partitions=out_partitions, aligned=out_aligned)
-
-    if input1.type == DistDataType.VERTICAL_TABLE:
-        meta = VerticalTableWrapper.from_dist_data(input1, out_df.shape[0])
-    else:
-        meta = IndividualTable()
-        input1.meta.Unpack(meta)
-
-    output_dd = dump_table(
-        ctx,
-        vdata=out_df,
-        uri=output_ds,
-        meta=meta,
-        system_info=input1.system_info,
+    output_ds: Output = Field.output(
+        desc="Output table",
+        types=[DistDataType.INDIVIDUAL_TABLE, DistDataType.VERTICAL_TABLE],
     )
 
-    return {"output_ds": output_dd}
+    def evaluate(self, ctx: Context):
+        if self.input_ds1.type.lower() != self.input_ds2.type.lower():
+            raise InvalidArgumentError(
+                f"input type not match, {self.input_ds1.type}, {self.input_ds2.type}"
+            )
+
+        tbl1 = VTable.from_distdata(self.input_ds1)
+        tbl2 = VTable.from_distdata(self.input_ds2)
+        if tbl1.schemas != tbl2.schemas:
+            raise ValueError(f"table meta info missmatch, {tbl1.schemas, tbl2.schemas}")
+
+        reader1 = CompVDataFrameReader(ctx.storage, ctx.tracer, tbl1)
+        reader2 = CompVDataFrameReader(ctx.storage, ctx.tracer, tbl2)
+        writer = CompVDataFrameWriter(ctx.storage, ctx.tracer, self.output_ds.uri)
+        with reader1, reader2, writer:
+            for df in reader1:
+                writer.write(df)
+            for df in reader2:
+                writer.write(df)
+        writer.dump_to(self.output_ds)

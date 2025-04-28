@@ -21,11 +21,20 @@ from secretflow.component.io.core.bins.bin_utils import (
 )
 from secretflow.device import PYUObject
 from secretflow.device.driver import reveal
+from secretflow.error_system.exceptions import (
+    DataFormatError,
+    InvalidArgumentError,
+    NotSupportedError,
+)
 from secretflow.spec.extend.bin_data_pb2 import Bin, Bins, VariableBins
 
 
 def normal_feature_to_pb(feature: Dict, party_name: str) -> VariableBins:
-    assert feature["type"] == "numeric", "Only support numeric feature now."
+    if feature["type"] != "numeric":
+        raise NotSupportedError.not_supported_feature_type(
+            "Only support numeric feature now."
+        )
+
     # Create a VariableBins message
     variable_bins = VariableBins()
 
@@ -35,9 +44,10 @@ def normal_feature_to_pb(feature: Dict, party_name: str) -> VariableBins:
 
     bin_count = len(feature["filling_values"])
     split_points_padded = pad_inf_to_split_points(feature["split_points"])
-    assert (
-        len(split_points_padded) == bin_count + 1
-    ), f"bin count should be will defined, filling values: {feature['filling_values']}, {feature['split_points']}"
+    if len(split_points_padded) != bin_count + 1:
+        raise DataFormatError.feature_not_matched(
+            f"bin count should be will defined, len of filling values: [{feature['filling_values']}] is not equal to len of padded [{feature['split_points']}]"
+        )
     for i in range(bin_count):
         # Create a Bin message
         bin = Bin()
@@ -85,12 +95,10 @@ def feature_modify_normal_bin_rule(
     Parse(new_variable_rule_pb_json, new_variable_rule_pb)
     if feature_rule["type"] != "numeric":
         return feature_rule
-    assert (
-        feature_rule["name"] == new_variable_rule_pb.feature_name
-    ), "feature name does not match"
-    assert (
-        feature_rule["type"] == new_variable_rule_pb.feature_type
-    ), "feature type does not match"
+    if feature_rule["name"] != new_variable_rule_pb.feature_name:
+        raise DataFormatError.feature_not_matched("feature name does not match")
+    if feature_rule["type"] != new_variable_rule_pb.feature_type:
+        raise DataFormatError.feature_not_matched("feature type does not match")
 
     new_split_points = [new_variable_rule_pb.valid_bins[0].left_bound]
     new_total_counts = []
@@ -108,9 +116,11 @@ def feature_modify_normal_bin_rule(
                 last_seen_right_bound = None
             else:
                 this_left_bound = bin.left_bound
-                assert (
-                    this_left_bound == last_seen_right_bound
-                ), f"only consecutive bins can merge, last right bound :{last_seen_right_bound}, this bin's left bound : {this_left_bound}"
+                if this_left_bound != last_seen_right_bound:
+                    raise DataFormatError.bin_rule_not_consecutive(
+                        last_seen_right_bound=last_seen_right_bound,
+                        this_left_bound=this_left_bound,
+                    )
             # merging
             last_seen_right_bound = bin.right_bound
             cached_total_counts += bin.total_count
@@ -160,7 +170,8 @@ def party_modify_normal_bin_rule(
         ],
     }
     """
-    assert "variables" in rule, "rules must contain variables"
+    if "variables" not in rule:
+        raise InvalidArgumentError("rules must contain variables")
     new_variables = []
     i = 0
     # assume the order of features should be left unchanged

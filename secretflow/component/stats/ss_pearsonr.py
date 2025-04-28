@@ -12,122 +12,70 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List
 
 import numpy as np
+import pandas as pd
 
-from secretflow.component.component import (
-    CompEvalContext,
-    CompEvalError,
+from secretflow.component.core import (
+    SPU_RUNTIME_CONFIG_FM128_FXP40,
     Component,
-    IoType,
-    TableColParam,
+    Context,
+    DistDataType,
+    Field,
+    Input,
+    Output,
+    Reporter,
+    VTable,
+    VTableFieldKind,
+    register,
 )
-from secretflow.component.data_utils import DistData, DistDataType, load_table
-from secretflow.component.device_utils import make_spu
-from secretflow.device import Device
-from secretflow.device.device.spu import SPU
-from secretflow.spec.v1.component_pb2 import Attribute
-from secretflow.spec.v1.data_pb2 import DistData
-from secretflow.spec.v1.report_pb2 import Div, Report, Tab, Table
 from secretflow.stats.ss_pearsonr_v import PearsonR
 
-ss_pearsonr_comp = Component(
-    "ss_pearsonr",
-    domain="stats",
-    version="0.0.1",
-    desc="""Calculate Pearson's product-moment correlation coefficient for vertical partitioning dataset
+
+@register(domain="stats", version="1.0.0", name="ss_pearsonr")
+class SSPearsonr(Component):
+    '''
+    Calculate Pearson's product-moment correlation coefficient for vertical partitioning dataset
     by using secret sharing.
 
     - For large dataset(large than 10w samples & 200 features), recommend to use [Ring size: 128, Fxp: 40] options for SPU device.
-    """,
-)
-ss_pearsonr_comp.io(
-    io_type=IoType.INPUT,
-    name="input_data",
-    desc="Input vertical table.",
-    types=[DistDataType.VERTICAL_TABLE, DistDataType.INDIVIDUAL_TABLE],
-    col_params=[
-        TableColParam(
-            name="feature_selects",
-            desc="Specify which features to calculate correlation coefficient with. If empty, all features will be used",
+    '''
+
+    feature_selects: list[str] = Field.table_column_attr(
+        "input_ds",
+        desc="Specify which features to calculate correlation coefficient with. If empty, all features will be used",
+    )
+    input_ds: Input = Field.input(
+        desc="Input vertical table.",
+        types=[DistDataType.VERTICAL_TABLE, DistDataType.INDIVIDUAL_TABLE],
+    )
+    report: Output = Field.output(
+        desc="Output Pearson's product-moment correlation coefficient report.",
+        types=[DistDataType.REPORT],
+    )
+
+    def evaluate(self, ctx: Context):
+        feature_selects = self.feature_selects if len(self.feature_selects) else None
+        in_tbl = VTable.from_distdata(self.input_ds, columns=feature_selects)
+        in_tbl.check_kinds(kinds=VTableFieldKind.FEATURE)
+
+        x = ctx.load_table(in_tbl).to_pandas()
+        if len(x.partitions) == 1:
+            device = next(iter((x.partitions.keys())))
+        else:
+            device = ctx.make_spu(config=SPU_RUNTIME_CONFIG_FM128_FXP40)
+
+        with ctx.tracer.trace_running():
+            pr: np.ndarray = PearsonR(device).pearsonr(x)
+
+        feature_names = x.columns
+
+        assert pr.shape[0] == len(feature_names) and pr.shape[1] == len(feature_names)
+
+        r_table = pd.DataFrame(pr, columns=feature_names)
+
+        r = Reporter(
+            name="corr", desc="corr table", system_info=self.input_ds.system_info
         )
-    ],
-)
-ss_pearsonr_comp.io(
-    io_type=IoType.OUTPUT,
-    name="report",
-    desc="Output Pearson's product-moment correlation coefficient report.",
-    types=[DistDataType.REPORT],
-)
-
-
-@ss_pearsonr_comp.eval_fn
-def ss_pearsonr_eval_fn(
-    *,
-    ctx: CompEvalContext,
-    input_data: DistData,
-    input_data_feature_selects: List[str] = None,
-    report,
-):
-    feature_selects = (
-        input_data_feature_selects if len(input_data_feature_selects) else None
-    )
-    x = load_table(
-        ctx,
-        input_data,
-        load_features=True,
-        col_selects=feature_selects,
-    )
-    if len(x.partitions) == 1:
-        for pyu, _ in x.partitions.items():
-            device = pyu
-    else:
-        device = make_spu(ctx)
-
-    with ctx.tracer.trace_running():
-        pr: np.ndarray = PearsonR(device).pearsonr(x)
-
-    feature_names = x.columns
-
-    assert pr.shape[0] == len(feature_names) and pr.shape[1] == len(feature_names)
-
-    r_table = Table(
-        headers=[
-            Table.HeaderItem(name=f, desc="", type="float") for f in feature_names
-        ],
-        rows=[
-            Table.Row(
-                name=feature_names[r], desc="", items=[Attribute(f=c) for c in pr[r]]
-            )
-            for r in range(pr.shape[0])
-        ],
-    )
-
-    report_mate = Report(
-        name="corr",
-        desc="corr table",
-        tabs=[
-            Tab(
-                divs=[
-                    Div(
-                        children=[
-                            Div.Child(
-                                type="table",
-                                table=r_table,
-                            )
-                        ],
-                    )
-                ],
-            )
-        ],
-    )
-
-    report_dd = DistData(
-        name=report,
-        type=str(DistDataType.REPORT),
-        system_info=input_data.system_info,
-    )
-    report_dd.meta.Pack(report_mate)
-
-    return {"report": report_dd}
+        r.add_tab(r_table)
+        self.report.data = r.to_distdata()

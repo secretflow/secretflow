@@ -93,9 +93,9 @@ msgstr "拆分学习模型"
 
 #: ../../user_guide/federated_learning/vertical_federated_learning.rst:33
 msgid ""
-"SecreFlow provides :py:class:`~secretflow.ml.nn.SLModel` to define a "
+"SecreFlow provides :py:class:`~secretflow_fl.ml.nn.SLModel` to define a "
 "split learning model. You can check the tutorial to have a try."
-msgstr "隐语提供 :py:class:`~secretflow.ml.nn.SLModel`  用来定义拆分学习模型。您可以按照教程来学习如何使用。"
+msgstr "隐语提供 :py:class:`~secretflow_fl.ml.nn.SLModel`  用来定义拆分学习模型。您可以按照教程来学习如何使用。"
 
 #: ../../user_guide/federated_learning/vertical_federated_learning.rst:37
 msgid "Tutorial"

@@ -12,21 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 import pandas as pd
 from google.protobuf.json_format import MessageToJson
+from pyarrow import orc
 
-from secretflow.component.data_utils import DistDataType
-from secretflow.component.preprocessing.unified_single_party_ops.case_when import (
-    case_when,
-)
-from secretflow.component.preprocessing.unified_single_party_ops.substitution import (
-    substitution,
-)
-from secretflow.component.storage import ComponentStorage
+from secretflow.component.core import DistDataType, build_node_eval_param, make_storage
+from secretflow.component.entry import comp_eval
 from secretflow.spec.extend.case_when_rules_pb2 import CaseWhenRule
-from secretflow.spec.v1.component_pb2 import Attribute
 from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
-from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
 
 
 def _build_test():
@@ -165,7 +159,7 @@ def _build_test():
     return names, tests, expected
 
 
-def test_onehot_encode(comp_prod_sf_cluster_config):
+def test_case_when(comp_prod_sf_cluster_config):
     alice_input_path = "test_onehot_encode/alice.csv"
     bob_input_path = "test_onehot_encode/bob.csv"
     inplace_encode_path = "test_onehot_encode/inplace_sub.csv"
@@ -174,7 +168,7 @@ def test_onehot_encode(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    comp_storage = ComponentStorage(storage_config)
+    storage = make_storage(storage_config)
 
     if self_party == "alice":
         df_alice = pd.DataFrame(
@@ -190,7 +184,7 @@ def test_onehot_encode(comp_prod_sf_cluster_config):
             }
         )
         df_alice.to_csv(
-            comp_storage.get_writer(alice_input_path),
+            storage.get_writer(alice_input_path),
             index=False,
         )
     elif self_party == "bob":
@@ -202,20 +196,17 @@ def test_onehot_encode(comp_prod_sf_cluster_config):
             }
         )
         df_bob.to_csv(
-            comp_storage.get_writer(bob_input_path),
+            storage.get_writer(bob_input_path),
             index=False,
         )
 
-    param = NodeEvalParam(
+    param = build_node_eval_param(
         domain="preprocessing",
         name="case_when",
-        version="0.0.1",
-        attr_paths=[
-            "rules",
-        ],
-        attrs=[
-            Attribute(s="{}"),
-        ],
+        version="1.0.0",
+        attrs={
+            "rules": "{}",
+        },
         inputs=[
             DistData(
                 name="input_data",
@@ -262,7 +253,7 @@ def test_onehot_encode(comp_prod_sf_cluster_config):
     for n, t, e in zip(*_build_test()):
         param.attrs[0].s = MessageToJson(t)
 
-        res = case_when.eval(
+        res = comp_eval(
             param=param,
             storage_config=storage_config,
             cluster_config=sf_cluster_config,
@@ -270,33 +261,33 @@ def test_onehot_encode(comp_prod_sf_cluster_config):
 
         assert len(res.outputs) == 2
 
-        if "alice" == sf_cluster_config.private_config.self_party:
-            comp_storage = ComponentStorage(storage_config)
-            a_out = pd.read_csv(comp_storage.get_reader(inplace_encode_path))
+        if "alice" == self_party:
+            a_out = orc.read_table(storage.get_reader(inplace_encode_path)).to_pandas()
             z = a_out["z"]
-            e = pd.Series(e)
+            e = pd.Series(e, dtype=z.dtype)
 
             assert z.equals(
                 e
             ), f"{n}\n===z===\n{z}\n===e===\n{e}\n===r===\n{param.attrs[0].s}"
 
-        param2 = NodeEvalParam(
+        param2 = build_node_eval_param(
             domain="preprocessing",
             name="substitution",
-            version="0.0.2",
+            version="1.0.0",
+            attrs=None,
             inputs=[param.inputs[0], res.outputs[1]],
             output_uris=[sub_path],
         )
 
-        res = substitution.eval(
+        res = comp_eval(
             param=param2,
             storage_config=storage_config,
             cluster_config=sf_cluster_config,
         )
 
-        if "alice" == sf_cluster_config.private_config.self_party:
-            sub_out = pd.read_csv(comp_storage.get_reader(sub_path))
-
+        if "alice" == self_party:
+            sub_out = orc.read_table(storage.get_reader(sub_path))
+            sub_out = sub_out.select(a_out.columns).to_pandas()
             assert a_out.equals(sub_out)
 
         assert len(res.outputs) == 1

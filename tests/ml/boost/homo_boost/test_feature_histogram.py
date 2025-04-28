@@ -16,7 +16,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from secretflow.ml.boost.homo_boost.tree_core.feature_histogram import (
+from secretflow_fl.ml.boost.homo_boost.tree_core.feature_histogram import (
     FeatureHistogram,
     HistogramBag,
 )
@@ -68,8 +68,8 @@ class TestFeatureHistogram:
                 use_random=use_random,
                 data_bin_num=data_bin_num,
             )
-            t_df['hess'] = hess
-            t_df['grad'] = grad
+            t_df["hess"] = hess
+            t_df["grad"] = grad
             data_frame_list.append(t_df)
         valid_feature = {}
         for col in range(len(header)):
@@ -83,20 +83,20 @@ class TestFeatureHistogram:
         bin_split_points = np.array([split_point_list for i in range(len(header))])
 
         yield {
-            'feature_histogram': feature_histogram,
-            'data_frame_list': data_frame_list,
-            'bin_split_points': bin_split_points,
-            'valid_feature': valid_feature,
-            'data_bin_num': data_bin_num,
-            'feature_num': feature_num,
-            'node_map': node_map,
+            "feature_histogram": feature_histogram,
+            "data_frame_list": data_frame_list,
+            "bin_split_points": bin_split_points,
+            "valid_feature": valid_feature,
+            "data_bin_num": data_bin_num,
+            "feature_num": feature_num,
+            "node_map": node_map,
         }
 
     def test_calculate_histogram(self, set_up):
-        histograms = set_up['feature_histogram'].calculate_histogram(
-            set_up['data_frame_list'],
-            set_up['bin_split_points'],
-            set_up['valid_feature'],
+        histograms = set_up["feature_histogram"].calculate_histogram(
+            set_up["data_frame_list"],
+            set_up["bin_split_points"],
+            set_up["valid_feature"],
             use_missing=False,
             grad_key="grad",
             hess_key="hess",
@@ -104,10 +104,10 @@ class TestFeatureHistogram:
         # histogram参考xgboost实现改为小于threshold
         expect_zero_histogram = [
             [
-                [[j * 100 for i in range(3)] for j in range(set_up['data_bin_num'])]
-                for k in range(set_up['feature_num'])
+                [[j * 100 for i in range(3)] for j in range(set_up["data_bin_num"])]
+                for k in range(set_up["feature_num"])
             ]
-            for r in range(len(set_up['node_map']))
+            for r in range(len(set_up["node_map"]))
         ]
 
         np_histograms = np.array(histograms)
@@ -115,30 +115,30 @@ class TestFeatureHistogram:
         np.testing.assert_array_equal(np_histograms, np_expect_histogram)
 
     def test_histogram_bag(self, set_up):
-        histograms = set_up['feature_histogram'].calculate_histogram(
-            set_up['data_frame_list'],
-            set_up['bin_split_points'],
-            set_up['valid_feature'],
+        histograms = set_up["feature_histogram"].calculate_histogram(
+            set_up["data_frame_list"],
+            set_up["bin_split_points"],
+            set_up["valid_feature"],
             use_missing=False,
             grad_key="grad",
             hess_key="hess",
         )
         histogram_bags = []
-        for node_id in set_up['node_map']:
+        for node_id in set_up["node_map"]:
             histogram_bag = HistogramBag(histograms[node_id], node_id, -1)
             histogram_bags.append(histogram_bag)
 
         expect_sum_histogram = np.array(
             [
-                [[j * 200 for i in range(3)] for j in range(set_up['data_bin_num'])]
-                for k in range(set_up['feature_num'])
+                [[j * 200 for i in range(3)] for j in range(set_up["data_bin_num"])]
+                for k in range(set_up["feature_num"])
             ]
         )
 
         expect_zero_histogram = np.array(
             [
-                [[0.0 for i in range(3)] for j in range(set_up['data_bin_num'])]
-                for k in range(set_up['feature_num'])
+                [[0.0 for i in range(3)] for j in range(set_up["data_bin_num"])]
+                for k in range(set_up["feature_num"])
             ]
         )
 

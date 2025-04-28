@@ -30,8 +30,8 @@ from benchmark_examples.autoattack.utils.data_utils import (
 )
 from secretflow.data import FedNdarray
 from secretflow.data.split import train_test_split
-from secretflow.ml.nn.applications.sl_deepfm_torch import DeepFMBase, DeepFMFuse
-from secretflow.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
+from secretflow_fl.ml.nn.applications.sl_deepfm_torch import DeepFMBase, DeepFMFuse
+from secretflow_fl.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
 
 
 class AliceDataset(Dataset):
