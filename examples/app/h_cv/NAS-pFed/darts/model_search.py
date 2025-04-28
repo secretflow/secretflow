@@ -14,7 +14,7 @@ class MixedOp(nn.Module):
         self._ops = nn.ModuleList()
         for primitive in PRIMITIVES:
             op = OPS[primitive](C, stride, False)
-            if 'pool' in primitive:
+            if "pool" in primitive:
                 op = nn.Sequential(op, nn.BatchNorm2d(C, affine=False))
             self._ops.append(op)
 
@@ -25,7 +25,9 @@ class MixedOp(nn.Module):
 
 class Cell(nn.Module):
 
-    def __init__(self, steps, multiplier, C_prev_prev, C_prev, C, reduction, reduction_prev):
+    def __init__(
+        self, steps, multiplier, C_prev_prev, C_prev, C, reduction, reduction_prev
+    ):
         super(Cell, self).__init__()
         self.reduction = reduction
 
@@ -52,15 +54,28 @@ class Cell(nn.Module):
         states = [s0, s1]
         offset = 0
         for i in range(self._steps):
-            s = sum(self._ops[offset + j](h, weights[offset + j]) for j, h in enumerate(states))
+            s = sum(
+                self._ops[offset + j](h, weights[offset + j])
+                for j, h in enumerate(states)
+            )
             offset += len(states)
             states.append(s)
-        return torch.cat(states[-self._multiplier:], dim=1)
+        return torch.cat(states[-self._multiplier :], dim=1)
 
 
 class InnerCell(nn.Module):
 
-    def __init__(self, steps, multiplier, C_prev_prev, C_prev, C, reduction, reduction_prev, weights):
+    def __init__(
+        self,
+        steps,
+        multiplier,
+        C_prev_prev,
+        C_prev,
+        C,
+        reduction,
+        reduction_prev,
+        weights,
+    ):
         super(InnerCell, self).__init__()
         self.reduction = reduction
 
@@ -83,7 +98,7 @@ class InnerCell(nn.Module):
                 weight = weights.data[offset + j]
                 choice = keys[weight.argmax()]
                 op = OPS[choice](C, stride, False)
-                if 'pool' in choice:
+                if "pool" in choice:
                     op = nn.Sequential(op, nn.BatchNorm2d(C, affine=False))
                 self._ops.append(op)
             offset += i + 2
@@ -99,7 +114,7 @@ class InnerCell(nn.Module):
             offset += len(states)
             states.append(s)
 
-        return torch.cat(states[-self._multiplier:], dim=1)
+        return torch.cat(states[-self._multiplier :], dim=1)
 
 
 class ModelForModelSizeMeasure(nn.Module):
@@ -117,8 +132,18 @@ class ModelForModelSizeMeasure(nn.Module):
 
     """
 
-    def __init__(self, C, num_classes, layers, criterion, alphas_normal, alphas_reduce,
-                 steps=4, multiplier=4, stem_multiplier=3):
+    def __init__(
+        self,
+        C,
+        num_classes,
+        layers,
+        criterion,
+        alphas_normal,
+        alphas_reduce,
+        steps=4,
+        multiplier=4,
+        stem_multiplier=3,
+    ):
         super(ModelForModelSizeMeasure, self).__init__()
         self._C = C
         self._num_classes = num_classes
@@ -129,8 +154,7 @@ class ModelForModelSizeMeasure(nn.Module):
 
         C_curr = stem_multiplier * C  # 3*16
         self.stem = nn.Sequential(
-            nn.Conv2d(3, C_curr, 3, padding=1, bias=False),
-            nn.BatchNorm2d(C_curr)
+            nn.Conv2d(3, C_curr, 3, padding=1, bias=False), nn.BatchNorm2d(C_curr)
         )
 
         C_prev_prev, C_prev, C_curr = C_curr, C_curr, C
@@ -142,12 +166,28 @@ class ModelForModelSizeMeasure(nn.Module):
             if i in [layers // 3, 2 * layers // 3]:
                 C_curr *= 2
                 reduction = True
-                cell = InnerCell(steps, multiplier, C_prev_prev, C_prev, C_curr, reduction, reduction_prev,
-                                 alphas_reduce)
+                cell = InnerCell(
+                    steps,
+                    multiplier,
+                    C_prev_prev,
+                    C_prev,
+                    C_curr,
+                    reduction,
+                    reduction_prev,
+                    alphas_reduce,
+                )
             else:
                 reduction = False
-                cell = InnerCell(steps, multiplier, C_prev_prev, C_prev, C_curr, reduction, reduction_prev,
-                                 alphas_normal)
+                cell = InnerCell(
+                    steps,
+                    multiplier,
+                    C_prev_prev,
+                    C_prev,
+                    C_curr,
+                    reduction,
+                    reduction_prev,
+                    alphas_normal,
+                )
 
             reduction_prev = reduction
             self.cells += [cell]
@@ -170,7 +210,17 @@ class ModelForModelSizeMeasure(nn.Module):
 
 class Network(nn.Module):
 
-    def __init__(self, C, num_classes, layers, criterion, device,steps=4, multiplier=4, stem_multiplier=3):
+    def __init__(
+        self,
+        C,
+        num_classes,
+        layers,
+        criterion,
+        device,
+        steps=4,
+        multiplier=4,
+        stem_multiplier=3,
+    ):
         super(Network, self).__init__()
         print(Network)
         self._C = C
@@ -185,8 +235,7 @@ class Network(nn.Module):
 
         C_curr = stem_multiplier * C  # 3*16
         self.stem = nn.Sequential(
-            nn.Conv2d(3, C_curr, 3, padding=1, bias=False),
-            nn.BatchNorm2d(C_curr)
+            nn.Conv2d(3, C_curr, 3, padding=1, bias=False), nn.BatchNorm2d(C_curr)
         )
 
         C_prev_prev, C_prev, C_curr = C_curr, C_curr, C
@@ -200,7 +249,15 @@ class Network(nn.Module):
                 reduction = True
             else:
                 reduction = False
-            cell = Cell(steps, multiplier, C_prev_prev, C_prev, C_curr, reduction, reduction_prev)
+            cell = Cell(
+                steps,
+                multiplier,
+                C_prev_prev,
+                C_prev,
+                C_curr,
+                reduction,
+                reduction_prev,
+            )
             reduction_prev = reduction
             self.cells += [cell]
             C_prev_prev, C_prev = C_prev, multiplier * C_curr
@@ -211,7 +268,9 @@ class Network(nn.Module):
         self._initialize_alphas()
 
     def new(self):
-        model_new = Network(self._C, self._num_classes, self._layers, self._criterion, self.device).to(self.device)
+        model_new = Network(
+            self._C, self._num_classes, self._layers, self._criterion, self.device
+        ).to(self.device)
         for x, y in zip(model_new.arch_parameters(), self.arch_parameters()):
             x.data.copy_(y.data)
         return model_new
@@ -240,7 +299,6 @@ class Network(nn.Module):
         # ]
         self.history_normal = torch.zeros_like(self.alphas_normal)
         self.history_reduce = torch.zeros_like(self.alphas_reduce)
-
 
     def new_arch_parameters(self):
         k = sum(1 for i in range(self._steps) for n in range(2 + i))
@@ -270,11 +328,18 @@ class Network(nn.Module):
             for i in range(self._steps):
                 end = start + n
                 W = weights[start:end].copy()
-                edges = sorted(range(i + 2), key=lambda x: -max(W[x][k] for k in range(len(W[x])) if k != PRIMITIVES.index('none')))[:2]
+                edges = sorted(
+                    range(i + 2),
+                    key=lambda x: -max(
+                        W[x][k]
+                        for k in range(len(W[x]))
+                        if k != PRIMITIVES.index("none")
+                    ),
+                )[:2]
                 for j in edges:
                     k_best = None
                     for k in range(len(W[j])):
-                        if k != PRIMITIVES.index('none'):
+                        if k != PRIMITIVES.index("none"):
                             if k_best is None or W[j][k] > W[j][k_best]:
                                 k_best = k
 
@@ -286,24 +351,39 @@ class Network(nn.Module):
             return gene, cnn_structure_count
 
         with torch.no_grad():
-            gene_normal, cnn_structure_count_normal = _parse(F.softmax(self.alphas_normal, dim=-1).data.cpu().numpy())
-            gene_reduce, cnn_structure_count_reduce = _parse(F.softmax(self.alphas_reduce, dim=-1).data.cpu().numpy())
+            gene_normal, cnn_structure_count_normal = _parse(
+                F.softmax(self.alphas_normal, dim=-1).data.cpu().numpy()
+            )
+            gene_reduce, cnn_structure_count_reduce = _parse(
+                F.softmax(self.alphas_reduce, dim=-1).data.cpu().numpy()
+            )
 
             concat = range(2 + self._steps - self._multiplier, self._steps + 2)
             genotype = Genotype(
-                normal=gene_normal, normal_concat=concat,
-                reduce=gene_reduce, reduce_concat=concat
+                normal=gene_normal,
+                normal_concat=concat,
+                reduce=gene_reduce,
+                reduce_concat=concat,
             )
         return genotype, cnn_structure_count_normal, cnn_structure_count_reduce
 
     def get_current_model_size(self):
-        model = ModelForModelSizeMeasure(self._C, self._num_classes, self._layers, self._criterion,
-                                         self.alphas_normal, self.alphas_reduce, self._steps,
-                                         self._multiplier, self._stem_multiplier)
+        model = ModelForModelSizeMeasure(
+            self._C,
+            self._num_classes,
+            self._layers,
+            self._criterion,
+            self.alphas_normal,
+            self.alphas_reduce,
+            self._steps,
+            self._multiplier,
+            self._stem_multiplier,
+        )
         size = count_parameters_in_MB(model)
         # This need to be further checked with cuda stuff
         del model
         return size
+
 
 class EMNIST(nn.Module):
 
@@ -315,7 +395,17 @@ class EMNIST(nn.Module):
     # steps：每个cell内部的节点数
     # multiplier：用于指定cell的输出取有向无环图中的最后multiplier个通道
     # stem_multiplier：初始stem层的通道数乘数，用于调整stem层的输出通道数
-    def __init__(self, C, num_classes, layers, criterion, device,steps=4, multiplier=4, stem_multiplier=3):
+    def __init__(
+        self,
+        C,
+        num_classes,
+        layers,
+        criterion,
+        device,
+        steps=4,
+        multiplier=4,
+        stem_multiplier=3,
+    ):
         super(EMNIST, self).__init__()
         print(Network)
         self._C = C
@@ -330,8 +420,7 @@ class EMNIST(nn.Module):
 
         C_curr = stem_multiplier * C  # 3*16
         self.stem = nn.Sequential(
-            nn.Conv2d(1, C_curr, 3, padding=1, bias=False),
-            nn.BatchNorm2d(C_curr)
+            nn.Conv2d(1, C_curr, 3, padding=1, bias=False), nn.BatchNorm2d(C_curr)
         )
 
         C_prev_prev, C_prev, C_curr = C_curr, C_curr, C
@@ -347,7 +436,15 @@ class EMNIST(nn.Module):
                 reduction = True
             else:
                 reduction = False
-            cell = Cell(steps, multiplier, C_prev_prev, C_prev, C_curr, reduction, reduction_prev)
+            cell = Cell(
+                steps,
+                multiplier,
+                C_prev_prev,
+                C_prev,
+                C_curr,
+                reduction,
+                reduction_prev,
+            )
             reduction_prev = reduction
             self.cells += [cell]
             C_prev_prev, C_prev = C_prev, multiplier * C_curr
@@ -358,7 +455,9 @@ class EMNIST(nn.Module):
         self._initialize_alphas()
 
     def new(self):
-        model_new = Network(self._C, self._num_classes, self._layers, self._criterion, self.device).to(self.device)
+        model_new = Network(
+            self._C, self._num_classes, self._layers, self._criterion, self.device
+        ).to(self.device)
         for x, y in zip(model_new.arch_parameters(), self.arch_parameters()):
             x.data.copy_(y.data)
         return model_new
@@ -388,7 +487,6 @@ class EMNIST(nn.Module):
         # 保存历史的权重信息
         self.history_normal = torch.zeros_like(self.alphas_normal)
         self.history_reduce = torch.zeros_like(self.alphas_reduce)
-
 
     def new_arch_parameters(self):
         k = sum(1 for i in range(self._steps) for n in range(2 + i))
@@ -423,11 +521,18 @@ class EMNIST(nn.Module):
                 # start表示当前节点所有边的起始索引，end表示终止索引。W仍然是一个二维矩阵，每一行代表该条边每种操作的权重
                 W = weights[start:end].copy()
                 # 先排序出权重值最大的一种操作做为每条边的操作，然后返回权重值最大的两条边作为当前节点本轮搜索的结果
-                edges = sorted(range(i + 2), key=lambda x: -max(W[x][k] for k in range(len(W[x])) if k != PRIMITIVES.index('none')))[:2]
+                edges = sorted(
+                    range(i + 2),
+                    key=lambda x: -max(
+                        W[x][k]
+                        for k in range(len(W[x]))
+                        if k != PRIMITIVES.index("none")
+                    ),
+                )[:2]
                 for j in edges:
                     k_best = None
                     for k in range(len(W[j])):
-                        if k != PRIMITIVES.index('none'):
+                        if k != PRIMITIVES.index("none"):
                             if k_best is None or W[j][k] > W[j][k_best]:
                                 k_best = k
 
@@ -441,20 +546,34 @@ class EMNIST(nn.Module):
 
         with torch.no_grad():
             # 先对行做softmax操作
-            gene_normal, cnn_structure_count_normal = _parse(F.softmax(self.alphas_normal, dim=-1).data.cpu().numpy())
-            gene_reduce, cnn_structure_count_reduce = _parse(F.softmax(self.alphas_reduce, dim=-1).data.cpu().numpy())
+            gene_normal, cnn_structure_count_normal = _parse(
+                F.softmax(self.alphas_normal, dim=-1).data.cpu().numpy()
+            )
+            gene_reduce, cnn_structure_count_reduce = _parse(
+                F.softmax(self.alphas_reduce, dim=-1).data.cpu().numpy()
+            )
 
             concat = range(2 + self._steps - self._multiplier, self._steps + 2)
             genotype = Genotype(
-                normal=gene_normal, normal_concat=concat,
-                reduce=gene_reduce, reduce_concat=concat
+                normal=gene_normal,
+                normal_concat=concat,
+                reduce=gene_reduce,
+                reduce_concat=concat,
             )
         return genotype, cnn_structure_count_normal, cnn_structure_count_reduce
 
     def get_current_model_size(self):
-        model = ModelForModelSizeMeasure(self._C, self._num_classes, self._layers, self._criterion,
-                                         self.alphas_normal, self.alphas_reduce, self._steps,
-                                         self._multiplier, self._stem_multiplier)
+        model = ModelForModelSizeMeasure(
+            self._C,
+            self._num_classes,
+            self._layers,
+            self._criterion,
+            self.alphas_normal,
+            self.alphas_reduce,
+            self._steps,
+            self._multiplier,
+            self._stem_multiplier,
+        )
         size = count_parameters_in_MB(model)
         # This need to be further checked with cuda stuff
         del model
