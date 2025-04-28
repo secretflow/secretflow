@@ -225,7 +225,7 @@ if __name__ == "__main__":
 
     # 初始化模型
     bahe_model = BAHE(
-        albert_model_name='albert/albert-base-v2',
+        albert_model_name='albert-base-v2',
         embed_dim=args.emb_dim,
         num_heads=4,
         ff_dim=512,

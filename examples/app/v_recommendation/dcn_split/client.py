@@ -6,7 +6,6 @@ from secretflow import PYUObject, proxy
 # 加一行 proxy 代码，表示隐语中的一个 worker
 ##########################################
 @proxy(PYUObject)
-
 class Client:
     def __init__(self, model, config, client_id,client_num):
         self._config = config

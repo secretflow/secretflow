@@ -5,24 +5,13 @@ from torch.utils.data import DataLoader
 from sf_dataset import DualDomainSeqDataset, collate_fn_enhance
 from sf_model import BERT4Rec, BAHE,BERT4RecEncoder,BERT4RecFusion  
 from sklearn.metrics import roc_auc_score
-import argparse
-import logging
-
-
+import argparse    
 import secretflow as sf
-import torch
-
-import logging
-
-        
-import secretflow as sf
-import torch
-import torch.nn as nn
-import torch.optim as optim
-from torch.utils.data import DataLoader
+from secretflow import PYUObject, proxy
 import logging
 from pathlib import Path
 
+@proxy(PYUObject)
 class Client:
     def __init__(self, bahe_model, bert4rec_model, config, client_id, num_clients, device):
         self.device = device
@@ -57,6 +46,7 @@ class Client:
         loss.backward()
         return True
 
+@proxy(PYUObject)
 class Server:
     def __init__(self, model, config, device):
         self.device = device

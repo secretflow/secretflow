@@ -2,7 +2,6 @@ import torch
 from secretflow import PYUObject, proxy
 
 @proxy(PYUObject)
-
 class Server:
     def __init__(self, model, config):
         self._config = config
