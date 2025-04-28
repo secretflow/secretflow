@@ -1,0 +1,14 @@
+import requests as req
+
+some_url = "https://example.com"
+
+r = req.get(some_url, stream=True, verify=False)
+----------------------------------------
+import requests as req
+
+some_url = "https://example.com"
+
+flag = [False, True]
+r = req.get(some_url, stream=True, verify=flag[0])
+----------------------------------------
+	Constant Analysis: Track and manipulate constant values or expressions in the code.

@@ -1,0 +1,9 @@
+from paramiko import client
+
+ssh_client = client.SSHClient()
+----------------------------------------
+module = __import__('paramiko', fromlist=['client']).client
+
+ssh_client = module.SSHClient()
+----------------------------------------
+	String Matching: Identify and modify code patterns that match specific strings or regular expressions.
