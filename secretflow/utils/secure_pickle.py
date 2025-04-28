@@ -26,10 +26,8 @@ import cloudpickle
 _PICKLE_WHITELIST = types.MappingProxyType(
     {
         "builtins": ("dict", "list", "tuple", "set", "int", "str", "bytes"),
-        "__builtin__": ("dict", "list", "tuple", "set", "int", "str", "bytes"),
         "collections": ("defaultdict", "OrderedDict"),
         "scipy.sparse._csr": ("csr_matrix",),
-        "scipy.sparse.csr": ("csr_matrix",),
         "numpy": ("ndarray", "dtype"),
         "numpy.core.numeric": ("_frombuffer"),
         "numpy.core.multiarray": ("scalar", "_reconstruct"),
