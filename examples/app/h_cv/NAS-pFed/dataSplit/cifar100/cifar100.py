@@ -1,6 +1,7 @@
 """
 按照狄利克雷分布为每个客户端划分数据集
 """
+
 import os.path
 from datetime import datetime
 
@@ -9,6 +10,7 @@ from torchvision import datasets
 
 import random
 import torch
+
 RANDOM_SEED = 0
 random.seed(RANDOM_SEED)
 torch.manual_seed(RANDOM_SEED)
@@ -22,10 +24,15 @@ TEST_EXAMPLES_PER_LABEL = int(TEST_EXAMPLES / NUM_CLASSES)
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
+
 def split_cifar100(dirichlet_parameter: float = 0.1, total_clients: int = 500):
     # 加载 CIFAR-100 数据集
-    train_dataset = datasets.CIFAR100(root=current_dir+'/dataset', train=True, download=False)
-    test_dataset = datasets.CIFAR100(root=current_dir+'/dataset', train=False, download=False)
+    train_dataset = datasets.CIFAR100(
+        root=current_dir + "/dataset", train=True, download=False
+    )
+    test_dataset = datasets.CIFAR100(
+        root=current_dir + "/dataset", train=False, download=False
+    )
 
     # 创建包含 100 个类别的二维数组，每个类别一个子列表
     train_indices_by_class = [[] for _ in range(NUM_CLASSES)]
@@ -47,7 +54,12 @@ def split_cifar100(dirichlet_parameter: float = 0.1, total_clients: int = 500):
     train_multinomial_vals = []
     test_multinomial_vals = []
     for i in range(total_clients):
-        proportion = np.random.dirichlet(dirichlet_parameter * np.ones(NUM_CLASSES,))
+        proportion = np.random.dirichlet(
+            dirichlet_parameter
+            * np.ones(
+                NUM_CLASSES,
+            )
+        )
         train_multinomial_vals.append(proportion)
         test_multinomial_vals.append(proportion)
     train_multinomial_vals = np.array(train_multinomial_vals)
@@ -59,26 +71,38 @@ def split_cifar100(dirichlet_parameter: float = 0.1, total_clients: int = 500):
     test_count = np.zeros(NUM_CLASSES).astype(int)
 
     # 每个客户端的训练集和测试集中样本的数量
-    train_examples_per_client = (int(TRAIN_EXAMPLES / total_clients))
-    test_examples_per_client = (int(TEST_EXAMPLES / total_clients))
+    train_examples_per_client = int(TRAIN_EXAMPLES / total_clients)
+    test_examples_per_client = int(TEST_EXAMPLES / total_clients)
 
     for k in range(total_clients):
         for i in range(train_examples_per_client):
-            sampled_label = np.argwhere(np.random.multinomial(1, train_multinomial_vals[k, :]) == 1)[0][0]
-            train_client_samples[k].append(train_indices_by_class[sampled_label, train_count[sampled_label]])
+            sampled_label = np.argwhere(
+                np.random.multinomial(1, train_multinomial_vals[k, :]) == 1
+            )[0][0]
+            train_client_samples[k].append(
+                train_indices_by_class[sampled_label, train_count[sampled_label]]
+            )
             train_count[sampled_label] += 1
             if train_count[sampled_label] == TRAIN_EXAMPLES_PER_LABEL:
                 # print("该类别的训练集已取完")
                 train_multinomial_vals[:, sampled_label] = 0
-                train_multinomial_vals = (train_multinomial_vals / train_multinomial_vals.sum(axis=1)[:, None])
+                train_multinomial_vals = (
+                    train_multinomial_vals / train_multinomial_vals.sum(axis=1)[:, None]
+                )
         for i in range(test_examples_per_client):
-            sampled_label = np.argwhere(np.random.multinomial(1, test_multinomial_vals[k, :]) == 1)[0][0]
-            test_client_samples[k].append(test_indices_by_class[sampled_label, test_count[sampled_label]])
+            sampled_label = np.argwhere(
+                np.random.multinomial(1, test_multinomial_vals[k, :]) == 1
+            )[0][0]
+            test_client_samples[k].append(
+                test_indices_by_class[sampled_label, test_count[sampled_label]]
+            )
             test_count[sampled_label] += 1
             if test_count[sampled_label] == TEST_EXAMPLES_PER_LABEL:
                 # print("该类别的测试集已取完")
                 test_multinomial_vals[:, sampled_label] = 0
-                test_multinomial_vals = (test_multinomial_vals / test_multinomial_vals.sum(axis=1)[:, None])
+                test_multinomial_vals = (
+                    test_multinomial_vals / test_multinomial_vals.sum(axis=1)[:, None]
+                )
     # now = datetime.now().strftime('%Y%m%d_%H%M%S')
     # np.save(f'{current_dir}/train_client_samples_{now}.npy', np.array(train_client_samples))
     # np.save(f'{current_dir}/test_client_samples_{now}.npy', np.array(test_client_samples))
