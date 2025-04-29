@@ -40,7 +40,7 @@ def CLP(params_list: List[np.ndarray]) -> np.ndarray:
 
         # Detect BN layer group (4 consecutive 1D params)
         elif param.ndim == 1 and current_idx + 3 < len(params_list):
-            next_params = params_list[current_idx:current_idx + 4]
+            next_params = params_list[current_idx : current_idx + 4]
             if all(p.ndim == 1 for p in next_params):
                 param_types.append(('bn', current_idx))
                 current_idx += 4
@@ -128,13 +128,20 @@ def CLP(params_list: List[np.ndarray]) -> np.ndarray:
 
     # Fallback: Return parameter norms if no Lipschitz values computed
     if not all_lips:
-        return np.array([np.linalg.norm(p.ravel()) for p in params_list if isinstance(p, np.ndarray)])
+        return np.array(
+            [
+                np.linalg.norm(p.ravel())
+                for p in params_list
+                if isinstance(p, np.ndarray)
+            ]
+        )
     return np.array(all_lips)
 
 
 # -------------------------------
 # Helper Functions
 # -------------------------------
+
 
 def compute_wasserstein_distance_matrix(l):
     """Compute pairwise Wasserstein distance matrix between feature vectors
@@ -229,6 +236,7 @@ def cluster_and_detect_anomalies(l, threshold):
 # MARS Aggregator Implementation
 # -------------------------------
 
+
 class MarsAggregator(PlainAggregator):
     """
     Byzantine-Robust Aggregator using Lipschitz-based Anomaly Detection
@@ -248,8 +256,14 @@ class MarsAggregator(PlainAggregator):
     def average(self, data: List[DeviceObject], axis=None, weights=None) -> PYUObject:
         # Data preparation
         data = [d.to(self.device) for d in data]
-        weights = [w.to(self.device) if isinstance(w, DeviceObject) else (w or 1.0)
-                   for w in weights] if weights else None
+        weights = (
+            [
+                w.to(self.device) if isinstance(w, DeviceObject) else (w or 1.0)
+                for w in weights
+            ]
+            if weights
+            else None
+        )
 
         def _average(*data, axis, weights):
             num_clients = len(data)
@@ -265,7 +279,9 @@ class MarsAggregator(PlainAggregator):
                     lips_vectors.append(np.array([]))
 
             # 2. Anomaly detection
-            anomaly_labels = cluster_and_detect_anomalies(lips_vectors, self.anomaly_threshold)
+            anomaly_labels = cluster_and_detect_anomalies(
+                lips_vectors, self.anomaly_threshold
+            )
             print(f"Anomaly detection results: {anomaly_labels}")
 
             # 3. Filter anomalous clients
@@ -278,7 +294,9 @@ class MarsAggregator(PlainAggregator):
 
             # 4. Secure aggregation
             if not benign_clients:
-                print("Warning: All clients marked as anomalous, returning first client's parameters")
+                print(
+                    "Warning: All clients marked as anomalous, returning first client's parameters"
+                )
                 return deepcopy(data[0])
 
             # Layer-wise aggregation
