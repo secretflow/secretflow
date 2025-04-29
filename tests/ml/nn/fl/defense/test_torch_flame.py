@@ -101,9 +101,9 @@ def _torch_model_with_cifar10(
         test_data, test_label, batch_size=128, random_seed=1234
     )
     print(history, global_metric)
-    logger.warning('history')
+    logger.warning("history")
     logger.warning(history)
-    logger.warning('global_metric')
+    logger.warning("global_metric")
     logger.warning(global_metric)
     bd_metric, local_metric = fl_model.evaluate_bd(
         test_data,
@@ -113,9 +113,9 @@ def _torch_model_with_cifar10(
         attack_party=callbacks[0].attack_party,
         target_label=callbacks[0].target_label,
     )
-    logger.warning('bd_metric')
+    logger.warning("bd_metric")
     logger.warning(bd_metric)
-    logger.warning('local_metric')
+    logger.warning("local_metric")
     logger.warning(local_metric)
     print(bd_metric, local_metric)
 
@@ -152,6 +152,7 @@ def _torch_model_with_cifar10(
         data, label, batch_size=128, random_seed=1234
     )
 
+
 @pytest.mark.skipif(skip_live, reason="Skip the tests that require real networks/data")
 def test_torch_model(sf_simulation_setup_devices):
     (train_data, train_label), (test_data, test_label) = load_cifar10_horiontal(
@@ -185,7 +186,7 @@ def test_torch_model(sf_simulation_setup_devices):
         attack_party=alice, poison_rate=0.01, target_label=1, eta=1.0, attack_epoch=1
     )
     # Test fed_avg_w with mnist
-    logging.info('test_print' * 20)
+    logging.info("test_print" * 20)
     _torch_model_with_cifar10(
         devices=sf_simulation_setup_devices,
         model_def=model_def,
