@@ -12,26 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import base64
 import logging
 import os
-import subprocess
 import sys
 import tarfile
 from typing import List
 
 import click
+from dataproxy.sdk import FileFormat
 from google.protobuf import json_format
-from kuscia.proto.api.v1alpha1.common_pb2 import FileFormat
 from kuscia.proto.api.v1alpha1.datamesh.domaindatasource_pb2 import DomainDataSource
 
-from secretflow.component.data_utils import DistDataType
-from secretflow.component.entry import comp_eval, get_comp_def
+from secretflow.component.core import DistDataType, load_plugins
+from secretflow.component.entry import comp_eval
 from secretflow.kuscia.datamesh import (
     create_channel,
     create_dm_flight_client,
     create_domain_data_in_dm,
-    create_domain_data_in_dp,
     create_domain_data_service_stub,
     create_domain_data_source_service_stub,
     get_domain_data,
@@ -43,10 +40,8 @@ from secretflow.kuscia.meta_conversion import (
     convert_dist_data_to_domain_data,
     convert_domain_data_to_individual_table,
 )
-from secretflow.kuscia.ray_config import RayConfig
 from secretflow.kuscia.sf_config import get_sf_cluster_config
-from secretflow.kuscia.task_config import KusciaTaskConfig
-from secretflow.spec.v1.component_pb2 import IoDef
+from secretflow.kuscia.task_config import KusciaTaskConfig, TableAttr
 from secretflow.spec.v1.data_pb2 import DistData, StorageConfig
 from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam, NodeEvalResult
 
@@ -56,34 +51,6 @@ DEFAULT_DATAMESH_ADDRESS = "datamesh:8071"
 TEMP_STORAGE_ROOT = "/tmp"
 
 
-def start_ray(ray_conf: RayConfig):
-    logging.info(f"ray_conf: {ray_conf}")
-
-    ray_cmd, envs = ray_conf.generate_ray_cmd()
-
-    if not ray_cmd:
-        # Local mode, do nothing here.
-        return
-
-    logging.info(
-        f"Trying to start ray head node at {ray_conf.ray_node_ip_address}, start command: {' '.join(ray_cmd)}"
-    )
-
-    process = subprocess.run(ray_cmd, env=envs, capture_output=True, shell=False)
-
-    if process.returncode != 0:
-        err_msg = f"Failed to start ray head node, start command: {' '.join(ray_cmd)}, stderr: {process.stderr}"
-        logging.critical(err_msg)
-        logging.critical("This process will exit now!")
-        sys.exit(-1)
-    else:
-        if process.stdout:
-            logging.info(process.stdout.decode(errors='ignore'))
-        logging.info(
-            f"Succeeded to start ray head node at {ray_conf.ray_node_ip_address}."
-        )
-
-
 def download_dist_data_from_dp(
     task_conf: KusciaTaskConfig,
     dm_flight_client,
@@ -91,21 +58,38 @@ def download_dist_data_from_dp(
     domain_data,
     storage_config,
     dist_data,
+    partition_spec: str = "",
 ):
     # TODO: Refactor comp IO, move this to component/data_utils.py
     # IO should running in pyu context.
     data_type: str = dist_data.type
     need_untar = False
     party_data_refs = []
+    data_ref_type = set()
     for data_ref in list(dist_data.data_refs):
         if data_ref.party == task_conf.party_name:
             party_data_refs.append(data_ref)
+            data_ref_type.add(data_ref.format)
+
+    if not party_data_refs:
+        return
 
     if data_type.startswith("sf.table"):
-        # download csv, TODO: move to data_utils.py:load_table
-        file_format = FileFormat.CSV
+        if len(data_ref_type) != 1:
+            raise RuntimeError(
+                f"kuscia adapter load data refs of {task_conf.party_name} with multiple format: {data_ref_type}"
+            )
+        data_ref_type = data_ref_type.pop()
+        # download csv, TODO: use DP SDK instead.
+        if data_ref_type == 'csv':
+            file_format = FileFormat.CSV
+        elif data_ref_type == 'orc':
+            file_format = FileFormat.ORC
+        else:
+            raise AttributeError(f"unrecognized format {data_ref_type} for {data_type}")
+
     elif data_type.startswith("sf.model") or data_type.startswith("sf.rule"):
-        # download model etc., TODO: move to data_utils.py:model_loads
+        # download model etc., TODO: use DP SDK instead.
         file_format = FileFormat.BINARY
         need_untar = True
     elif data_type == "sf.serving.model":
@@ -122,13 +106,29 @@ def download_dist_data_from_dp(
         path = os.path.join(storage_config.local_fs.wd, domain_data.relative_uri)
         if need_untar:
             path = f"{path}.tar.gz"
-        get_file_from_dp(dm_flight_client, domaindata_id, path, file_format)
+        get_file_from_dp(
+            dm_flight_client, domaindata_id, path, file_format, partition_spec
+        )
         if need_untar:
             with tarfile.open(path, "r:gz") as tar:
                 tar.extractall(storage_config.local_fs.wd, filter='data')
         for data_ref in party_data_refs:
             file_path = os.path.join(storage_config.local_fs.wd, data_ref.uri)
             assert os.path.isfile(file_path), f"missing file {data_ref.uri}"
+
+
+def get_table_info_from_table_attr(
+    task_conf: KusciaTaskConfig, domaindata_id: str
+) -> TableAttr:
+    if not task_conf.table_attrs:
+        logging.info(f"no table_attrs")
+        return None
+    for table_attr in task_conf.table_attrs:
+        if table_attr.table_id == domaindata_id:
+            return table_attr
+    logging.info(f"domaindata_id {domaindata_id} not found in table_attrs")
+
+    return None
 
 
 def domaindata_id_to_dist_data(
@@ -138,7 +138,7 @@ def domaindata_id_to_dist_data(
     storage_config: StorageConfig,
     domaindata_stub,
     domaindata_id,
-    input_def: IoDef,
+    partition_spec: str = "",
     skip_download_dataset: bool = False,
 ):
     if domaindata_id == '':
@@ -147,7 +147,8 @@ def domaindata_id_to_dist_data(
     domain_data = get_domain_data(domaindata_stub, domaindata_id)
 
     if (
-        domain_data.author == task_conf.party_name
+        datasource.access_directly
+        and domain_data.author == task_conf.party_name
         and domain_data.datasource_id != datasource.datasource_id
     ):
         raise RuntimeError(
@@ -156,10 +157,9 @@ def domaindata_id_to_dist_data(
 
     if domain_data.attributes["dist_data"]:
         dist_data = json_format.Parse(domain_data.attributes["dist_data"], DistData())
-        assert dist_data.type in set(input_def.types)
     else:
-        assert "sf.table.individual" in set(input_def.types)
-        dist_data = convert_domain_data_to_individual_table(domain_data)
+        table_attr = get_table_info_from_table_attr(task_conf, domaindata_id)
+        dist_data = convert_domain_data_to_individual_table(domain_data, table_attr)
 
     logging.info(f"domaindata_id {domaindata_id} to \n...........\n{dist_data}\n....")
 
@@ -174,6 +174,7 @@ def domaindata_id_to_dist_data(
             domain_data,
             storage_config,
             dist_data,
+            partition_spec,
         )
 
     return dist_data
@@ -191,7 +192,6 @@ def model_export_id_to_data(
     input_idx = None
     output_ids = None
     output_idx = None
-    eval_params = None
     for i, path in enumerate(export_param.attr_paths):
         if path == "input_datasets":
             input_ids = list(export_param.attrs[i].ss)
@@ -199,65 +199,62 @@ def model_export_id_to_data(
         if path == "output_datasets":
             output_ids = list(export_param.attrs[i].ss)
             output_idx = i
-        if path == "component_eval_params":
-            eval_params = [
-                json_format.Parse(base64.b64decode(p).decode("utf-8"), NodeEvalParam())
-                for p in export_param.attrs[i].ss
-            ]
-    assert input_ids and output_ids and eval_params
+    assert input_ids and output_ids
 
+    def _domain_ids_list_distdata_list(ids: list[str]) -> list[str]:
+        result = []
+        for domain_id in ids:
+            dd = domaindata_id_to_dist_data(
+                task_conf,
+                dm_flight_client,
+                datasource,
+                storage_config,
+                domaindata_stub,
+                domain_id,
+                partition_spec="",
+                skip_download_dataset=True,
+            )
+            result.append(json_format.MessageToJson(dd, indent=0))
+
+        return result
+
+    input_ds = _domain_ids_list_distdata_list(input_ids)
+    for domain_id in input_ids:
+        input_ds.append(
+            json_format.MessageToJson(
+                domaindata_id_to_dist_data(
+                    task_conf,
+                    dm_flight_client,
+                    datasource,
+                    storage_config,
+                    domaindata_stub,
+                    domain_id,
+                    partition_spec="",
+                    skip_download_dataset=True,
+                ),
+                indent=0,
+            )
+        )
     output_ds = []
-    input_ds = []
-    input_sum = 0
-    output_sum = 0
-    for param in eval_params:
-        comp_def = get_comp_def(param.domain, param.name, param.version)
-        assert input_sum + len(comp_def.inputs) <= len(input_ids)
-        assert output_sum + len(comp_def.outputs) <= len(output_ids)
-
-        for domain_id, input_def in zip(input_ids[input_sum:], list(comp_def.inputs)):
-            input_ds.append(
-                json_format.MessageToJson(
-                    domaindata_id_to_dist_data(
-                        task_conf,
-                        dm_flight_client,
-                        datasource,
-                        storage_config,
-                        domaindata_stub,
-                        domain_id,
-                        input_def,
-                        skip_download_dataset=True,
-                    ),
-                    indent=0,
-                )
+    for domain_id in output_ids:
+        output_ds.append(
+            json_format.MessageToJson(
+                domaindata_id_to_dist_data(
+                    task_conf,
+                    dm_flight_client,
+                    datasource,
+                    storage_config,
+                    domaindata_stub,
+                    domain_id,
+                    partition_spec="",
+                    skip_download_dataset=True,
+                ),
+                indent=0,
             )
-        for domain_id, output_def in zip(
-            output_ids[output_sum:], list(comp_def.outputs)
-        ):
-            output_ds.append(
-                json_format.MessageToJson(
-                    domaindata_id_to_dist_data(
-                        task_conf,
-                        dm_flight_client,
-                        datasource,
-                        storage_config,
-                        domaindata_stub,
-                        domain_id,
-                        output_def,
-                        skip_download_dataset=True,
-                    ),
-                    indent=0,
-                )
-            )
+        )
 
-        input_sum += len(comp_def.inputs)
-        output_sum += len(comp_def.outputs)
-
-    assert input_sum == len(input_ids)
-    assert output_sum == len(output_ids)
-
-    export_param.attrs[input_idx].ss[:] = input_ds
-    export_param.attrs[output_idx].ss[:] = output_ds
+    export_param.attrs[input_idx].ss[:] = _domain_ids_list_distdata_list(input_ids)
+    export_param.attrs[output_idx].ss[:] = _domain_ids_list_distdata_list(output_ids)
 
     return export_param
 
@@ -272,14 +269,19 @@ def preprocess_sf_node_eval_param(
     sf_input_ids: List[str] = None,
     sf_output_uris: List[str] = None,
 ) -> NodeEvalParam:
-    comp_def = get_comp_def(param.domain, param.name, param.version)
+    partitions_spec = task_conf.sf_input_partitions_spec
+    if partitions_spec is not None and partitions_spec:
+        assert len(partitions_spec) == len(
+            sf_input_ids
+        ), "cnt of sf_input_partitions_spec doesn't match cnt of sf_input_ids."
+    else:
+        partitions_spec = [""] * len(sf_input_ids)
 
-    assert len(comp_def.inputs) == len(
-        sf_input_ids
-    ), "cnt of sf_input_ids doesn't match cnt of comp_def.inputs."
-    assert len(comp_def.outputs) == len(
-        sf_output_uris
-    ), "cnt of sf_output_uris doesn't match cnt of comp_def.outputs."
+    output_partitions_spec = task_conf.sf_output_partitions_spec
+    if output_partitions_spec is not None and output_partitions_spec:
+        assert len(output_partitions_spec) == len(
+            sf_output_uris
+        ), "cnt of sf_input_partitions_spec doesn't match cnt of sf_output_ids."
 
     if not datasource.access_directly:
         dm_flight_client = create_dm_flight_client(datamesh_addr)
@@ -289,7 +291,7 @@ def preprocess_sf_node_eval_param(
     # get input DistData from GRM
     if len(sf_input_ids):
         param.ClearField('inputs')
-        for domaindata_id, input_def in zip(sf_input_ids, list(comp_def.inputs)):
+        for domaindata_id, partition_spec in zip(sf_input_ids, partitions_spec):
             param.inputs.append(
                 domaindata_id_to_dist_data(
                     task_conf,
@@ -298,7 +300,7 @@ def preprocess_sf_node_eval_param(
                     storage_config,
                     domaindata_stub,
                     domaindata_id,
-                    input_def,
+                    partition_spec,
                 )
             )
 
@@ -397,13 +399,23 @@ def upload_dist_data_to_dp(
 
     if data_type.startswith("sf.table"):
         # upload csv, TODO: move to data_utils.py:dump_vertical_table
-        file_format = FileFormat.CSV
         if party_data_refs:
+
             assert len(party_data_refs) == 1
             data_ref = party_data_refs[0]
             # FIXME: break this coupling
-            assert data_ref.uri == domain_data.relative_uri
+            assert (
+                data_ref.uri == domain_data.relative_uri
+            ), f"{data_ref} != {domain_data}"
             path = os.path.join(storage_config.local_fs.wd, data_ref.uri)
+            if data_ref.format == 'orc':
+                file_format = FileFormat.ORC
+            elif data_ref.format == 'csv':
+                file_format = FileFormat.CSV
+            else:
+                raise AttributeError(
+                    f"unsupported data ref format {data_ref.format} for {data_type}"
+                )
         else:
             path = None
     elif data_type.startswith("sf.model") or data_type.startswith("sf.rule"):
@@ -442,8 +454,7 @@ def upload_dist_data_to_dp(
         raise AttributeError(f"unknown dist_data type {data_type}")
 
     if path:
-        create_domain_data_in_dp(dm_flight_client, domain_data, file_format)
-        put_file_to_dp(dm_flight_client, domain_data_id, path, file_format)
+        put_file_to_dp(dm_flight_client, domain_data_id, path, file_format, domain_data)
 
 
 def postprocess_sf_node_eval_result(
@@ -457,19 +468,32 @@ def postprocess_sf_node_eval_result(
     sf_output_ids: List[str] = None,
     sf_output_uris: List[str] = None,
 ) -> None:
+    # check valid for output partitions spec
+    output_partitions_spec = task_conf.sf_output_partitions_spec
+    if output_partitions_spec is not None and output_partitions_spec:
+        assert len(output_partitions_spec) == len(
+            sf_output_uris
+        ), "cnt of sf_output_partitions_spec doesn't match cnt of sf_output_ids."
+    else:
+        output_partitions_spec = [""] * len(sf_output_uris)
     # write output DistData to GRM
     if sf_output_ids is not None and len(sf_output_ids) > 0:
         if not datasource.access_directly:
             dm_flight_client = create_dm_flight_client(datamesh_addr)
 
-        for domain_data_id, dist_data, output_uri in zip(
-            sf_output_ids, res.outputs, sf_output_uris
+        for domain_data_id, dist_data, output_uri, output_partition in zip(
+            sf_output_ids, res.outputs, sf_output_uris, output_partitions_spec
         ):
             logging.info(
                 f"domaindata_id {domain_data_id} from \n...........\n{dist_data}\n...."
             )
             domain_data = convert_dist_data_to_domain_data(
-                domain_data_id, datasource.datasource_id, dist_data, output_uri, party
+                domain_data_id,
+                datasource.datasource_id,
+                dist_data,
+                output_uri,
+                party,
+                output_partition,
             )
             create_domain_data_in_dm(domaindata_stub, domain_data)
             if not datasource.access_directly:
@@ -489,7 +513,12 @@ def postprocess_sf_node_eval_result(
 @click.command()
 @click.argument("task_config_path", type=click.Path(exists=True))
 @click.option("--datamesh_addr", required=False, default=DEFAULT_DATAMESH_ADDRESS)
-def main(task_config_path, datamesh_addr):
+@click.option("--enable_plugins", required=False, default=True)
+def main(task_config_path, datamesh_addr, enable_plugins: bool):
+    if enable_plugins:
+        load_plugins()
+
+    os.environ["DATAMESH_ADDRESS"] = datamesh_addr
     task_conf = KusciaTaskConfig.from_file(task_config_path)
 
     logging.basicConfig(
@@ -504,9 +533,6 @@ def main(task_config_path, datamesh_addr):
     datasource_stub = create_domain_data_source_service_stub(datamesh_channel)
     datasource_id = get_datasource_id(task_conf)
     datasource = get_domain_data_source(datasource_stub, datasource_id)
-
-    ray_config = RayConfig.from_kuscia_task_config(task_conf)
-    start_ray(ray_config)
 
     storage_config = get_storage_config(task_conf, datasource)
 
@@ -528,7 +554,11 @@ def main(task_config_path, datamesh_addr):
 
     sf_cluster_config = get_sf_cluster_config(task_conf)
 
-    res = comp_eval(sf_node_eval_param, storage_config, sf_cluster_config)
+    try:
+        res = comp_eval(sf_node_eval_param, storage_config, sf_cluster_config)
+    except Exception:
+        logging.exception(f"comp_eval exception")
+        os._exit(1)
 
     postprocess_sf_node_eval_result(
         task_conf,

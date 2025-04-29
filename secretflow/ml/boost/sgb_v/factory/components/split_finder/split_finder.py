@@ -20,8 +20,14 @@ import numpy as np
 
 from secretflow.ml.boost.sgb_v.core.params import default_params
 
-from ....core.pure_numpy_ops.boost import find_best_splits, find_best_splits_with_gains
-from ..component import Component, Devices, print_params
+from ....core.pure_numpy_ops.boost import find_best_splits_with_gains
+from ..component import (
+    Component,
+    Devices,
+    print_params,
+    set_dict_from_params,
+    set_params_from_dict,
+)
 
 
 @dataclass
@@ -51,18 +57,10 @@ class SplitFinder(Component):
         print_params(self.params)
 
     def set_params(self, params: dict):
-        gamma = params.get('gamma', default_params.gamma)
-        reg_lambda = params.get('reg_lambda', default_params.reg_lambda)
-        audit_paths = params.get('audit_paths', {})
-
-        self.params.gamma = gamma
-        self.params.reg_lambda = reg_lambda
-        self.params.audit_paths = audit_paths
+        set_params_from_dict(self.params, params)
 
     def get_params(self, params: dict):
-        params['gamma'] = self.params.gamma
-        params['reg_lambda'] = self.params.reg_lambda
-        params['audit_path'] = self.params.audit_paths
+        set_dict_from_params(self.params, params)
 
     def set_devices(self, devices: Devices):
         self.label_holder = devices.label_holder
@@ -98,11 +96,11 @@ class SplitFinder(Component):
 
     def find_best_splits_level_wise(
         self, G: np.ndarray, H: np.ndarray, tree_num: int, level: int
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         reg_lambda = self.params.reg_lambda
         gamma = self.params.gamma
-        split_buckets, should_split = self.label_holder(
-            find_best_splits, num_returns=2
+        split_buckets, gains, should_split = self.label_holder(
+            find_best_splits_with_gains, num_returns=3
         )(G, H, reg_lambda, gamma)
 
         if self.label_holder.party in self.params.audit_paths:
@@ -116,7 +114,7 @@ class SplitFinder(Component):
             )
 
             self.label_holder(write_log)(split_buckets, split_info_path)
-        return split_buckets, should_split
+        return split_buckets, should_split, gains
 
 
 def write_log(x, path):

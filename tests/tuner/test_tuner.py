@@ -17,8 +17,9 @@ import shutil
 import tempfile
 import uuid
 
-from secretflow import reveal, tune
-from secretflow.tune.tune_config import RunConfig
+from secretflow import reveal
+from secretflow_fl import tune
+from secretflow_fl.tune.tune_config import RunConfig
 
 _temp_dir = tempfile.mkdtemp()
 

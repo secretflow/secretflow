@@ -13,140 +13,180 @@
 # limitations under the License.
 
 import math
+from typing import Tuple
 
-from secretflow.component.component import Component, IoType, TableColParam
-from secretflow.component.data_utils import (
+import pyarrow as pa
+import pyarrow.compute as pc
+
+from secretflow.component.core import (
+    Component,
+    CompVDataFrame,
+    CompVDataFrameReader,
+    CompVDataFrameWriter,
+    Context,
     DistDataType,
-    dump_vertical_table,
-    load_table,
-    VerticalTableWrapper,
+    Field,
+    Input,
+    Interval,
+    Output,
+    VTable,
+    VTableFieldKind,
+    register,
 )
-from secretflow.preprocessing.cond_filter_v import ConditionFilter, conversion_mapping
+from secretflow.device import PYU
 
-condition_filter_comp = Component(
-    "condition_filter",
-    domain="data_filter",
-    version="0.0.1",
-    desc="""Filter the table based on a single column's values and condition.
+comparator_mapping = {
+    '==': lambda x, y: pc.equal(x, y),
+    '<': lambda x, y: pc.less(x, y),
+    '<=': lambda x, y: pc.less_equal(x, y),
+    '>': lambda x, y: pc.greater(x, y),
+    '>=': lambda x, y: pc.greater_equal(x, y),
+    'IN': lambda x, y: pc.is_in(x, y),
+    'NOTNULL': lambda x, _: pc.is_valid(x),
+}
+
+
+def is_close(a, b, epsilon=1e-7):
+    return pc.less_equal(pc.abs(pc.subtract(a, b)), epsilon)
+
+
+def approx_is_in(array, values, epsilon=1e-7):
+    conditions = [is_close(array, value, epsilon) for value in values]
+    combined_condition = conditions[0]
+    for condition in conditions[1:]:
+        combined_condition = pc.or_(combined_condition, condition)
+    return combined_condition
+
+
+def get_compare_func(comparator: str, is_float: bool, epsilon: float):
+    if is_float:
+        if comparator == "==":
+            return lambda x, y: is_close(x, y, epsilon)
+        elif comparator == "IN":
+            return lambda x, y: approx_is_in(x, y, epsilon)
+
+    return comparator_mapping[comparator]
+
+
+def apply(
+    df: CompVDataFrame, owner: PYU, name: str, value, compare_fn
+) -> tuple[CompVDataFrame, CompVDataFrame]:
+    def _fit(table: pa.Table) -> pa.Table:
+        filter = compare_fn(table[name], value)
+        return pc.fill_null(filter, False)
+
+    def _transform(
+        df: pa.Table, selection: pa.ChunkedArray
+    ) -> Tuple[pa.Table, pa.Table]:
+        return df.filter(selection), df.filter(pc.invert(selection))
+
+    selection = owner(_fit)(df.partitions[owner].data)
+
+    selected_df = CompVDataFrame({}, df.system_info)
+    else_df = CompVDataFrame({}, df.system_info)
+    for pyu in df.partitions:
+        selected_data, else_data = pyu(_transform)(df.data(pyu), selection.to(pyu))
+        selected_df.set_data(selected_data)
+        else_df.set_data(else_data)
+
+    return selected_df, else_df
+
+
+@register(domain="data_filter", version="1.0.0")
+class ConditionFilter(Component):
+    '''
+    Filter the table based on a single column's values and condition.
     Warning: the party responsible for condition filtering will directly send the sample distribution to other participants.
     Malicious participants can obtain the distribution of characteristics by repeatedly calling with different filtering values.
     Audit the usage of this component carefully.
-    """,
-)
+    '''
 
-condition_filter_comp.str_attr(
-    name="comparator",
-    desc="Comparator to use for comparison. Must be one of '==','<','<=','>','>=','IN'",
-    is_list=False,
-    is_optional=False,
-    allowed_values=['==', '<', '<=', '>', '>=', 'IN'],
-)
-
-condition_filter_comp.str_attr(
-    name="value_type",
-    desc=f"Type of the value to compare with. Must be one of {list(conversion_mapping.keys())}",
-    is_list=False,
-    is_optional=False,
-    allowed_values=list(conversion_mapping.keys()),
-)
-condition_filter_comp.str_attr(
-    name="bound_value",
-    desc="Input a str with values separated by ','. List of values to compare with. If comparator is not 'IN', we only support one element in this list.",
-    is_optional=False,
-    is_list=False,
-)
-condition_filter_comp.float_attr(
-    name="float_epsilon",
-    desc="Epsilon value for floating point comparison. WARNING: due to floating point representation in computers, set this number slightly larger if you want filter out the values exactly at desired boundary. for example, abs(1.001 - 1.002) is slightly larger than 0.001, and therefore may not be filter out using == and epsilson = 0.001",
-    is_list=False,
-    is_optional=True,
-    lower_bound=0,
-    lower_bound_inclusive=True,
-    default_value=0.000001,
-)
-
-condition_filter_comp.io(
-    io_type=IoType.INPUT,
-    name="in_ds",
-    desc="Input vertical table.",
-    types=[DistDataType.VERTICAL_TABLE],
-    col_params=[
-        TableColParam(
-            name="features",
-            desc="Feature(s) to operate on.",
-            col_min_cnt_inclusive=1,
-            col_max_cnt_inclusive=1,
-        )
-    ],
-)
-
-condition_filter_comp.io(
-    io_type=IoType.OUTPUT,
-    name="out_ds",
-    desc="Output vertical table that satisfies the condition.",
-    types=[DistDataType.VERTICAL_TABLE],
-)
-
-condition_filter_comp.io(
-    io_type=IoType.OUTPUT,
-    name="out_ds_else",
-    desc="Output vertical table that does not satisfies the condition.",
-    types=[DistDataType.VERTICAL_TABLE],
-)
-
-
-@condition_filter_comp.eval_fn
-def condition_filter_comp_eval_fn(
-    *,
-    ctx,
-    comparator,
-    value_type,
-    bound_value,
-    float_epsilon,
-    in_ds,
-    in_ds_features,
-    out_ds,
-    out_ds_else,
-):
-    # Load data from train_dataset
-    x = load_table(ctx, in_ds, load_features=True, load_ids=True, load_labels=True)
-    bound_value_list = bound_value.split(",")
-    # Initialize and run training algorithm
-    with ctx.tracer.trace_running():
-        filter = ConditionFilter(
-            field_name=in_ds_features[0],
-            comparator=comparator,
-            value_type=value_type,
-            bound_value=bound_value_list,
-            float_epsilon=float_epsilon,
-        )
-        ds = filter.fit_transform(x)
-        else_ds = filter.get_else_table()
-
-    assert math.prod(
-        ds.shape
-    ), f"empty dataset is not allowed, yet the table satisfied the condition is empty, \
-    skip this condition filter step and use alternative pipeline please."
-
-    assert math.prod(
-        else_ds.shape
-    ), f"empty dataset is not allowed, yet the table not satisfied the condition is empty, \
-    skip this condition filter step and use alternative pipeline please."
-
-    out_db = dump_vertical_table(
-        ctx,
-        ds,
-        out_ds,
-        VerticalTableWrapper.from_dist_data(in_ds, ds.shape[0]),
-        in_ds.system_info,
+    comparator: str = Field.attr(
+        desc="Comparator to use for comparison. Must be one of '==','<','<=','>','>=','IN','NOTNULL' ",
+        choices=['==', '<', '<=', '>', '>=', 'IN', 'NOTNULL'],
+    )
+    bound_value: str = Field.attr(
+        desc="Input a value for comparison; if the comparison condition is IN, you can input multiple values separated by ','; if the comparison condition is NOTNULL, the input is not needed.",
+        default="",
+    )
+    float_epsilon: float = Field.attr(
+        desc="Epsilon value for floating point comparison. WARNING: due to floating point representation in computers, set this number slightly larger if you want filter out the values exactly at desired boundary. for example, abs(1.001 - 1.002) is slightly larger than 0.001, and therefore may not be filter out using == and epsilson = 0.001",
+        default=0.000001,
+        bound_limit=Interval.closed(0, None),
+    )
+    feature: str = Field.table_column_attr(
+        "input_ds",
+        desc="Feature to operate on.",
+    )
+    input_ds: Input = Field.input(
+        desc="Input vertical table.",
+        types=[DistDataType.VERTICAL_TABLE],
+    )
+    output_ds: Output = Field.output(
+        desc="Output vertical table that satisfies the condition.",
+        types=[DistDataType.VERTICAL_TABLE],
+    )
+    output_ds_else: Output = Field.output(
+        desc="Output vertical table that does not satisfies the condition.",
+        types=[DistDataType.VERTICAL_TABLE],
     )
 
-    out_db_else = dump_vertical_table(
-        ctx,
-        else_ds,
-        out_ds_else,
-        VerticalTableWrapper.from_dist_data(in_ds, else_ds.shape[0]),
-        in_ds.system_info,
-    )
+    def evaluate(self, ctx: Context):
+        info = VTable.from_distdata(self.input_ds, columns=[self.feature])
+        info.check_kinds(VTableFieldKind.FEATURE)
+        assert len(info.parties) == 1, f"cannot find feature, {self.feature}"
 
-    return {"out_ds": out_db, "out_ds_else": out_db_else}
+        owner = next(iter(info.parties.keys()))
+        field = info.schema(0).field(0)
+        if field.ftype.is_float():
+            value_type = float
+        elif field.ftype.is_string():
+            value_type = str
+        elif field.ftype.is_integer():
+            value_type = int
+        else:
+            raise ValueError(
+                f"only support FLOAT, STRING for now, but got type<{field.ftype}>"
+            )
+
+        value = None
+        if self.comparator != "NOTNULL":
+            bound_value_list = self.bound_value.split(",")
+            if self.bound_value == "":
+                raise ValueError(f"bound_value is empty")
+            values = [value_type(val) for val in bound_value_list]
+            value = values if self.comparator == "IN" else values[0]
+
+        is_float = value_type is float
+        fn = get_compare_func(self.comparator, is_float, self.float_epsilon)
+        bound_value_list = self.bound_value.split(",")
+
+        # Load data from train_dataset
+        reader = CompVDataFrameReader(ctx.storage, ctx.tracer, self.input_ds)
+        out_writer = CompVDataFrameWriter(ctx.storage, ctx.tracer, self.output_ds.uri)
+        else_writer = CompVDataFrameWriter(
+            ctx.storage, ctx.tracer, self.output_ds_else.uri
+        )
+
+        def write(writer, ds):
+            if math.prod(ds.shape):
+                writer.write(ds)
+
+        with out_writer, else_writer:
+            for batch in reader:
+                ds, else_ds = apply(batch, PYU(owner), self.feature, value, fn)
+                write(out_writer, ds)
+                write(else_writer, else_ds)
+
+        assert (
+            out_writer.line_count
+        ), f"empty dataset is not allowed, yet the table satisfied the condition is empty, \
+        skip this condition filter step and use alternative pipeline please."
+
+        assert (
+            else_writer.line_count
+        ), f"empty dataset is not allowed, yet the table not satisfied the condition is empty, \
+        skip this condition filter step and use alternative pipeline please."
+
+        out_writer.dump_to(self.output_ds)
+        else_writer.dump_to(self.output_ds_else)

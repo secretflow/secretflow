@@ -16,7 +16,6 @@
 # Please read the https://github.com/secretflow/interconnection-impl/tree/main/router/README.md for the details.
 
 import logging
-import pickle
 from typing import List
 
 import numpy as np
@@ -25,6 +24,7 @@ from heu import phe
 from router import RC, Pack
 
 from secretflow.device import PYUObject, proxy
+from secretflow.utils import secure_pickle as pickle
 
 router_table = {
     "rs_01": {"rs": ["rs_02"], "rc": ["rc_01", "rc_03"]},
@@ -136,7 +136,11 @@ class WeightArbiter:
         )
         pack = packs[0]
         result = [
-            self.kit.decryptor().decrypt_raw(pickle.loads(ct_buffer.encode("latin1")))
+            self.kit.decryptor().decrypt_raw(
+                pickle.loads(
+                    ct_buffer.encode("latin1"), filter_type=pickle.FilterType.BLACKLIST
+                )
+            )
             for ct_buffer in pack.data
         ]
         global_weight = [

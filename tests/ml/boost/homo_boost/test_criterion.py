@@ -16,12 +16,12 @@ import math
 
 import pytest
 
-from secretflow.ml.boost.homo_boost.tree_core.criterion import XgboostCriterion
+from secretflow_fl.ml.boost.homo_boost.tree_core.criterion import XgboostCriterion
 
 reg_lambda = 0.3
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope="function")
 def criterion():
     yield XgboostCriterion(reg_lambda=reg_lambda)
 

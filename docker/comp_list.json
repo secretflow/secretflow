@@ -7,11 +7,11 @@
       "domain": "data_filter",
       "name": "condition_filter",
       "desc": "Filter the table based on a single column's values and condition.\nWarning: the party responsible for condition filtering will directly send the sample distribution to other participants.\nMalicious participants can obtain the distribution of characteristics by repeatedly calling with different filtering values.\nAudit the usage of this component carefully.",
-      "version": "0.0.1",
+      "version": "1.0.0",
       "attrs": [
         {
           "name": "comparator",
-          "desc": "Comparator to use for comparison. Must be one of '==','<','<=','>','>=','IN'",
+          "desc": "Comparator to use for comparison. Must be one of '==','<','<=','>','>=','IN','NOTNULL'",
           "type": "AT_STRING",
           "atomic": {
             "allowedValues": {
@@ -21,29 +21,20 @@
                 "<=",
                 ">",
                 ">=",
-                "IN"
-              ]
-            }
-          }
-        },
-        {
-          "name": "value_type",
-          "desc": "Type of the value to compare with. Must be one of ['STRING', 'FLOAT']",
-          "type": "AT_STRING",
-          "atomic": {
-            "allowedValues": {
-              "ss": [
-                "STRING",
-                "FLOAT"
+                "IN",
+                "NOTNULL"
               ]
             }
           }
         },
         {
           "name": "bound_value",
-          "desc": "Input a str with values separated by ','. List of values to compare with. If comparator is not 'IN', we only support one element in this list.",
+          "desc": "Input a value for comparison; if the comparison condition is IN, you can input multiple values separated by ','; if the comparison condition is NOTNULL, the input is not needed.",
           "type": "AT_STRING",
-          "atomic": {}
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
         },
         {
           "name": "float_epsilon",
@@ -62,15 +53,15 @@
       ],
       "inputs": [
         {
-          "name": "in_ds",
+          "name": "input_ds",
           "desc": "Input vertical table.",
           "types": [
             "sf.table.vertical_table"
           ],
           "attrs": [
             {
-              "name": "features",
-              "desc": "Feature(s) to operate on.",
+              "name": "feature",
+              "desc": "Feature to operate on.",
               "colMinCntInclusive": "1",
               "colMaxCntInclusive": "1"
             }
@@ -79,14 +70,14 @@
       ],
       "outputs": [
         {
-          "name": "out_ds",
+          "name": "output_ds",
           "desc": "Output vertical table that satisfies the condition.",
           "types": [
             "sf.table.vertical_table"
           ]
         },
         {
-          "name": "out_ds_else",
+          "name": "output_ds_else",
           "desc": "Output vertical table that does not satisfies the condition.",
           "types": [
             "sf.table.vertical_table"
@@ -98,7 +89,7 @@
       "domain": "data_filter",
       "name": "expr_condition_filter",
       "desc": "Only row-level filtering is supported, column processing is not available;\nthe custom expression must comply with SQLite syntax standards",
-      "version": "0.0.1",
+      "version": "1.0.0",
       "attrs": [
         {
           "name": "expr",
@@ -109,7 +100,7 @@
       ],
       "inputs": [
         {
-          "name": "in_ds",
+          "name": "input_ds",
           "desc": "Input vertical or individual table",
           "types": [
             "sf.table.individual",
@@ -119,7 +110,7 @@
       ],
       "outputs": [
         {
-          "name": "out_ds",
+          "name": "output_ds",
           "desc": "Output table that satisfies the condition",
           "types": [
             "sf.table.individual",
@@ -127,7 +118,7 @@
           ]
         },
         {
-          "name": "out_ds_else",
+          "name": "output_ds_else",
           "desc": "Output table that does not satisfies the condition",
           "types": [
             "sf.table.individual",
@@ -140,10 +131,10 @@
       "domain": "data_filter",
       "name": "feature_filter",
       "desc": "Drop features from the dataset.",
-      "version": "0.0.1",
+      "version": "1.0.0",
       "inputs": [
         {
-          "name": "in_ds",
+          "name": "input_ds",
           "desc": "Input vertical table.",
           "types": [
             "sf.table.vertical_table"
@@ -151,14 +142,15 @@
           "attrs": [
             {
               "name": "drop_features",
-              "desc": "Features to drop."
+              "desc": "Features to drop.",
+              "colMinCntInclusive": "1"
             }
           ]
         }
       ],
       "outputs": [
         {
-          "name": "out_ds",
+          "name": "output_ds",
           "desc": "Output vertical table.",
           "types": [
             "sf.table.vertical_table"
@@ -170,7 +162,7 @@
       "domain": "data_filter",
       "name": "sample",
       "desc": "Sample data set.",
-      "version": "0.0.1",
+      "version": "1.0.0",
       "attrs": [
         {
           "name": "sample_algorithm",
@@ -373,7 +365,7 @@
       ],
       "inputs": [
         {
-          "name": "input_data",
+          "name": "input_ds",
           "desc": "Input vertical table.",
           "types": [
             "sf.table.vertical_table",
@@ -383,7 +375,7 @@
       ],
       "outputs": [
         {
-          "name": "sample_output",
+          "name": "output_ds",
           "desc": "Output sampled dataset.",
           "types": [
             "sf.table.vertical_table",
@@ -391,8 +383,8 @@
           ]
         },
         {
-          "name": "reports",
-          "desc": "Output sample reports",
+          "name": "report",
+          "desc": "Output sample report",
           "types": [
             "sf.report"
           ]
@@ -403,29 +395,76 @@
       "domain": "data_prep",
       "name": "psi",
       "desc": "PSI between two parties.",
-      "version": "0.0.5",
+      "version": "1.0.0",
       "attrs": [
         {
           "name": "protocol",
           "desc": "PSI protocol.",
-          "type": "AT_STRING",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {
-              "s": "PROTOCOL_RR22"
-            },
-            "allowedValues": {
-              "ss": [
-                "PROTOCOL_RR22",
-                "PROTOCOL_ECDH",
-                "PROTOCOL_KKRT"
-              ]
-            }
+          "type": "AT_UNION_GROUP",
+          "union": {
+            "defaultSelection": "PROTOCOL_RR22"
           }
         },
         {
+          "prefixes": [
+            "protocol"
+          ],
+          "name": "PROTOCOL_ECDH",
+          "desc": "ECDH protocol.",
+          "type": "AT_UNION_GROUP",
+          "union": {
+            "defaultSelection": "CURVE_25519"
+          }
+        },
+        {
+          "prefixes": [
+            "protocol",
+            "PROTOCOL_ECDH"
+          ],
+          "name": "CURVE_25519",
+          "desc": "CURVE_25519"
+        },
+        {
+          "prefixes": [
+            "protocol",
+            "PROTOCOL_ECDH"
+          ],
+          "name": "CURVE_FOURQ",
+          "desc": "CURVE_FOURQ"
+        },
+        {
+          "prefixes": [
+            "protocol",
+            "PROTOCOL_ECDH"
+          ],
+          "name": "CURVE_SM2",
+          "desc": "CURVE_SM2"
+        },
+        {
+          "prefixes": [
+            "protocol",
+            "PROTOCOL_ECDH"
+          ],
+          "name": "CURVE_SECP256K1",
+          "desc": "CURVE_SECP256K1"
+        },
+        {
+          "prefixes": [
+            "protocol"
+          ],
+          "name": "PROTOCOL_RR22",
+          "desc": "RR22 protocol."
+        },
+        {
+          "prefixes": [
+            "protocol"
+          ],
+          "name": "PROTOCOL_KKRT",
+          "desc": "KKRT protocol."
+        },
+        {
           "name": "sort_result",
-          "desc": "It false, output is not promised to be aligned. Warning: disable this option may lead to errors in the following components. DO NOT TURN OFF if you want to append other components.",
+          "desc": "If false, output is not promised to be aligned. Warning: disable this option may lead to errors in the following components. DO NOT TURN OFF if you want to append other components.",
           "type": "AT_BOOL",
           "atomic": {
             "isOptional": true,
@@ -435,28 +474,16 @@
           }
         },
         {
-          "name": "allow_duplicate_keys",
-          "desc": "Some join types allow duplicate keys.",
-          "type": "AT_UNION_GROUP",
-          "union": {
-            "defaultSelection": "no"
+          "name": "receiver_parties",
+          "desc": "Party names of receiver for result, all party will be receivers default; if only one party receive result, the result will be single-party table, hence you can not connect it to component with union table input.",
+          "type": "AT_PARTY",
+          "atomic": {
+            "listMaxLengthInclusive": "2"
           }
         },
         {
-          "prefixes": [
-            "allow_duplicate_keys"
-          ],
-          "name": "no",
-          "desc": "Duplicate keys are not allowed.",
-          "type": "AT_STRUCT_GROUP"
-        },
-        {
-          "prefixes": [
-            "allow_duplicate_keys",
-            "no"
-          ],
-          "name": "skip_duplicates_check",
-          "desc": "If true, the check of duplicated items will be skiped.",
+          "name": "allow_empty_result",
+          "desc": "Whether to allow the result to be empty, if allowed, an empty file will be saved, if not, an error will be reported.",
           "type": "AT_BOOL",
           "atomic": {
             "isOptional": true,
@@ -464,33 +491,8 @@
           }
         },
         {
-          "prefixes": [
-            "allow_duplicate_keys",
-            "no"
-          ],
-          "name": "check_hash_digest",
-          "desc": "Check if hash digest of keys from parties are equal to determine whether to early-stop.",
-          "type": "AT_BOOL",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {}
-          }
-        },
-        {
-          "prefixes": [
-            "allow_duplicate_keys"
-          ],
-          "name": "yes",
-          "desc": "Duplicate keys are allowed.",
-          "type": "AT_STRUCT_GROUP"
-        },
-        {
-          "prefixes": [
-            "allow_duplicate_keys",
-            "yes"
-          ],
           "name": "join_type",
-          "desc": "Join type.",
+          "desc": "join type, default is inner join.",
           "type": "AT_UNION_GROUP",
           "union": {
             "defaultSelection": "inner_join"
@@ -498,27 +500,21 @@
         },
         {
           "prefixes": [
-            "allow_duplicate_keys",
-            "yes",
             "join_type"
           ],
           "name": "inner_join",
-          "desc": "Inner join with duplicate keys"
+          "desc": "Inner join"
         },
         {
           "prefixes": [
-            "allow_duplicate_keys",
-            "yes",
             "join_type"
           ],
           "name": "left_join",
-          "desc": "Left join with duplicate keys",
+          "desc": "Left join",
           "type": "AT_STRUCT_GROUP"
         },
         {
           "prefixes": [
-            "allow_duplicate_keys",
-            "yes",
             "join_type",
             "left_join"
           ],
@@ -532,75 +528,65 @@
         },
         {
           "prefixes": [
-            "allow_duplicate_keys",
-            "yes",
             "join_type"
           ],
           "name": "full_join",
-          "desc": "Full join with duplicate keys"
+          "desc": "Full join"
         },
         {
           "prefixes": [
-            "allow_duplicate_keys",
-            "yes",
             "join_type"
           ],
           "name": "difference",
-          "desc": "Difference with duplicate keys"
+          "desc": "Difference"
         },
         {
-          "name": "fill_value_int",
-          "desc": "For int type data. Use this value for filling null.",
-          "type": "AT_INT",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {}
-          }
-        },
-        {
-          "name": "ecdh_curve",
-          "desc": "Curve type for ECDH PSI.",
-          "type": "AT_STRING",
+          "name": "input_ds1_keys_duplicated",
+          "desc": "Whether key columns have duplicated rows, default is True.",
+          "type": "AT_BOOL",
           "atomic": {
             "isOptional": true,
             "defaultValue": {
-              "s": "CURVE_FOURQ"
-            },
-            "allowedValues": {
-              "ss": [
-                "CURVE_25519",
-                "CURVE_FOURQ",
-                "CURVE_SM2",
-                "CURVE_SECP256K1"
-              ]
+              "b": true
+            }
+          }
+        },
+        {
+          "name": "input_ds2_keys_duplicated",
+          "desc": "Whether key columns have duplicated rows, default is True.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "b": true
             }
           }
         }
       ],
       "inputs": [
         {
-          "name": "receiver_input",
-          "desc": "Individual table for receiver",
+          "name": "input_ds1",
+          "desc": "Individual table for party 1",
           "types": [
             "sf.table.individual"
           ],
           "attrs": [
             {
-              "name": "key",
+              "name": "keys",
               "desc": "Column(s) used to join.",
               "colMinCntInclusive": "1"
             }
           ]
         },
         {
-          "name": "sender_input",
-          "desc": "Individual table for sender",
+          "name": "input_ds2",
+          "desc": "Individual table for party 2",
           "types": [
             "sf.table.individual"
           ],
           "attrs": [
             {
-              "name": "key",
+              "name": "keys",
               "desc": "Column(s) used to join.",
               "colMinCntInclusive": "1"
             }
@@ -609,7 +595,112 @@
       ],
       "outputs": [
         {
-          "name": "psi_output",
+          "name": "output_ds",
+          "desc": "Output vertical table",
+          "types": [
+            "sf.table.vertical_table",
+            "sf.table.individual"
+          ]
+        },
+        {
+          "name": "report",
+          "desc": "Output psi report",
+          "types": [
+            "sf.report"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "data_prep",
+      "name": "psi_tp",
+      "desc": "PSI between three parties.",
+      "version": "1.0.0",
+      "attrs": [
+        {
+          "name": "ecdh_curve",
+          "desc": "Curve type for ECDH PSI.",
+          "type": "AT_UNION_GROUP",
+          "union": {
+            "defaultSelection": "CURVE_25519"
+          }
+        },
+        {
+          "prefixes": [
+            "ecdh_curve"
+          ],
+          "name": "CURVE_25519",
+          "desc": "CURVE_25519"
+        },
+        {
+          "prefixes": [
+            "ecdh_curve"
+          ],
+          "name": "CURVE_FOURQ",
+          "desc": "CURVE_FOURQ"
+        },
+        {
+          "prefixes": [
+            "ecdh_curve"
+          ],
+          "name": "CURVE_SM2",
+          "desc": "CURVE_SM2"
+        },
+        {
+          "prefixes": [
+            "ecdh_curve"
+          ],
+          "name": "CURVE_SECP256K1",
+          "desc": "CURVE_SECP256K1"
+        }
+      ],
+      "inputs": [
+        {
+          "name": "input_ds1",
+          "desc": "Individual table for party 1",
+          "types": [
+            "sf.table.individual"
+          ],
+          "attrs": [
+            {
+              "name": "keys1",
+              "desc": "Column(s) used to join.",
+              "colMinCntInclusive": "1"
+            }
+          ]
+        },
+        {
+          "name": "input_ds2",
+          "desc": "Individual table for party 2",
+          "types": [
+            "sf.table.individual"
+          ],
+          "attrs": [
+            {
+              "name": "keys2",
+              "desc": "Column(s) used to join.",
+              "colMinCntInclusive": "1"
+            }
+          ]
+        },
+        {
+          "name": "input_ds3",
+          "desc": "Individual table for party 3",
+          "types": [
+            "sf.table.individual"
+          ],
+          "attrs": [
+            {
+              "name": "keys3",
+              "desc": "Column(s) used to join.",
+              "colMinCntInclusive": "1"
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output_ds",
           "desc": "Output vertical table",
           "types": [
             "sf.table.vertical_table"
@@ -621,7 +712,7 @@
       "domain": "data_prep",
       "name": "train_test_split",
       "desc": "Split datasets into random train and test subsets.\n- Please check: https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.train_test_split.html",
-      "version": "0.0.1",
+      "version": "1.0.0",
       "attrs": [
         {
           "name": "train_size",
@@ -684,7 +775,7 @@
       ],
       "inputs": [
         {
-          "name": "input_data",
+          "name": "input_ds",
           "desc": "Input vertical table.",
           "types": [
             "sf.table.vertical_table"
@@ -693,14 +784,14 @@
       ],
       "outputs": [
         {
-          "name": "train",
+          "name": "train_ds",
           "desc": "Output train dataset.",
           "types": [
             "sf.table.vertical_table"
           ]
         },
         {
-          "name": "test",
+          "name": "test_ds",
           "desc": "Output test dataset.",
           "types": [
             "sf.table.vertical_table"
@@ -710,12 +801,161 @@
     },
     {
       "domain": "data_prep",
-      "name": "union",
-      "desc": "Perform a horizontal merge of two data tables, supporting the individual table or vertical table on the same node.",
-      "version": "0.0.1",
+      "name": "unbalance_psi",
+      "desc": "Unbalance psi with cache.",
+      "version": "1.0.0",
+      "attrs": [
+        {
+          "name": "join_type",
+          "desc": "join type, default is inner join.",
+          "type": "AT_UNION_GROUP",
+          "union": {
+            "defaultSelection": "inner_join"
+          }
+        },
+        {
+          "prefixes": [
+            "join_type"
+          ],
+          "name": "inner_join",
+          "desc": "Inner join"
+        },
+        {
+          "prefixes": [
+            "join_type"
+          ],
+          "name": "left_join",
+          "desc": "Left join",
+          "type": "AT_STRUCT_GROUP"
+        },
+        {
+          "prefixes": [
+            "join_type",
+            "left_join"
+          ],
+          "name": "left_side",
+          "desc": "Required for left join",
+          "type": "AT_PARTY",
+          "atomic": {
+            "listMinLengthInclusive": "1",
+            "listMaxLengthInclusive": "1"
+          }
+        },
+        {
+          "prefixes": [
+            "join_type"
+          ],
+          "name": "full_join",
+          "desc": "Full join"
+        },
+        {
+          "prefixes": [
+            "join_type"
+          ],
+          "name": "difference",
+          "desc": "Difference"
+        },
+        {
+          "name": "allow_empty_result",
+          "desc": "Whether to allow the result to be empty, if allowed, an empty file will be saved, if not, an error will be reported.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        },
+        {
+          "name": "receiver_parties",
+          "desc": "Party names of receiver for result, all party will be receivers default; if only one party receive result, the result will be single-party table, hence you can not connect it to component with union table input.",
+          "type": "AT_PARTY",
+          "atomic": {
+            "listMaxLengthInclusive": "2"
+          }
+        }
+      ],
       "inputs": [
         {
-          "name": "input1",
+          "name": "client_ds",
+          "desc": "Client dataset.",
+          "types": [
+            "sf.table.individual"
+          ],
+          "attrs": [
+            {
+              "name": "keys",
+              "desc": "Keys to be used for psi."
+            }
+          ]
+        },
+        {
+          "name": "cache",
+          "desc": "Server cache.",
+          "types": [
+            "sf.model.ub_psi.cache"
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output_ds",
+          "desc": "Output table",
+          "types": [
+            "sf.table.individual",
+            "sf.table.vertical_table"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "data_prep",
+      "name": "unbalance_psi_cache",
+      "desc": "Generate cache for unbalance psi on both sides.",
+      "version": "1.0.0",
+      "attrs": [
+        {
+          "name": "client",
+          "desc": "Party of client(party with the smaller dataset).",
+          "type": "AT_PARTY",
+          "atomic": {
+            "listMinLengthInclusive": "1",
+            "listMaxLengthInclusive": "1"
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "input_ds",
+          "desc": "Input vertical table.",
+          "types": [
+            "sf.table.individual"
+          ],
+          "attrs": [
+            {
+              "name": "keys",
+              "desc": "Keys to be used for psi.",
+              "colMinCntInclusive": "1"
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output_cache",
+          "desc": "Output cache.",
+          "types": [
+            "sf.model.ub_psi.cache"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "data_prep",
+      "name": "union",
+      "desc": "Perform a horizontal merge of two data tables, supporting the individual table or vertical table on the same node.",
+      "version": "1.0.0",
+      "inputs": [
+        {
+          "name": "input_ds1",
           "desc": "The first input table",
           "types": [
             "sf.table.individual",
@@ -723,7 +963,7 @@
           ]
         },
         {
-          "name": "input2",
+          "name": "input_ds2",
           "desc": "The second input table",
           "types": [
             "sf.table.individual",
@@ -743,246 +983,73 @@
       ]
     },
     {
-      "domain": "feature",
-      "name": "vert_binning",
-      "desc": "Generate equal frequency or equal range binning rules for vertical partitioning datasets.",
-      "version": "0.0.2",
+      "domain": "io",
+      "name": "data_sink",
+      "desc": "export data to an external data source",
+      "version": "1.0.0",
       "attrs": [
         {
-          "name": "binning_method",
-          "desc": "How to bin features with numeric types: \"quantile\"(equal frequency)/\"eq_range\"(equal range)",
+          "name": "output_party",
+          "desc": "output party",
+          "type": "AT_PARTY",
+          "atomic": {
+            "listMaxLengthInclusive": "1"
+          }
+        },
+        {
+          "name": "output_uri",
+          "desc": "output uri, the uri format is datamesh:///{relative_path}?domaindata_id={domaindata_id}&datasource_id={datasource_id}&partition_spec={partition_spec}",
           "type": "AT_STRING",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {
-              "s": "eq_range"
-            },
-            "allowedValues": {
-              "ss": [
-                "eq_range",
-                "quantile"
-              ]
-            }
-          }
-        },
-        {
-          "name": "bin_num",
-          "desc": "Max bin counts for one features.",
-          "type": "AT_INT",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {
-              "i64": "10"
-            },
-            "lowerBoundEnabled": true,
-            "lowerBound": {
-              "i64": "2"
-            },
-            "lowerBoundInclusive": true
-          }
-        },
-        {
-          "name": "report_rules",
-          "desc": "Whether report binning rules.",
-          "type": "AT_BOOL",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {}
-          }
+          "atomic": {}
         }
       ],
       "inputs": [
         {
           "name": "input_data",
-          "desc": "Input vertical table.",
+          "desc": "Input dist data",
           "types": [
+            "sf.table.individual",
             "sf.table.vertical_table"
-          ],
-          "attrs": [
-            {
-              "name": "feature_selects",
-              "desc": "which features should be binned.",
-              "colMinCntInclusive": "1"
-            }
-          ]
-        }
-      ],
-      "outputs": [
-        {
-          "name": "bin_rule",
-          "desc": "Output bin rule.",
-          "types": [
-            "sf.rule.binning"
-          ]
-        },
-        {
-          "name": "report",
-          "desc": "report rules details if report_rules is true",
-          "types": [
-            "sf.report"
           ]
         }
       ]
     },
     {
-      "domain": "feature",
-      "name": "vert_woe_binning",
-      "desc": "Generate Weight of Evidence (WOE) binning rules for vertical partitioning datasets.",
-      "version": "0.0.2",
+      "domain": "io",
+      "name": "data_source",
+      "desc": "import data from an external data source",
+      "version": "1.0.0",
       "attrs": [
         {
-          "name": "secure_device_type",
-          "desc": "Use SPU(Secure multi-party computation or MPC) or HEU(Homomorphic encryption or HE) to secure bucket summation.",
+          "name": "party",
+          "type": "AT_PARTY",
+          "atomic": {
+            "listMinLengthInclusive": "1",
+            "listMaxLengthInclusive": "1"
+          }
+        },
+        {
+          "name": "uri",
+          "desc": "input uri, the uri format is datamesh:///{relative_path}?domaindata_id={domaindata_id}&datasource_id={datasource_id}&partition_spec={partition_spec}",
           "type": "AT_STRING",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {
-              "s": "spu"
-            },
-            "allowedValues": {
-              "ss": [
-                "spu",
-                "heu"
-              ]
-            }
-          }
+          "atomic": {}
         },
         {
-          "name": "binning_method",
-          "desc": "How to bin features with numeric types: \"quantile\"(equal frequency)/\"chimerge\"(ChiMerge from AAAI92-019: https://www.aaai.org/Papers/AAAI/1992/AAAI92-019.pdf)/\"eq_range\"(equal range)",
+          "name": "columns",
+          "desc": "table column info, json format, for example {\"col1\": \"ID\", \"col2\":\"FEATURE\", \"col3\":\"LABEL\"}",
           "type": "AT_STRING",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {
-              "s": "quantile"
-            },
-            "allowedValues": {
-              "ss": [
-                "quantile",
-                "chimerge",
-                "eq_range"
-              ]
-            }
-          }
-        },
-        {
-          "name": "bin_num",
-          "desc": "Max bin counts for one features.",
-          "type": "AT_INT",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {
-              "i64": "10"
-            },
-            "lowerBoundEnabled": true,
-            "lowerBound": {}
-          }
-        },
-        {
-          "name": "positive_label",
-          "desc": "Which value represent positive value in label.",
-          "type": "AT_STRING",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {
-              "s": "1"
-            }
-          }
-        },
-        {
-          "name": "chimerge_init_bins",
-          "desc": "Max bin counts for initialization binning in ChiMerge.",
-          "type": "AT_INT",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {
-              "i64": "100"
-            },
-            "lowerBoundEnabled": true,
-            "lowerBound": {
-              "i64": "2"
-            }
-          }
-        },
-        {
-          "name": "chimerge_target_bins",
-          "desc": "Stop merging if remaining bin counts is less than or equal to this value.",
-          "type": "AT_INT",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {
-              "i64": "10"
-            },
-            "lowerBoundEnabled": true,
-            "lowerBound": {
-              "i64": "2"
-            },
-            "lowerBoundInclusive": true
-          }
-        },
-        {
-          "name": "chimerge_target_pvalue",
-          "desc": "Stop merging if biggest pvalue of remaining bins is greater than this value.",
-          "type": "AT_FLOAT",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {
-              "f": 0.1
-            },
-            "lowerBoundEnabled": true,
-            "lowerBound": {},
-            "upperBoundEnabled": true,
-            "upperBound": {
-              "f": 1.0
-            },
-            "upperBoundInclusive": true
-          }
-        },
-        {
-          "name": "report_rules",
-          "desc": "Whether report binning rules.",
-          "type": "AT_BOOL",
           "atomic": {
             "isOptional": true,
             "defaultValue": {}
           }
         }
       ],
-      "inputs": [
-        {
-          "name": "input_data",
-          "desc": "Input vertical table.",
-          "types": [
-            "sf.table.vertical_table"
-          ],
-          "attrs": [
-            {
-              "name": "feature_selects",
-              "desc": "which features should be binned. WARNING: WOE won't be effective for features with enumeration count <=2.",
-              "colMinCntInclusive": "1"
-            },
-            {
-              "name": "label",
-              "desc": "Label of input data.",
-              "colMinCntInclusive": "1",
-              "colMaxCntInclusive": "1"
-            }
-          ]
-        }
-      ],
       "outputs": [
         {
-          "name": "bin_rule",
-          "desc": "Output WOE rule.",
+          "name": "output_ds",
+          "desc": "output dataset",
           "types": [
-            "sf.rule.binning"
-          ]
-        },
-        {
-          "name": "report",
-          "desc": "report rules details if report_rules is true",
-          "types": [
-            "sf.report"
+            "sf.table.individual"
           ]
         }
       ]
@@ -991,7 +1058,7 @@
       "domain": "io",
       "name": "identity",
       "desc": "map any input to output",
-      "version": "0.0.1",
+      "version": "1.0.0",
       "inputs": [
         {
           "name": "input_data",
@@ -1002,7 +1069,6 @@
             "sf.model.ss_xgb",
             "sf.model.ss_sgd",
             "sf.rule.binning",
-            "sf.rule.preprocessing",
             "sf.read_data"
           ]
         }
@@ -1017,7 +1083,6 @@
             "sf.model.ss_xgb",
             "sf.model.ss_sgd",
             "sf.rule.binning",
-            "sf.rule.preprocessing",
             "sf.read_data"
           ]
         }
@@ -1027,14 +1092,26 @@
       "domain": "io",
       "name": "read_data",
       "desc": "read model or rules from sf cluster",
-      "version": "0.0.1",
+      "version": "1.0.0",
+      "attrs": [
+        {
+          "name": "generalized_linear_model",
+          "desc": "Whether to dump the complete generalized linear model. The complete generalized linear model contains link, y_scale, offset_col, and so on.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        }
+      ],
       "inputs": [
         {
-          "name": "input_dd",
+          "name": "input_data",
           "desc": "Input dist data",
           "types": [
             "sf.rule.binning",
-            "sf.model.ss_glm"
+            "sf.model.ss_glm",
+            "sf.model.sgb"
           ]
         }
       ],
@@ -1052,7 +1129,7 @@
       "domain": "io",
       "name": "write_data",
       "desc": "write model or rules back to sf cluster",
-      "version": "0.0.1",
+      "version": "1.0.0",
       "attrs": [
         {
           "name": "write_data",
@@ -1072,7 +1149,8 @@
             "allowedValues": {
               "ss": [
                 "sf.rule.binning",
-                "sf.model.ss_glm"
+                "sf.model.ss_glm",
+                "sf.model.sgb"
               ]
             }
           }
@@ -1080,21 +1158,25 @@
       ],
       "inputs": [
         {
-          "name": "input_dd",
+          "name": "input_data",
           "desc": "Input dist data. Rule reconstructions may need hidden info in original rule for security considerations.",
           "types": [
             "sf.rule.binning",
-            "sf.model.ss_glm"
-          ]
+            "sf.model.ss_glm",
+            "sf.model.sgb",
+            "sf.null"
+          ],
+          "isOptional": true
         }
       ],
       "outputs": [
         {
-          "name": "output_model",
+          "name": "output_data",
           "desc": "Output rules or models in sf cluster format",
           "types": [
             "sf.rule.binning",
-            "sf.model.ss_glm"
+            "sf.model.ss_glm",
+            "sf.model.sgb"
           ]
         }
       ]
@@ -1103,7 +1185,7 @@
       "domain": "ml.eval",
       "name": "biclassification_eval",
       "desc": "Statistics evaluation for a bi-classification model on a dataset.\n1. summary_report: SummaryReport\n2. eq_frequent_bin_report: List[EqBinReport]\n3. eq_range_bin_report: List[EqBinReport]\n4. head_report: List[PrReport]\nreports for fpr = 0.001, 0.005, 0.01, 0.05, 0.1, 0.2",
-      "version": "0.0.1",
+      "version": "1.0.0",
       "attrs": [
         {
           "name": "bucket_size",
@@ -1140,7 +1222,7 @@
       ],
       "inputs": [
         {
-          "name": "in_ds",
+          "name": "input_ds",
           "desc": "Input table with prediction and label, usually is a result from a prediction component.",
           "types": [
             "sf.table.vertical_table",
@@ -1164,7 +1246,7 @@
       ],
       "outputs": [
         {
-          "name": "reports",
+          "name": "report",
           "desc": "Output report.",
           "types": [
             "sf.report"
@@ -1176,7 +1258,7 @@
       "domain": "ml.eval",
       "name": "prediction_bias_eval",
       "desc": "Calculate prediction bias, ie. average of predictions - average of labels.",
-      "version": "0.0.1",
+      "version": "1.0.0",
       "attrs": [
         {
           "name": "bucket_num",
@@ -1230,7 +1312,7 @@
       ],
       "inputs": [
         {
-          "name": "in_ds",
+          "name": "input_ds",
           "desc": "Input table with prediction and label, usually is a result from a prediction component.",
           "types": [
             "sf.table.vertical_table",
@@ -1254,7 +1336,7 @@
       ],
       "outputs": [
         {
-          "name": "result",
+          "name": "report",
           "desc": "Output report.",
           "types": [
             "sf.report"
@@ -1266,7 +1348,7 @@
       "domain": "ml.eval",
       "name": "regression_eval",
       "desc": "Statistics evaluation for a regression model on a dataset.\nContained Statistics:\nR2 Score (r2_score): It is a statistical measure that represents the proportion of the variance in the dependent variable that can be predicted from the independent variables. It ranges from 0 to 1, where a higher value indicates a better fit.\nMean Absolute Error (mean_abs_err): It calculates the average absolute difference between the predicted and actual values. It provides a measure of the average magnitude of the errors.\nMean Absolute Percentage Error (mean_abs_percent_err): It calculates the average absolute percentage difference between the predicted and actual values. It measures the average magnitude of the errors in terms of percentages.\nSum of Squared Errors (sum_squared_errors): It calculates the sum of the squared differences between the predicted and actual values. It provides an overall measure of the model's performance.\nMean Squared Error (mean_squared_errors): It calculates the average of the squared differences between the predicted and actual values. It is widely used as a loss function in regression problems.\nRoot Mean Squared Error (root_mean_squared_errors): It is the square root of the mean squared error. It provides a measure of the average magnitude of the errors in the original scale of the target variable.\nMean of True Values (y_true_mean): It calculates the average of the actual values in the target variable. It can be useful for establishing a baseline for the model's performance.\nMean of Predicted Values (y_pred_mean): It calculates the average of the predicted values. It can be compared with the y_true_mean to get an idea of the model's bias.\nResidual Histograms (residual_hists): It represents the distribution of the differences between the predicted and actual values. It helps to understand the spread and pattern of the errors.",
-      "version": "0.0.1",
+      "version": "1.0.0",
       "attrs": [
         {
           "name": "bucket_size",
@@ -1292,7 +1374,7 @@
       ],
       "inputs": [
         {
-          "name": "in_ds",
+          "name": "input_ds",
           "desc": "Input table with prediction and label, usually is a result from a prediction component.",
           "types": [
             "sf.table.vertical_table",
@@ -1316,7 +1398,7 @@
       ],
       "outputs": [
         {
-          "name": "reports",
+          "name": "report",
           "desc": "Output report.",
           "types": [
             "sf.report"
@@ -1328,10 +1410,10 @@
       "domain": "ml.eval",
       "name": "ss_pvalue",
       "desc": "Calculate P-Value for LR model training on vertical partitioning dataset by using secret sharing.\nFor large dataset(large than 10w samples & 200 features),\nrecommend to use [Ring size: 128, Fxp: 40] options for SPU device.",
-      "version": "0.0.1",
+      "version": "1.0.0",
       "inputs": [
         {
-          "name": "model",
+          "name": "input_model",
           "desc": "Input model.",
           "types": [
             "sf.model.ss_sgd",
@@ -1339,7 +1421,7 @@
           ]
         },
         {
-          "name": "input_data",
+          "name": "input_ds",
           "desc": "Input vertical table.",
           "types": [
             "sf.table.vertical_table"
@@ -1358,9 +1440,69 @@
     },
     {
       "domain": "ml.predict",
+      "name": "serving_model_inferencer",
+      "desc": "batch predicting online service models in offline",
+      "version": "1.0.0",
+      "attrs": [
+        {
+          "name": "receiver",
+          "desc": "Party of receiver.",
+          "type": "AT_PARTY",
+          "atomic": {
+            "listMinLengthInclusive": "1",
+            "listMaxLengthInclusive": "1"
+          }
+        },
+        {
+          "name": "pred_name",
+          "desc": "Column name for predictions.",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "score"
+            }
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "serving_model",
+          "desc": "Input serving model.",
+          "types": [
+            "sf.serving.model"
+          ]
+        },
+        {
+          "name": "input_ds",
+          "desc": "Input vertical table or individual table.",
+          "types": [
+            "sf.table.vertical_table",
+            "sf.table.individual"
+          ],
+          "attrs": [
+            {
+              "name": "saved_columns",
+              "desc": "which columns should be saved with prediction result"
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output_ds",
+          "desc": "Output prediction.",
+          "types": [
+            "sf.table.individual"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "ml.predict",
       "name": "sgb_predict",
       "desc": "Predict using SGB model.",
-      "version": "0.0.3",
+      "version": "1.0.0",
       "attrs": [
         {
           "name": "receiver",
@@ -1405,14 +1547,14 @@
       ],
       "inputs": [
         {
-          "name": "model",
+          "name": "input_model",
           "desc": "model",
           "types": [
             "sf.model.sgb"
           ]
         },
         {
-          "name": "feature_dataset",
+          "name": "input_ds",
           "desc": "Input vertical table.",
           "types": [
             "sf.table.vertical_table"
@@ -1427,7 +1569,7 @@
       ],
       "outputs": [
         {
-          "name": "pred",
+          "name": "output_ds",
           "desc": "Output prediction.",
           "types": [
             "sf.table.individual"
@@ -1529,7 +1671,7 @@
       "domain": "ml.predict",
       "name": "ss_glm_predict",
       "desc": "Predict using the SSGLM model.",
-      "version": "0.0.2",
+      "version": "1.1.0",
       "attrs": [
         {
           "name": "receiver",
@@ -1574,14 +1716,14 @@
       ],
       "inputs": [
         {
-          "name": "model",
+          "name": "input_model",
           "desc": "Input model.",
           "types": [
             "sf.model.ss_glm"
           ]
         },
         {
-          "name": "feature_dataset",
+          "name": "input_ds",
           "desc": "Input vertical table.",
           "types": [
             "sf.table.vertical_table"
@@ -1596,7 +1738,7 @@
       ],
       "outputs": [
         {
-          "name": "pred",
+          "name": "output_ds",
           "desc": "Output prediction.",
           "types": [
             "sf.table.individual"
@@ -1608,7 +1750,7 @@
       "domain": "ml.predict",
       "name": "ss_sgd_predict",
       "desc": "Predict using the SS-SGD model.",
-      "version": "0.0.2",
+      "version": "1.0.0",
       "attrs": [
         {
           "name": "batch_size",
@@ -1666,14 +1808,14 @@
       ],
       "inputs": [
         {
-          "name": "model",
+          "name": "input_model",
           "desc": "Input model.",
           "types": [
             "sf.model.ss_sgd"
           ]
         },
         {
-          "name": "feature_dataset",
+          "name": "input_ds",
           "desc": "Input vertical table.",
           "types": [
             "sf.table.vertical_table"
@@ -1688,7 +1830,7 @@
       ],
       "outputs": [
         {
-          "name": "pred",
+          "name": "output_ds",
           "desc": "Output prediction.",
           "types": [
             "sf.table.individual"
@@ -1700,7 +1842,7 @@
       "domain": "ml.predict",
       "name": "ss_xgb_predict",
       "desc": "Predict using the SS-XGB model.",
-      "version": "0.0.2",
+      "version": "1.0.0",
       "attrs": [
         {
           "name": "receiver",
@@ -1728,9 +1870,7 @@
           "type": "AT_BOOL",
           "atomic": {
             "isOptional": true,
-            "defaultValue": {
-              "b": true
-            }
+            "defaultValue": {}
           }
         },
         {
@@ -1739,20 +1879,22 @@
           "type": "AT_BOOL",
           "atomic": {
             "isOptional": true,
-            "defaultValue": {}
+            "defaultValue": {
+              "b": true
+            }
           }
         }
       ],
       "inputs": [
         {
-          "name": "model",
-          "desc": "Input model.",
+          "name": "input_model",
+          "desc": "model",
           "types": [
             "sf.model.ss_xgb"
           ]
         },
         {
-          "name": "feature_dataset",
+          "name": "input_ds",
           "desc": "Input vertical table.",
           "types": [
             "sf.table.vertical_table"
@@ -1767,7 +1909,7 @@
       ],
       "outputs": [
         {
-          "name": "pred",
+          "name": "output_ds",
           "desc": "Output prediction.",
           "types": [
             "sf.table.individual"
@@ -1779,7 +1921,7 @@
       "domain": "ml.train",
       "name": "sgb_train",
       "desc": "Provides both classification and regression tree boosting (also known as GBDT, GBM)\nfor vertical split dataset setting by using secure boost.\n- SGB is short for SecureBoost. Compared to its safer counterpart SS-XGB, SecureBoost focused on protecting label holder.\n- Check https://arxiv.org/abs/1901.08755.",
-      "version": "0.0.4",
+      "version": "1.0.0",
       "attrs": [
         {
           "name": "num_boost_round",
@@ -2244,7 +2386,7 @@
       ],
       "inputs": [
         {
-          "name": "train_dataset",
+          "name": "input_ds",
           "desc": "Input vertical table.",
           "types": [
             "sf.table.vertical_table"
@@ -2286,7 +2428,7 @@
           "type": "AT_STRING",
           "atomic": {
             "defaultValue": {
-              "s": "# pre imported:\n# import tensorflow as tf\n# from tensorflow import Module, keras\n# from tensorflow.keras import Model, layers\n# from tensorflow.keras.layers import Layer\n# from secretflow.ml.nn import applications as apps\n\ndef create_base_model(input_dim, output_dim):\n    model = keras.Sequential(\n        [\n            keras.Input(shape=input_dim),\n            layers.Dense(100, activation=\"relu\"),\n            layers.Dense(output_dim, activation=\"relu\"),\n        ]\n    )\n    return model\n\ndef create_fuse_model(input_dim):\n    input_layers = [keras.Input(input_dim), keras.Input(input_dim)]\n    merged_layer = layers.concatenate(input_layers)\n    fuse_layer = layers.Dense(64, activation='relu')(merged_layer)\n    output = layers.Dense(1, activation='sigmoid')(fuse_layer)\n    return keras.Model(inputs=input_layers, outputs=output)\n\nhidden_size = 64\n\nfit(\n    client_base=create_base_model(12, hidden_size),\n    server_base=create_base_model(4, hidden_size),\n    server_fuse=create_fuse_model(hidden_size),\n)\n"
+              "s": "# pre imported:\n# import tensorflow as tf\n# from tensorflow import Module, keras\n# from tensorflow.keras import Model, layers\n# from tensorflow.keras.layers import Layer\n# from secretflow_fl.ml.nn import applications as apps\n\ndef create_base_model(input_dim, output_dim):\n    model = keras.Sequential(\n        [\n            keras.Input(shape=input_dim),\n            layers.Dense(100, activation=\"relu\"),\n            layers.Dense(output_dim, activation=\"relu\"),\n        ]\n    )\n    return model\n\ndef create_fuse_model(input_dim):\n    input_layers = [keras.Input(input_dim), keras.Input(input_dim)]\n    merged_layer = layers.concatenate(input_layers)\n    fuse_layer = layers.Dense(64, activation='relu')(merged_layer)\n    output = layers.Dense(1, activation='sigmoid')(fuse_layer)\n    return keras.Model(inputs=input_layers, outputs=output)\n\nhidden_size = 64\n\nfit(\n    client_base=create_base_model(12, hidden_size),\n    server_base=create_base_model(4, hidden_size),\n    server_fuse=create_fuse_model(hidden_size),\n)\n"
             }
           }
         },
@@ -2651,7 +2793,7 @@
       "domain": "ml.train",
       "name": "ss_glm_train",
       "desc": "generalized linear model (GLM) is a flexible generalization of ordinary linear regression.\nThe GLM generalizes linear regression by allowing the linear model to be related to the response\nvariable via a link function and by allowing the magnitude of the variance of each measurement to\nbe a function of its predicted value.",
-      "version": "0.0.3",
+      "version": "1.1.0",
       "attrs": [
         {
           "name": "epochs",
@@ -2881,7 +3023,7 @@
         },
         {
           "name": "stopping_metric",
-          "desc": "use what metric as the condition for early stop? Must be one of ['deviance', 'MSE', 'RMSE', 'AUC', 'weight']. only logit link supports AUC metric (note that AUC is very, very expansive in MPC)",
+          "desc": "use what metric as the condition for early stop? Must be one of ['deviance', 'MSE', 'RMSE', 'AUC', 'weight']. only logit link supports AUC metric (note that AUC is very, very expensive in MPC)",
           "type": "AT_STRING",
           "atomic": {
             "isOptional": true,
@@ -2944,17 +3086,26 @@
           }
         },
         {
-          "name": "use_high_precision_exp",
-          "desc": "If you do not know the details of this parameter, please do not modify this parameter! If this option is true, glm training and prediction will use a high-precision exp approx, but there will be a large performance drop. Otherwise, use high performance exp approx, There will be no significant difference in model performance. However, prediction bias may occur if the model is exported to an external system for use.",
-          "type": "AT_BOOL",
+          "name": "exp_mode",
+          "desc": "If you do not know the details of this parameter, please do not modify this parameter! Specify the mode of exp taylor approx, currently only supports 'taylor', 'pade' and 'prime' modes. The default value is 'taylor'. 'taylor': use taylor approx, variable precision and cost, higher exp_iters, higher cost. 'pade': use pade approx, high precision, high cost. 'prime': use prime approx, best precision, 3/4 cost of taylor (8 iter), only support for SEMI2K FM128 case. Although it has great presicion and performance inside valid domain, the approximation can be wildly inaccurate outside the valid domain. Suppose x -> exp(x), then valid domain is: x in ((47 - offset - 2fxp)/log_2(e), (125 - 2fxp - offset)/log_2(e)). That's why we need clamping x to this range. However, clamping action is expensive, so we need to set a reasonable offset to control the valid range of exp prime method, and avoid clamping for best performance.",
+          "type": "AT_STRING",
           "atomic": {
             "isOptional": true,
-            "defaultValue": {}
+            "defaultValue": {
+              "s": "taylor"
+            },
+            "allowedValues": {
+              "ss": [
+                "pade",
+                "taylor",
+                "prime"
+              ]
+            }
           }
         },
         {
           "name": "exp_iters",
-          "desc": "If you do not know the details of this parameter, please do not modify this parameter! Specify the number of iterations of exp taylor approx, Only takes effect when use_high_precision_exp is false. Increasing this value will improve the accuracy of exp approx, but will quickly degrade performance.",
+          "desc": "If you do not know the details of this parameter, please do not modify this parameter! Specify the number of iterations of exp taylor approx, Only takes effect when using exp mode 'taylor'. Increasing this value will improve the accuracy of exp approx, but will quickly degrade performance.",
           "type": "AT_INT",
           "atomic": {
             "isOptional": true,
@@ -2974,6 +3125,39 @@
           }
         },
         {
+          "name": "exp_prime_offset",
+          "desc": "If you do not know the details of this parameter, please do not modify this parameter! Specify the offset of exp prime approx, only takes effect when using exp mode 'prime'. control the valid range of exp prime method. Suppose x -> exp(x), then valid domain is: x in ((47 - offset - 2fxp)/log_2(e), (125 - 2fxp - offset)/log_2(e)) default to be 13.",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "13"
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {}
+          }
+        },
+        {
+          "name": "exp_prime_lower_bound_clamp",
+          "desc": "If you do not know the details of this parameter, please do not modify this parameter! Specify whether to use lower bound for exp prime mode, only takes effect when using exp mode 'prime'. when calculating x -> exp(x), exp prime is only effective for x in ((47 - offset - 2fxp)/log_2(e), (125 - 2fxp - offset)/log_2(e)). If true, use clamp value below the lower bound, otherwise leave the value unchanged. lower bound is set to be (48 - offset - 2fxp)/log_2(e). Enable clamping will avoid large numerical errors when x < lower bound. Disable clamping will leave the value unchanged, which may cause large numerical errors when x < lower bound. However, clamping cost is very high, if we are certain x is in the valid range, it is recommended to disable clamping.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "b": true
+            }
+          }
+        },
+        {
+          "name": "exp_prime_higher_bound_clamp",
+          "desc": "If you do not know the details of this parameter, please do not modify this parameter! Specify whether to use upper bound for exp prime mode, only takes effect when using exp mode 'prime'. when calculating x -> exp(x), exp prime is only effective for x in ((47 - offset - 2fxp)/log_2(e), (125 - 2fxp - offset)/log_2(e)). If true, use clamp value above the upper bound, otherwise leave the value unchanged. upper bound is set to be (125 - 2fxp - offset)/log_2(e). Enable clamping will avoid large numerical errors when x > upper bound. Disable clamping will leave the value unchanged, which may cause large numerical errors when x > upper bound. However, clamping cost is very high, if we are certain x is in the valid range, it is recommended to disable clamping.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        },
+        {
           "name": "report_weights",
           "desc": "If this option is set to true, model will be revealed and model details are visible to all parties",
           "type": "AT_BOOL",
@@ -2985,7 +3169,7 @@
       ],
       "inputs": [
         {
-          "name": "train_dataset",
+          "name": "input_ds",
           "desc": "Input vertical table.",
           "types": [
             "sf.table.vertical_table"
@@ -3036,7 +3220,7 @@
       "domain": "ml.train",
       "name": "ss_sgd_train",
       "desc": "Train both linear and logistic regression\nlinear models for vertical partitioning dataset with mini batch SGD training solver by using secret sharing.\n- SS-SGD is short for secret sharing SGD training.",
-      "version": "0.0.1",
+      "version": "1.0.0",
       "attrs": [
         {
           "name": "epochs",
@@ -3131,7 +3315,6 @@
             "allowedValues": {
               "ss": [
                 "None",
-                "l1",
                 "l2"
               ]
             }
@@ -3177,7 +3360,7 @@
       ],
       "inputs": [
         {
-          "name": "train_dataset",
+          "name": "input_ds",
           "desc": "Input vertical table.",
           "types": [
             "sf.table.vertical_table"
@@ -3218,7 +3401,7 @@
       "domain": "ml.train",
       "name": "ss_xgb_train",
       "desc": "This method provides both classification and regression tree boosting (also known as GBDT, GBM)\nfor vertical partitioning dataset setting by using secret sharing.\n- SS-XGB is short for secret sharing XGB.\n- More details: https://arxiv.org/pdf/2005.08479.pdf",
-      "version": "0.0.1",
+      "version": "1.0.0",
       "attrs": [
         {
           "name": "num_boost_round",
@@ -3401,7 +3584,7 @@
       ],
       "inputs": [
         {
-          "name": "train_dataset",
+          "name": "input_ds",
           "desc": "Input vertical table.",
           "types": [
             "sf.table.vertical_table"
@@ -3434,8 +3617,8 @@
     {
       "domain": "model",
       "name": "model_export",
-      "desc": "The model_export component supports converting and packaging the rule files generated by preprocessing and postprocessing components, as well as the model files generated by model operators, into a Secretflow-Serving model package. The list of components to be exported must contain exactly one model train or model predict component, and may include zero or multiple preprocessing and postprocessing components.",
-      "version": "0.0.1",
+      "desc": "The model_export component supports converting and\npackaging the rule files generated by preprocessing and\npostprocessing components, as well as the model files generated\nby model operators, into a Secretflow-Serving model package. The\nlist of components to be exported must contain exactly one model\ntrain or model predict component, and may include zero or\nmultiple preprocessing and postprocessing components.",
+      "version": "1.0.0",
       "attrs": [
         {
           "name": "model_name",
@@ -3475,11 +3658,20 @@
           "atomic": {
             "listMaxLengthInclusive": "-1"
           }
+        },
+        {
+          "name": "he_mode",
+          "desc": "If enabled, it will export a homomorphic encryption model. Currently, only SGD and GLM models for two-party scenarios are supported.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
         }
       ],
       "outputs": [
         {
-          "name": "package_output",
+          "name": "output_package",
           "desc": "output tar package uri",
           "types": [
             "sf.serving.model"
@@ -3498,7 +3690,7 @@
       "domain": "postprocessing",
       "name": "score_card_transformer",
       "desc": "Transform the predicted result (a probability value) produced by the logistic regression model into a more understandable score (for example, a score of up to 1000 points)",
-      "version": "0.0.1",
+      "version": "1.0.0",
       "attrs": [
         {
           "name": "positive",
@@ -3532,7 +3724,9 @@
           "atomic": {
             "defaultValue": {
               "i64": "600"
-            }
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {}
           }
         },
         {
@@ -3542,7 +3736,9 @@
           "atomic": {
             "defaultValue": {
               "f": 20.0
-            }
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {}
           }
         },
         {
@@ -3552,7 +3748,9 @@
           "atomic": {
             "defaultValue": {
               "f": 20.0
-            }
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {}
           }
         },
         {
@@ -3624,7 +3822,7 @@
       "domain": "preprocessing",
       "name": "binary_op",
       "desc": "Perform binary operation binary_op(f1, f2) and assign the result to f3, f3 can be new or old. Currently f1, f2 and f3 all belong to a single party.",
-      "version": "0.0.2",
+      "version": "1.0.0",
       "attrs": [
         {
           "name": "binary_op",
@@ -3663,7 +3861,7 @@
       ],
       "inputs": [
         {
-          "name": "in_ds",
+          "name": "input_ds",
           "desc": "Input vertical table.",
           "types": [
             "sf.table.vertical_table"
@@ -3686,14 +3884,14 @@
       ],
       "outputs": [
         {
-          "name": "out_ds",
+          "name": "output_ds",
           "desc": "Output vertical table.",
           "types": [
             "sf.table.vertical_table"
           ]
         },
         {
-          "name": "out_rules",
+          "name": "output_rule",
           "desc": "feature gen rule",
           "types": [
             "sf.rule.preprocessing"
@@ -3705,7 +3903,7 @@
       "domain": "preprocessing",
       "name": "case_when",
       "desc": "case_when",
-      "version": "0.0.1",
+      "version": "1.0.0",
       "attrs": [
         {
           "name": "rules",
@@ -3716,7 +3914,7 @@
       ],
       "inputs": [
         {
-          "name": "input_dataset",
+          "name": "input_ds",
           "desc": "Input vertical table.",
           "types": [
             "sf.table.vertical_table"
@@ -3725,14 +3923,14 @@
       ],
       "outputs": [
         {
-          "name": "output_dataset",
+          "name": "output_ds",
           "desc": "output_dataset",
           "types": [
             "sf.table.vertical_table"
           ]
         },
         {
-          "name": "out_rules",
+          "name": "output_rule",
           "desc": "case when substitution rule",
           "types": [
             "sf.rule.preprocessing"
@@ -3744,7 +3942,7 @@
       "domain": "preprocessing",
       "name": "cast",
       "desc": "For conversion between basic data types, such as converting float to string.",
-      "version": "0.0.1",
+      "version": "1.0.0",
       "attrs": [
         {
           "name": "astype",
@@ -3801,7 +3999,7 @@
           ]
         },
         {
-          "name": "output_rules",
+          "name": "output_rule",
           "desc": "The output rules",
           "types": [
             "sf.rule.preprocessing"
@@ -3813,7 +4011,7 @@
       "domain": "preprocessing",
       "name": "feature_calculate",
       "desc": "Generate a new feature by performing calculations on an origin feature",
-      "version": "0.0.1",
+      "version": "1.0.0",
       "attrs": [
         {
           "name": "rules",
@@ -3824,7 +4022,7 @@
       ],
       "inputs": [
         {
-          "name": "in_ds",
+          "name": "input_ds",
           "desc": "Input vertical table",
           "types": [
             "sf.table.vertical_table"
@@ -3840,14 +4038,14 @@
       ],
       "outputs": [
         {
-          "name": "out_ds",
+          "name": "output_ds",
           "desc": "output_dataset",
           "types": [
             "sf.table.vertical_table"
           ]
         },
         {
-          "name": "out_rules",
+          "name": "output_rule",
           "desc": "feature calculate rule",
           "types": [
             "sf.rule.preprocessing"
@@ -3858,12 +4056,79 @@
     {
       "domain": "preprocessing",
       "name": "fillna",
-      "desc": "fillna",
-      "version": "0.0.1",
+      "desc": "Fill null/nan or other specificed outliers in dataset",
+      "version": "1.0.0",
       "attrs": [
         {
-          "name": "strategy",
-          "desc": "The imputation strategy. If \"mean\", then replace missing values using the mean along each column. Can only be used with numeric data. If \"median\", then replace missing values using the median along each column. Can only be used with numeric data. If \"most_frequent\", then replace missing using the most frequent value along each column. Can be used with strings or numeric data. If there is more than one such value, only the smallest is returned. If \"constant\", then replace missing values with fill_value. Can be used with strings or numeric data.",
+          "name": "nan_is_null",
+          "desc": "Whether floating-point NaN values are considered null, take effect with float columns",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "b": true
+            }
+          }
+        },
+        {
+          "name": "float_outliers",
+          "desc": "These outlier value are considered null, take effect with float columns",
+          "type": "AT_FLOATS",
+          "atomic": {
+            "listMaxLengthInclusive": "-1",
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        },
+        {
+          "name": "int_outliers",
+          "desc": "These outlier value are considered null, take effect with int columns",
+          "type": "AT_INTS",
+          "atomic": {
+            "listMaxLengthInclusive": "-1",
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        },
+        {
+          "name": "str_outliers",
+          "desc": "These outlier value are considered null, take effect with str columns",
+          "type": "AT_STRINGS",
+          "atomic": {
+            "listMaxLengthInclusive": "-1",
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        },
+        {
+          "name": "str_fill_strategy",
+          "desc": "Replacement strategy for str column. If \"most_frequent\", then replace missing using the most frequent value along each column. If \"constant\", then replace missing values with fill_value_str.",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "constant"
+            },
+            "allowedValues": {
+              "ss": [
+                "constant",
+                "most_frequent"
+              ]
+            }
+          }
+        },
+        {
+          "name": "fill_value_str",
+          "desc": "For str type data. If method is 'constant' use this value for filling null.",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        },
+        {
+          "name": "int_fill_strategy",
+          "desc": "Replacement strategy for int column. If \"mean\", then replace missing values using the mean along each column. If \"median\", then replace missing values using the median along each column If \"most_frequent\", then replace missing using the most frequent value along each column. If \"constant\", then replace missing values with fill_value_int.",
           "type": "AT_STRING",
           "atomic": {
             "isOptional": true,
@@ -3881,42 +4146,31 @@
           }
         },
         {
-          "name": "missing_value_type",
-          "desc": "type of missing value. general_na type indicates that only np.nan, None or pandas.NA will be treated as missing values. When the type is not general_na, the type casted missing_value_type(missing_value) will also be treated as missing value as well, in addition to general_na values.",
-          "type": "AT_STRING",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {
-              "s": "general_na"
-            },
-            "allowedValues": {
-              "ss": [
-                "general_na",
-                "str",
-                "int",
-                "float"
-              ]
-            }
-          }
-        },
-        {
-          "name": "missing_value",
-          "desc": "Which value should be treat as missing_value? If missing value type is 'general_na', this field will be ignored, and any np.nan, pd.NA, etc value will be treated as missing value. Otherwise, the type casted missing_value_type(missing_value) will also be treated as missing value as well, in addition to general_na values. In case the cast is not successful, general_na will be used instead. default value is 'custom_missing_value'.",
-          "type": "AT_STRING",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {
-              "s": "custom_missing_value"
-            }
-          }
-        },
-        {
           "name": "fill_value_int",
           "desc": "For int type data. If method is 'constant' use this value for filling null.",
           "type": "AT_INT",
           "atomic": {
             "isOptional": true,
             "defaultValue": {}
+          }
+        },
+        {
+          "name": "float_fill_strategy",
+          "desc": "Replacement strategy for float column. If \"mean\", then replace missing values using the mean along each column. If \"median\", then replace missing values using the median along each column If \"most_frequent\", then replace missing using the most frequent value along each column. If \"constant\", then replace missing values with fill_value_float.",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "constant"
+            },
+            "allowedValues": {
+              "ss": [
+                "mean",
+                "median",
+                "most_frequent",
+                "constant"
+              ]
+            }
           }
         },
         {
@@ -3929,9 +4183,26 @@
           }
         },
         {
-          "name": "fill_value_str",
-          "desc": "For str type data. If method is 'constant' use this value for filling null.",
+          "name": "bool_fill_strategy",
+          "desc": "Replacement strategy for bool column. If \"most_frequent\", then replace missing using the most frequent value along each column. If \"constant\", then replace missing values with fill_value_bool.",
           "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "constant"
+            },
+            "allowedValues": {
+              "ss": [
+                "constant",
+                "most_frequent"
+              ]
+            }
+          }
+        },
+        {
+          "name": "fill_value_bool",
+          "desc": "For bool type data. If method is 'constant' use this value for filling null.",
+          "type": "AT_BOOL",
           "atomic": {
             "isOptional": true,
             "defaultValue": {}
@@ -3940,7 +4211,7 @@
       ],
       "inputs": [
         {
-          "name": "input_dataset",
+          "name": "input_ds",
           "desc": "Input vertical table.",
           "types": [
             "sf.table.vertical_table"
@@ -3955,14 +4226,14 @@
       ],
       "outputs": [
         {
-          "name": "out_ds",
+          "name": "output_ds",
           "desc": "Output vertical table.",
           "types": [
             "sf.table.vertical_table"
           ]
         },
         {
-          "name": "out_rules",
+          "name": "output_rule",
           "desc": "fill value rule",
           "types": [
             "sf.rule.preprocessing"
@@ -3974,7 +4245,7 @@
       "domain": "preprocessing",
       "name": "onehot_encode",
       "desc": "onehot_encode",
-      "version": "0.0.3",
+      "version": "1.0.0",
       "attrs": [
         {
           "name": "drop",
@@ -4035,7 +4306,7 @@
       ],
       "inputs": [
         {
-          "name": "input_dataset",
+          "name": "input_ds",
           "desc": "Input vertical table.",
           "types": [
             "sf.table.vertical_table"
@@ -4050,14 +4321,14 @@
       ],
       "outputs": [
         {
-          "name": "output_dataset",
-          "desc": "output_dataset",
+          "name": "output_ds",
+          "desc": "output dataset",
           "types": [
             "sf.table.vertical_table"
           ]
         },
         {
-          "name": "out_rules",
+          "name": "output_rule",
           "desc": "onehot rule",
           "types": [
             "sf.rule.preprocessing"
@@ -4074,28 +4345,70 @@
     },
     {
       "domain": "preprocessing",
-      "name": "substitution",
-      "desc": "unified substitution component",
-      "version": "0.0.2",
+      "name": "sql_processor",
+      "desc": "sql processor",
+      "version": "1.0.0",
+      "attrs": [
+        {
+          "name": "sql",
+          "desc": "sql for preprocessing, for example SELECT a, b, a+b",
+          "type": "AT_STRING",
+          "atomic": {}
+        }
+      ],
       "inputs": [
         {
-          "name": "input_dataset",
+          "name": "input_ds",
+          "desc": "Input table",
+          "types": [
+            "sf.table.individual",
+            "sf.table.vertical_table"
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output_ds",
+          "desc": "Output table",
+          "types": [
+            "sf.table.individual",
+            "sf.table.vertical_table"
+          ]
+        },
+        {
+          "name": "output_rule",
+          "desc": "Output rule",
+          "types": [
+            "sf.rule.preprocessing"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "preprocessing",
+      "name": "substitution",
+      "desc": "unified substitution component",
+      "version": "1.0.0",
+      "inputs": [
+        {
+          "name": "input_ds",
           "desc": "Input vertical table.",
           "types": [
             "sf.table.vertical_table"
           ]
         },
         {
-          "name": "input_rules",
+          "name": "input_rule",
           "desc": "Input preprocessing rules",
           "types": [
-            "sf.rule.preprocessing"
+            "sf.rule.preprocessing",
+            "sf.rule.binning"
           ]
         }
       ],
       "outputs": [
         {
-          "name": "output_dataset",
+          "name": "output_ds",
           "desc": "output_dataset",
           "types": [
             "sf.table.vertical_table"
@@ -4105,31 +4418,259 @@
     },
     {
       "domain": "preprocessing",
-      "name": "vert_bin_substitution",
-      "desc": "Substitute datasets' value by bin substitution rules.",
-      "version": "0.0.1",
-      "inputs": [
+      "name": "vert_binning",
+      "desc": "Generate equal frequency or equal range binning rules for vertical partitioning datasets.",
+      "version": "1.0.0",
+      "attrs": [
         {
-          "name": "input_data",
-          "desc": "Vertical partitioning dataset to be substituted.",
-          "types": [
-            "sf.table.vertical_table"
-          ]
+          "name": "binning_method",
+          "desc": "How to bin features with numeric types: \"quantile\"(equal frequency)/\"eq_range\"(equal range)",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "eq_range"
+            },
+            "allowedValues": {
+              "ss": [
+                "eq_range",
+                "quantile"
+              ]
+            }
+          }
         },
         {
-          "name": "bin_rule",
-          "desc": "Input bin substitution rule.",
+          "name": "bin_num",
+          "desc": "Max bin counts for one features.",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "10"
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {
+              "i64": "2"
+            },
+            "lowerBoundInclusive": true
+          }
+        },
+        {
+          "name": "report_rules",
+          "desc": "Whether report binning rules.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "input_ds",
+          "desc": "Input vertical table.",
           "types": [
-            "sf.rule.binning"
+            "sf.table.vertical_table"
+          ],
+          "attrs": [
+            {
+              "name": "feature_selects",
+              "desc": "which features should be binned.",
+              "colMinCntInclusive": "1"
+            }
           ]
         }
       ],
       "outputs": [
         {
-          "name": "output_data",
+          "name": "output_ds",
           "desc": "Output vertical table.",
           "types": [
             "sf.table.vertical_table"
+          ]
+        },
+        {
+          "name": "output_rule",
+          "desc": "Output bin rule.",
+          "types": [
+            "sf.rule.binning"
+          ]
+        },
+        {
+          "name": "report",
+          "desc": "report rules details if report_rules is true",
+          "types": [
+            "sf.report"
+          ]
+        }
+      ]
+    },
+    {
+      "domain": "preprocessing",
+      "name": "vert_woe_binning",
+      "desc": "Generate Weight of Evidence (WOE) binning rules for vertical partitioning datasets.",
+      "version": "1.0.0",
+      "attrs": [
+        {
+          "name": "secure_device_type",
+          "desc": "Use SPU(Secure multi-party computation or MPC) or HEU(Homomorphic encryption or HE) to secure bucket summation.",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "spu"
+            },
+            "allowedValues": {
+              "ss": [
+                "spu",
+                "heu"
+              ]
+            }
+          }
+        },
+        {
+          "name": "binning_method",
+          "desc": "How to bin features with numeric types: \"quantile\"(equal frequency)/\"chimerge\"(ChiMerge from AAAI92-019: https://www.aaai.org/Papers/AAAI/1992/AAAI92-019.pdf)/\"eq_range\"(equal range)",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "quantile"
+            },
+            "allowedValues": {
+              "ss": [
+                "quantile",
+                "chimerge",
+                "eq_range"
+              ]
+            }
+          }
+        },
+        {
+          "name": "bin_num",
+          "desc": "Max bin counts for one features.",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "10"
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {}
+          }
+        },
+        {
+          "name": "positive_label",
+          "desc": "Which value represent positive value in label.",
+          "type": "AT_STRING",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "s": "1"
+            }
+          }
+        },
+        {
+          "name": "chimerge_init_bins",
+          "desc": "Max bin counts for initialization binning in ChiMerge.",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "100"
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {
+              "i64": "2"
+            }
+          }
+        },
+        {
+          "name": "chimerge_target_bins",
+          "desc": "Stop merging if remaining bin counts is less than or equal to this value.",
+          "type": "AT_INT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "i64": "10"
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {
+              "i64": "2"
+            },
+            "lowerBoundInclusive": true
+          }
+        },
+        {
+          "name": "chimerge_target_pvalue",
+          "desc": "Stop merging if biggest pvalue of remaining bins is greater than this value.",
+          "type": "AT_FLOAT",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {
+              "f": 0.1
+            },
+            "lowerBoundEnabled": true,
+            "lowerBound": {},
+            "upperBoundEnabled": true,
+            "upperBound": {
+              "f": 1.0
+            },
+            "upperBoundInclusive": true
+          }
+        },
+        {
+          "name": "report_rules",
+          "desc": "Whether report binning rules.",
+          "type": "AT_BOOL",
+          "atomic": {
+            "isOptional": true,
+            "defaultValue": {}
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "input_ds",
+          "desc": "Input vertical table.",
+          "types": [
+            "sf.table.vertical_table"
+          ],
+          "attrs": [
+            {
+              "name": "feature_selects",
+              "desc": "which features should be binned. WARNING: WOE won't be effective for features with enumeration count <=2.",
+              "colMinCntInclusive": "1"
+            },
+            {
+              "name": "label",
+              "desc": "Label of input data.",
+              "colMinCntInclusive": "1",
+              "colMaxCntInclusive": "1"
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output_ds",
+          "desc": "Output vertical table.",
+          "types": [
+            "sf.table.vertical_table"
+          ]
+        },
+        {
+          "name": "output_rule",
+          "desc": "Output WOE rule.",
+          "types": [
+            "sf.rule.binning"
+          ]
+        },
+        {
+          "name": "report",
+          "desc": "report rules details if report_rules is true",
+          "types": [
+            "sf.report"
           ]
         }
       ]
@@ -4138,7 +4679,7 @@
       "domain": "stats",
       "name": "groupby_statistics",
       "desc": "Get a groupby of statistics, like pandas groupby statistics.\nCurrently only support VDataframe.",
-      "version": "0.0.3",
+      "version": "1.0.0",
       "attrs": [
         {
           "name": "aggregation_config",
@@ -4166,7 +4707,7 @@
       ],
       "inputs": [
         {
-          "name": "input_data",
+          "name": "input_ds",
           "desc": "Input table.",
           "types": [
             "sf.table.vertical_table",
@@ -4196,10 +4737,10 @@
       "domain": "stats",
       "name": "ss_pearsonr",
       "desc": "Calculate Pearson's product-moment correlation coefficient for vertical partitioning dataset\nby using secret sharing.\n- For large dataset(large than 10w samples & 200 features), recommend to use [Ring size: 128, Fxp: 40] options for SPU device.",
-      "version": "0.0.1",
+      "version": "1.0.0",
       "inputs": [
         {
-          "name": "input_data",
+          "name": "input_ds",
           "desc": "Input vertical table.",
           "types": [
             "sf.table.vertical_table",
@@ -4227,10 +4768,10 @@
       "domain": "stats",
       "name": "ss_vif",
       "desc": "Calculate Variance Inflation Factor(VIF) for vertical partitioning dataset\nby using secret sharing.\n- For large dataset(large than 10w samples & 200 features), recommend to use [Ring size: 128, Fxp: 40] options for SPU device.",
-      "version": "0.0.1",
+      "version": "1.0.0",
       "inputs": [
         {
-          "name": "input_data",
+          "name": "input_ds",
           "desc": "Input vertical table.",
           "types": [
             "sf.table.vertical_table",
@@ -4258,10 +4799,10 @@
       "domain": "stats",
       "name": "stats_psi",
       "desc": "population stability index.",
-      "version": "0.0.1",
+      "version": "1.0.0",
       "inputs": [
         {
-          "name": "input_base_data",
+          "name": "input_base_ds",
           "desc": "Input base vertical table.",
           "types": [
             "sf.table.vertical_table",
@@ -4276,7 +4817,7 @@
           ]
         },
         {
-          "name": "input_test_data",
+          "name": "input_test_ds",
           "desc": "Input test vertical table.",
           "types": [
             "sf.table.vertical_table",
@@ -4284,7 +4825,7 @@
           ]
         },
         {
-          "name": "bin_rule",
+          "name": "input_rule",
           "desc": "Input bin rule.",
           "types": [
             "sf.rule.binning"
@@ -4305,10 +4846,10 @@
       "domain": "stats",
       "name": "table_statistics",
       "desc": "Get a table of statistics,\nincluding each column's\n1. datatype\n2. total_count\n3. count\n4. count_na\n5. na_ratio\n6. min\n7. max\n8. mean\n9. var\n10. std\n11. sem\n12. skewness\n13. kurtosis\n14. q1\n15. q2\n16. q3\n17. moment_2\n18. moment_3\n19. moment_4\n20. central_moment_2\n21. central_moment_3\n22. central_moment_4\n23. sum\n24. sum_2\n25. sum_3\n26. sum_4\n- moment_2 means E[X^2].\n- central_moment_2 means E[(X - mean(X))^2].\n- sum_2 means sum(X^2).",
-      "version": "0.0.2",
+      "version": "1.0.0",
       "inputs": [
         {
-          "name": "input_data",
+          "name": "input_ds",
           "desc": "Input table.",
           "types": [
             "sf.table.vertical_table",

@@ -33,11 +33,11 @@ from secretflow.data.ndarray import FedNdarray
 from secretflow.data.vertical import VDataFrame
 from secretflow.device import PYU, Device, reveal, wait
 from secretflow.device.device.pyu import PYUObject
-from secretflow.ml.nn.sl.agglayer.agg_layer import AggLayer
-from secretflow.ml.nn.sl.agglayer.agg_method import AggMethod
-from secretflow.ml.nn.sl.strategy_dispatcher import dispatch_strategy
-from secretflow.security.privacy import DPStrategy
+from secretflow_fl.security.privacy import DPStrategy
 from secretflow.utils.random import global_random
+from secretflow_fl.ml.nn.sl.agglayer.agg_layer import AggLayer
+from secretflow_fl.ml.nn.sl.agglayer.agg_method import AggMethod
+from secretflow_fl.ml.nn.sl.strategy_dispatcher import dispatch_strategy
 
 
 class CustomSLModel:
@@ -101,9 +101,9 @@ class CustomSLModel:
         defense_args = kwargs.get("defense_args", {})
 
         if backend.lower() == "tensorflow":
-            import secretflow.ml.nn.sl.backend.tensorflow.strategy  # noqa
+            import secretflow_fl.ml.nn.sl.backend.tensorflow.strategy  # noqa
         elif backend.lower() == "torch":
-            import secretflow.ml.nn.sl.backend.torch.strategy  # noqa
+            import secretflow_fl.ml.nn.sl.backend.torch.strategy  # noqa
         else:
             raise Exception(f"Invalid backend = {backend}")
         worker_list = list(base_model_dict.keys())
@@ -289,7 +289,7 @@ class CustomSLModel:
             verbose: 0, 1. Verbosity mode
             callbacks: List of Callback or Dict[device, Callback]. Callback can be:
             - `keras.callbacks.Callback` for tensorflow backend
-            - `from secretflow.ml.nn.callbacks.callback.Callback` for torch backend
+            - `from secretflow_fl.ml.nn.callbacks.callback.Callback` for torch backend
             validation_data: Data on which to validate
             shuffle: Whether shuffle dataset or not
             validation_freq: specifies how many training epochs to run before a new validation run is performed

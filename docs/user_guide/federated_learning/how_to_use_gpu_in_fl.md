@@ -123,9 +123,9 @@ Done！
 ```python
 import secretflow as sf
 from secretflow.data.ndarray import load
-from secretflow.utils.simulation.datasets import load_mnist
+from secretflow_fl.utils.simulation.datasets_fl import load_mnist
 from secretflow.security.aggregation import SecureAggregator
-from secretflow.ml.nn import FLModel
+from secretflow_fl.ml.nn import FLModel
 # In case you have a running secretflow runtime already.
 sf.shutdown()
 

@@ -47,9 +47,8 @@ class DataPreprocessor(Component):
         print_params(self.params)
 
     def set_params(self, params: dict):
-        obj = params.get('objective', 'logistic')
-        obj = RegType(obj)
-        self.params.objective = obj
+        if 'objective' in params:
+            self.params.objective = RegType(params['objective'])
 
     def get_params(self, params: dict):
         params['objective'] = self.params.objective

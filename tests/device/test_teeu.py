@@ -15,6 +15,7 @@
 import os
 import tempfile
 from dataclasses import dataclass
+from sys import platform
 
 import numpy as np
 import pytest
@@ -23,7 +24,7 @@ import secretflow as sf
 import secretflow.distributed as sfd
 from secretflow.device import global_state
 from secretflow.device.device.teeu import TEEU
-from secretflow.distributed.primitive import DISTRIBUTION_MODE
+from secretflow.distributed.const import DISTRIBUTION_MODE
 from secretflow.utils.testing import unused_tcp_port
 from tests.cluster import cluster, get_self_party, set_self_party
 
@@ -38,7 +39,7 @@ class TeeuTestInventory:
 
 
 @pytest.fixture(scope="module")
-def teeu_production_setup_devices(request, sf_party_for_4pc):
+def teeu_production_setup_devices_ray(request, sf_party_for_4pc):
     inventory = TeeuTestInventory()
     sfd.set_distribution_mode(mode=DISTRIBUTION_MODE.PRODUCTION)
     set_self_party(sf_party_for_4pc)
@@ -130,15 +131,14 @@ def teeu_production_setup_devices(request, sf_party_for_4pc):
     sf.shutdown()
 
 
-# @pytest.mark.skipif(platform == 'darwin', reason="TEEU does not support macOS")
-@pytest.mark.skip  # TODO: unknown CI error
-def test_teeu_function_should_ok(teeu_production_setup_devices):
+@pytest.mark.skipif(platform == 'darwin', reason="TEEU does not support macOS")
+def test_teeu_function_should_ok(teeu_production_setup_devices_ray):
     def average(data):
         return np.average(data, axis=0)
 
     teeu = TEEU(party='carol', mr_enclave='')
-    d1 = teeu_production_setup_devices.alice(lambda: np.random.random([2, 4]))()
-    d2 = teeu_production_setup_devices.bob(lambda: np.random.random([2, 4]))()
+    d1 = teeu_production_setup_devices_ray.alice(lambda: np.random.random([2, 4]))()
+    d2 = teeu_production_setup_devices_ray.bob(lambda: np.random.random([2, 4]))()
     d1_tee = d1.to(teeu, allow_funcs=average)
     d2_tee = d2.to(teeu, allow_funcs=average)
     avg_val = teeu(average)([d1_tee, d2_tee])
@@ -147,9 +147,8 @@ def test_teeu_function_should_ok(teeu_production_setup_devices):
     np.testing.assert_equal(avg_val, expected_avg)
 
 
-# @pytest.mark.skipif(platform == 'darwin', reason="TEEU does not support macOS")
-@pytest.mark.skip  # TODO: unknown CI error
-def test_teeu_actor_should_ok(teeu_production_setup_devices):
+@pytest.mark.skipif(platform == 'darwin', reason="TEEU does not support macOS")
+def test_teeu_actor_should_ok(teeu_production_setup_devices_ray):
     class Model:
         def __init__(self, x):
             self.x = x.copy()
@@ -159,8 +158,8 @@ def test_teeu_actor_should_ok(teeu_production_setup_devices):
             return self.x
 
     teeu = TEEU(party='carol', mr_enclave='')
-    d1 = teeu_production_setup_devices.alice(lambda: np.random.random([2, 4]))()
-    d2 = teeu_production_setup_devices.bob(lambda: np.random.random([2, 4]))()
+    d1 = teeu_production_setup_devices_ray.alice(lambda: np.random.random([2, 4]))()
+    d2 = teeu_production_setup_devices_ray.bob(lambda: np.random.random([2, 4]))()
     d1_tee = d1.to(teeu, allow_funcs=Model)
     d2_tee = d2.to(teeu, allow_funcs=Model)
     model = teeu(Model)(d1_tee)

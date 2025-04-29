@@ -13,243 +13,140 @@
 # limitations under the License.
 
 
-import spu
-
-from secretflow.component.component import (
-    CompEvalError,
-    Component,
-    IoType,
-    TableColParam,
-)
-from secretflow.component.data_utils import (
+from secretflow.component.core import (
+    Context,
     DistDataType,
-    extract_table_header,
-    generate_random_string,
-    load_table,
-    model_dumps,
+    Field,
+    Input,
+    Interval,
+    Output,
+    ServingBuilder,
+    VTable,
+    VTableFieldKind,
+    register,
 )
-from secretflow.component.preprocessing.binning.vert_binning import (
-    BINNING_RULE_MAX_MAJOR_VERSION,
-    BINNING_RULE_MAX_MINOR_VERSION,
-    dump_binning_rules,
-)
-from secretflow.device.device.heu import HEU
-from secretflow.device.device.spu import SPU
-from secretflow.preprocessing.binning.vert_woe_binning import VertWoeBinning
-
-vert_woe_binning_comp = Component(
-    "vert_woe_binning",
-    domain="feature",
-    version="0.0.2",
-    desc="Generate Weight of Evidence (WOE) binning rules for vertical partitioning datasets.",
+from secretflow.device import PYU
+from secretflow.preprocessing.binning.vert_woe_binning import (
+    VertWoeBinning as VertWoeBinningProcessor,
 )
 
-vert_woe_binning_comp.str_attr(
-    name="secure_device_type",
-    desc="Use SPU(Secure multi-party computation or MPC) or HEU(Homomorphic encryption or HE) to secure bucket summation.",
-    is_list=False,
-    is_optional=True,
-    default_value="spu",
-    allowed_values=["spu", "heu"],
-)
-vert_woe_binning_comp.str_attr(
-    name="binning_method",
-    desc="How to bin features with numeric types: "
-    '"quantile"(equal frequency)/"chimerge"(ChiMerge from AAAI92-019: https://www.aaai.org/Papers/AAAI/1992/AAAI92-019.pdf)/"eq_range"(equal range)',
-    is_list=False,
-    is_optional=True,
-    default_value="quantile",
-    allowed_values=["quantile", "chimerge", "eq_range"],
-)
-vert_woe_binning_comp.int_attr(
-    name="bin_num",
-    desc="Max bin counts for one features.",
-    is_list=False,
-    is_optional=True,
-    default_value=10,
-    lower_bound=0,
-    lower_bound_inclusive=False,
-)
-vert_woe_binning_comp.str_attr(
-    name="positive_label",
-    desc="Which value represent positive value in label.",
-    is_list=False,
-    is_optional=True,
-    default_value="1",
-    allowed_values=None,
-)
-vert_woe_binning_comp.int_attr(
-    name="chimerge_init_bins",
-    desc="Max bin counts for initialization binning in ChiMerge.",
-    is_list=False,
-    is_optional=True,
-    default_value=100,
-    lower_bound=2,
-    lower_bound_inclusive=False,
-)
-vert_woe_binning_comp.int_attr(
-    name="chimerge_target_bins",
-    desc="Stop merging if remaining bin counts is less than or equal to this value.",
-    is_list=False,
-    is_optional=True,
-    default_value=10,
-    lower_bound=2,
-    lower_bound_inclusive=True,
-)
-vert_woe_binning_comp.float_attr(
-    name="chimerge_target_pvalue",
-    desc="Stop merging if biggest pvalue of remaining bins is greater than this value.",
-    is_list=False,
-    is_optional=True,
-    default_value=0.1,
-    lower_bound=0,
-    lower_bound_inclusive=False,
-    upper_bound=1,
-    upper_bound_inclusive=True,
-)
-vert_woe_binning_comp.io(
-    io_type=IoType.INPUT,
-    name="input_data",
-    desc="Input vertical table.",
-    types=[DistDataType.VERTICAL_TABLE],
-    col_params=[
-        TableColParam(
-            name="feature_selects",
-            desc="which features should be binned. WARNING: WOE won't be effective for features with enumeration count <=2.",
-            col_min_cnt_inclusive=1,
-        ),
-        TableColParam(
-            name="label",
-            desc="Label of input data.",
-            col_min_cnt_inclusive=1,
-            col_max_cnt_inclusive=1,
-        ),
-    ],
-)
-
-vert_woe_binning_comp.bool_attr(
-    name="report_rules",
-    desc="Whether report binning rules.",
-    is_list=False,
-    is_optional=True,
-    default_value=False,
-)
-
-vert_woe_binning_comp.io(
-    io_type=IoType.OUTPUT,
-    name="bin_rule",
-    desc="Output WOE rule.",
-    types=[DistDataType.BIN_RUNNING_RULE],
-    col_params=None,
-)
-
-vert_woe_binning_comp.io(
-    io_type=IoType.OUTPUT,
-    name="report",
-    desc="report rules details if report_rules is true",
-    types=[DistDataType.REPORT],
-)
+from .base import VertBinningBase
 
 
-@vert_woe_binning_comp.eval_fn
-def vert_woe_binning_eval_fn(
-    *,
-    ctx,
-    secure_device_type,
-    binning_method,
-    bin_num,
-    positive_label,
-    chimerge_init_bins,
-    chimerge_target_bins,
-    chimerge_target_pvalue,
-    input_data,
-    input_data_feature_selects,
-    input_data_label,
-    report_rules,
-    bin_rule,
-    report,
-):
-    input_df = load_table(
-        ctx,
-        input_data,
-        load_features=True,
-        col_selects=input_data_feature_selects + input_data_label,
-        load_labels=True,
+@register(domain="preprocessing", version="1.0.0", name="vert_woe_binning")
+class VertWoeBinning(VertBinningBase):
+    '''
+    Generate Weight of Evidence (WOE) binning rules for vertical partitioning datasets.
+    '''
+
+    secure_device_type: str = Field.attr(
+        desc="Use SPU(Secure multi-party computation or MPC) or HEU(Homomorphic encryption or HE) to secure bucket summation.",
+        default="spu",
+        choices=["spu", "heu"],
+    )
+    binning_method: str = Field.attr(
+        desc="How to bin features with numeric types: "
+        '"quantile"(equal frequency)/"chimerge"(ChiMerge from AAAI92-019: https://www.aaai.org/Papers/AAAI/1992/AAAI92-019.pdf)/"eq_range"(equal range)',
+        default="quantile",
+        choices=["quantile", "chimerge", "eq_range"],
+    )
+    bin_num: int = Field.attr(
+        desc="Max bin counts for one features.",
+        default=10,
+        bound_limit=Interval.open(0, None),
+    )
+    positive_label: str = Field.attr(
+        desc="Which value represent positive value in label.",
+        default="1",
+    )
+    chimerge_init_bins: int = Field.attr(
+        desc="Max bin counts for initialization binning in ChiMerge.",
+        default=100,
+        bound_limit=Interval.open(2, None),
+    )
+    chimerge_target_bins: int = Field.attr(
+        desc="Stop merging if remaining bin counts is less than or equal to this value.",
+        default=10,
+        bound_limit=Interval.closed(2, None),
+    )
+    chimerge_target_pvalue: float = Field.attr(
+        desc="Stop merging if biggest pvalue of remaining bins is greater than this value.",
+        default=0.1,
+        bound_limit=Interval.open_closed(0.0, 1.0),
+    )
+    report_rules: bool = Field.attr(
+        desc="Whether report binning rules.",
+        default=False,
+    )
+    feature_selects: list[str] = Field.table_column_attr(
+        "input_ds",
+        desc="which features should be binned. WARNING: WOE won't be effective for features with enumeration count <=2.",
+        limit=Interval.closed(1, None),
+    )
+    label: str = Field.table_column_attr(
+        "input_ds",
+        desc="Label of input data.",
+    )
+    input_ds: Input = Field.input(
+        desc="Input vertical table.",
+        types=[DistDataType.VERTICAL_TABLE],
+    )
+    output_ds: Output = Field.output(
+        desc="Output vertical table.",
+        types=[DistDataType.VERTICAL_TABLE],
+    )
+    output_rule: Output = Field.output(
+        desc="Output WOE rule.",
+        types=[DistDataType.BINNING_RULE],
+    )
+    report: Output = Field.output(
+        desc="report rules details if report_rules is true",
+        types=[DistDataType.REPORT],
     )
 
-    label_info, _ = extract_table_header(
-        input_data, load_features=True, load_labels=True, col_selects=input_data_label
-    )
-    assert len(label_info) == 1, "only support one party has label"
-    label_party = next(iter(label_info.keys()))
-    smeta = label_info[label_party]
-    assert len(smeta) == 1, "only support one label col"
+    def evaluate(self, ctx: Context):
+        input_tbl = VTable.from_distdata(self.input_ds)
+        trans_tbl = input_tbl.select(self.feature_selects)
+        trans_tbl.check_kinds(VTableFieldKind.FEATURE)
+        label_tbl = input_tbl.select([self.label])
+        label_party = label_tbl.party(0).party
 
-    if secure_device_type == "spu":
-        if ctx.spu_configs is None or len(ctx.spu_configs) == 0:
-            raise CompEvalError("spu config is not found.")
-        if len(ctx.spu_configs) > 1:
-            raise CompEvalError("only support one spu")
-        spu_config = next(iter(ctx.spu_configs.values()))
-        secure_device = SPU(spu_config["cluster_def"], spu_config["link_desc"])
-    elif secure_device_type == "heu":
-        assert ctx.heu_config is not None, "need heu config in SFClusterDesc"
-        heu_config = {
-            "sk_keeper": {"party": label_party},
-            "evaluators": [
-                {"party": p.party}
-                for p in input_df.partitions
-                if p.party != label_party
-            ],
-            "mode": ctx.heu_config["mode"],
-            "he_parameters": {
-                "schema": ctx.heu_config["schema"],
-                "key_pair": {"generate": {"bit_size": ctx.heu_config["key_size"]}},
-            },
-        }
-        secure_device = HEU((heu_config), spu.spu_pb2.FM64)
-    else:
-        raise CompEvalError(f"unsupported secure_device_type {secure_device_type}")
+        if self.secure_device_type == "spu":
+            secure_device = ctx.make_spu()
+        elif self.secure_device_type == "heu":
+            secure_device = ctx.make_heu(
+                label_party, [p for p in trans_tbl.parties.keys()]
+            )
+        else:
+            raise ValueError(
+                f"unsupported secure_device_type {self.secure_device_type}"
+            )
 
-    with ctx.tracer.trace_running():
-        bining = VertWoeBinning(secure_device)
-        col_index = input_df._col_index(input_data_feature_selects)
-        bin_names = {
-            party: bins if isinstance(bins, list) else [bins]
-            for party, bins in col_index.items()
-        }
-        rules = bining.binning(
-            input_df,
-            binning_method,
-            bin_num,
-            bin_names,
-            input_data_label[0],
-            positive_label,
-            chimerge_init_bins,
-            chimerge_target_bins,
-            chimerge_target_pvalue,
+        input_df = ctx.load_table(input_tbl)
+        with ctx.trace_running():
+            binning = VertWoeBinningProcessor(secure_device)
+            bin_names = {
+                PYU(party): p.columns for party, p in trans_tbl.parties.items()
+            }
+            rules = binning.binning(
+                input_df[self.feature_selects + [self.label]],
+                self.binning_method,
+                self.bin_num,
+                bin_names,
+                self.label,
+                self.positive_label,
+                self.chimerge_init_bins,
+                self.chimerge_target_bins,
+                self.chimerge_target_pvalue,
+            )
+
+        self.do_evaluate(
+            ctx, self.output_ds, self.output_rule, input_df, trans_tbl, rules
         )
 
-        model_dist_data = model_dumps(
-            ctx,
-            "bin_rule",
-            DistDataType.BIN_RUNNING_RULE,
-            BINNING_RULE_MAX_MAJOR_VERSION,
-            BINNING_RULE_MAX_MINOR_VERSION,
-            [o for o in rules.values()],
-            {
-                "input_data_feature_selects": input_data_feature_selects,
-                "input_data_label": input_data_label[0],
-                "model_hash": generate_random_string(next(iter(rules.keys()))),
-            },
-            bin_rule,
-            input_data.system_info,
-        )
-        report_dist_data = dump_binning_rules(
-            report,
-            input_data.system_info,
-            rules,
-            report_rules,
+        self.dump_report(
+            self.report, rules, self.report_rules, self.input_ds.system_info
         )
 
-    return {"bin_rule": model_dist_data, "report": report_dist_data}
+    def export(self, ctx: Context, builder: ServingBuilder) -> None:
+        self.do_export(ctx, builder, self.input_ds, self.output_rule.data)

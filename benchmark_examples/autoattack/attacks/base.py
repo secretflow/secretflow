@@ -21,7 +21,7 @@ from benchmark_examples.autoattack.applications.base import ApplicationBase
 from benchmark_examples.autoattack.base import AutoBase
 from benchmark_examples.autoattack.utils.config import read_tune_config
 from benchmark_examples.autoattack.utils.resources import ResourcesPack
-from secretflow.ml.nn.callbacks.attack import AttackCallback
+from secretflow_fl.ml.nn.callbacks.attack import AttackCallback
 
 
 class AttackType(Enum):

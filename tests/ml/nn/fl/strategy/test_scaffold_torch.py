@@ -17,10 +17,9 @@ import torch.optim as optim
 from torch import nn
 from torch.nn import CrossEntropyLoss
 from torch.utils.data import DataLoader, TensorDataset
-from torchmetrics import Accuracy, Precision, Recall
 
-from secretflow.ml.nn.core.torch import BaseModule, TorchModel
-from secretflow.ml.nn.fl.backend.torch.strategy.scaffold import Scaffold
+from secretflow_fl.ml.nn.core.torch import BaseModule, TorchModel
+from secretflow_fl.ml.nn.fl.backend.torch.strategy.scaffold import Scaffold
 
 
 class My_Model(BaseModule):

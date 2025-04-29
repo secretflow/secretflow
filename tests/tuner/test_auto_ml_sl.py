@@ -15,12 +15,13 @@
 import logging
 import tempfile
 
-from secretflow import reveal, tune
-from secretflow.ml.nn import SLModel
-from secretflow.ml.nn.callbacks.tune.automl import AutoMLCallback
-from secretflow.security.privacy import DPStrategy, LabelDP
-from secretflow.security.privacy.mechanism.tensorflow import GaussianEmbeddingDP
-from secretflow.utils.simulation.datasets import load_mnist
+from secretflow import reveal
+from secretflow_fl import tune
+from secretflow_fl.ml.nn import SLModel
+from secretflow_fl.ml.nn.callbacks.tune.automl import AutoMLCallback
+from secretflow_fl.security.privacy import DPStrategy, LabelDP
+from secretflow_fl.security.privacy.mechanism.tensorflow import GaussianEmbeddingDP
+from secretflow_fl.utils.simulation.datasets_fl import load_mnist
 from tests.ml.nn.sl.model_def import create_base_model, create_fuse_model
 
 _temp_dir = tempfile.mkdtemp()
@@ -63,7 +64,7 @@ def train(config, *, alice, bob):
     gaussian_embedding_dp = GaussianEmbeddingDP(
         noise_multiplier=0.5,
         l2_norm_clip=1.0,
-        batch_size=config['train_batch_size'],
+        batch_size=config["train_batch_size"],
         num_samples=num_samples,
         is_secure_generator=False,
     )
@@ -84,7 +85,7 @@ def train(config, *, alice, bob):
         simulation=True,
         random_seed=1234,
         backend="tensorflow",
-        strategy='split_nn',
+        strategy="split_nn",
         base_local_steps=dp_spent_step_freq,
         fuse_local_steps=1,
         bound_param=0.0,
@@ -102,21 +103,21 @@ def train(config, *, alice, bob):
         y_train,
         validation_data=(x_train, y_train),
         epochs=2,
-        batch_size=config['train_batch_size'],
+        batch_size=config["train_batch_size"],
         shuffle=False,
         random_seed=1234,
         dataset_builder=None,
         audit_log_dir=_temp_dir,
-        audit_log_params={'save_format': 'h5'},
+        audit_log_params={"save_format": "h5"},
         callbacks=[automl],
     )
     logging.warning(f"accuracy = {history['val_accuracy'][-1]}")
-    return {'accuracy': history['val_accuracy'][-1]}
+    return {"accuracy": history["val_accuracy"][-1]}
 
 
 def test_automl(sf_tune_simulation_setup_devices):
     search_space = {
-        'train_batch_size': tune.grid_search([32, 512]),
+        "train_batch_size": tune.grid_search([32, 512]),
     }
     trainable = tune.with_parameters(
         train,
@@ -130,4 +131,4 @@ def test_automl(sf_tune_simulation_setup_devices):
     results = tuner.fit()
     result_config = results.get_best_result(metric="accuracy", mode="max").config
     assert result_config is not None
-    assert result_config['train_batch_size'] == 32
+    assert result_config["train_batch_size"] == 32

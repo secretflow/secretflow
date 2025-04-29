@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, Dict, List, Union
 import random
+from typing import Callable, Dict, List, Union
 
 import pandas as pd
 
@@ -24,11 +24,10 @@ from secretflow.device import PYU
 from secretflow.security.aggregation.aggregator import Aggregator
 from secretflow.security.compare.comparator import Comparator
 from secretflow.utils.errors import InvalidArgumentError
-
 from secretflow.utils.simulation.data._utils import (
     SPLIT_METHOD,
-    iid_partition,
     dirichlet_partition,
+    iid_partition,
     label_skew_partition,
 )
 
@@ -150,7 +149,12 @@ def create_df(
     if axis == 0:
         return HDataFrame(
             partitions={
-                device: partition(lambda _df: _df.loc[index, :], device=device, _df=df)
+                device: partition(
+                    lambda df, index: df.loc[index, :],
+                    device=device,
+                    df=df,
+                    index=index,
+                )
                 for device, index in indexes.items()
             },
             aggregator=aggregator,
@@ -161,9 +165,10 @@ def create_df(
         return VDataFrame(
             partitions={
                 device: partition(
-                    lambda _df: _df.loc[:, [columns[idx] for idx in index]],
+                    lambda df, index: df.loc[:, [columns[idx] for idx in index]],
                     device=device,
-                    _df=df,
+                    df=df,
+                    index=index,
                 )
                 for device, index in indexes.items()
             }

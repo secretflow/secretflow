@@ -17,17 +17,16 @@ import logging
 import numpy as np
 import pandas as pd
 from google.protobuf.json_format import MessageToJson
-
-from secretflow.component.data_utils import DistDataType
-from secretflow.component.ml.eval.biclassification_eval import (
-    biclassification_eval_comp,
-)
-from secretflow.component.storage import ComponentStorage
-from secretflow.spec.v1.component_pb2 import Attribute
-from secretflow.spec.v1.data_pb2 import DistData, IndividualTable, TableSchema
-from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
-from secretflow.spec.v1.report_pb2 import Report
 from sklearn.metrics import roc_auc_score
+
+from secretflow.component.core import (
+    VTable,
+    VTableParty,
+    build_node_eval_param,
+    make_storage,
+)
+from secretflow.component.entry import comp_eval
+from secretflow.spec.v1.report_pb2 import Report
 
 
 def test_biclassification_eval(comp_prod_sf_cluster_config):
@@ -45,50 +44,38 @@ def test_biclassification_eval(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    comp_storage = ComponentStorage(storage_config)
+    storage = make_storage(storage_config)
 
     if self_party == "alice":
-        label_pred_df.to_csv(
-            comp_storage.get_writer(alice_label_pred_path), index=False
-        )
+        label_pred_df.to_csv(storage.get_writer(alice_label_pred_path), index=False)
 
-    param = NodeEvalParam(
+    param = build_node_eval_param(
         domain="ml.eval",
         name="biclassification_eval",
-        version="0.0.1",
-        attr_paths=[
-            "bucket_size",
-            "min_item_cnt_per_bucket",
-            "input/in_ds/label",
-            "input/in_ds/prediction",
-        ],
-        attrs=[
-            Attribute(i64=2),
-            Attribute(i64=5),
-            Attribute(ss=["labels"]),
-            Attribute(ss=["predictions"]),
-        ],
+        version="1.0.0",
+        attrs={
+            "bucket_size": 2,
+            "min_item_cnt_per_bucket": 5,
+            "input/input_ds/label": ["labels"],
+            "input/input_ds/prediction": ["predictions"],
+        },
         inputs=[
-            DistData(
+            VTable(
                 name="in_ds",
-                type=str(DistDataType.INDIVIDUAL_TABLE),
-                data_refs=[
-                    DistData.DataRef(
-                        uri=alice_label_pred_path, party="alice", format="csv"
+                parties=[
+                    VTableParty.from_dict(
+                        uri=alice_label_pred_path,
+                        party="alice",
+                        format="csv",
+                        labels={"labels": "float32", "predictions": "float32"},
                     ),
                 ],
             ),
         ],
         output_uris=[""],
     )
-    meta = IndividualTable(
-        schema=TableSchema(
-            labels=["labels", "predictions"], label_types=["float32", "float32"]
-        ),
-    )
-    param.inputs[0].meta.Pack(meta)
 
-    res = biclassification_eval_comp.eval(
+    res = comp_eval(
         param=param,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,
@@ -118,55 +105,49 @@ def test_biclassification_eval_nan(comp_prod_sf_cluster_config):
 
     storage_config, sf_cluster_config = comp_prod_sf_cluster_config
     self_party = sf_cluster_config.private_config.self_party
-    comp_storage = ComponentStorage(storage_config)
+    storage = make_storage(storage_config)
 
     if self_party == "alice":
         label_pred_df.to_csv(
-            comp_storage.get_writer(alice_label_pred_path), index=False
+            storage.get_writer(alice_label_pred_path),
+            index=False,
+            na_rep="nan",
         )
 
-    param = NodeEvalParam(
+    param = build_node_eval_param(
         domain="ml.eval",
         name="biclassification_eval",
-        version="0.0.1",
-        attr_paths=[
-            "bucket_size",
-            "min_item_cnt_per_bucket",
-            "input/in_ds/label",
-            "input/in_ds/prediction",
-        ],
-        attrs=[
-            Attribute(i64=2),
-            Attribute(i64=5),
-            Attribute(ss=["labels"]),
-            Attribute(ss=["predictions"]),
-        ],
+        version="1.0.0",
+        attrs={
+            "bucket_size": 2,
+            "min_item_cnt_per_bucket": 5,
+            "input/input_ds/label": ["labels"],
+            "input/input_ds/prediction": ["predictions"],
+        },
         inputs=[
-            DistData(
+            VTable(
                 name="in_ds",
-                type=str(DistDataType.INDIVIDUAL_TABLE),
-                data_refs=[
-                    DistData.DataRef(
-                        uri=alice_label_pred_path, party="alice", format="csv"
+                parties=[
+                    VTableParty.from_dict(
+                        uri=alice_label_pred_path,
+                        party="alice",
+                        format="csv",
+                        labels={"labels": "float32", "predictions": "float32"},
                     ),
                 ],
             ),
         ],
         output_uris=[""],
     )
-    meta = IndividualTable(
-        schema=TableSchema(
-            labels=["labels", "predictions"], label_types=["float32", "float32"]
-        ),
-    )
-    param.inputs[0].meta.Pack(meta)
 
-    res = biclassification_eval_comp.eval(
+    res = comp_eval(
         param=param,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,
     )
     comp_ret = Report()
-    res.outputs[0].meta.Unpack(comp_ret)
-    logging.warning(MessageToJson(comp_ret))
-    logging.info(comp_ret.tabs[0].divs[0].children[0].descriptions.items[3].value.f)
+    assert res.outputs[0].meta.Unpack(comp_ret)
+    assert (
+        comp_ret.tabs[0].divs[0].children[0].descriptions.items[3].value.f
+        == 0.4992840588092804
+    )

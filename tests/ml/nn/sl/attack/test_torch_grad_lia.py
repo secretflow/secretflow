@@ -20,10 +20,10 @@ from torchmetrics import AUROC
 
 from secretflow.data import partition
 from secretflow.data.vertical import VDataFrame
-from secretflow.ml.nn import SLModel
-from secretflow.ml.nn.applications.sl_dnn_torch import DnnBase, DnnFuse
-from secretflow.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
-from secretflow.ml.nn.sl.attacks.grad_lia_attack_torch import (
+from secretflow_fl.ml.nn import SLModel
+from secretflow_fl.ml.nn.applications.sl_dnn_torch import DnnBase, DnnFuse
+from secretflow_fl.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
+from secretflow_fl.ml.nn.sl.attacks.grad_lia_attack_torch import (
     GradientClusterLabelInferenceAttack,
 )
 
@@ -48,7 +48,7 @@ def test_grad_lia(sf_simulation_setup_devices):
         model_fn=DnnBase,
         loss_fn=nn.BCELoss,
         optim_fn=optim_wrapper(optim.SGD, lr=1e-2, momentum=0.9, weight_decay=5e-4),
-        metrics=[metric_wrapper(AUROC, task='binary')],
+        metrics=[metric_wrapper(AUROC, task="binary")],
         input_dims=[5],
         dnn_units_size=[64, 16],
     )
@@ -56,7 +56,7 @@ def test_grad_lia(sf_simulation_setup_devices):
         model_fn=DnnFuse,
         loss_fn=nn.BCELoss,
         optim_fn=optim_wrapper(optim.SGD, lr=1e-2, momentum=0.9, weight_decay=5e-4),
-        metrics=[metric_wrapper(AUROC, task='binary')],
+        metrics=[metric_wrapper(AUROC, task="binary")],
         input_dims=[32],
         dnn_units_size=[64, 1],
     )
@@ -64,8 +64,8 @@ def test_grad_lia(sf_simulation_setup_devices):
         base_model_dict={alice: base_model, bob: base_model},
         device_y=alice,
         model_fuse=fuse_model,
-        backend='torch',
-        strategy='split_nn',
+        backend="torch",
+        strategy="split_nn",
     )
     grad_lia = GradientClusterLabelInferenceAttack(
         attack_party=bob, label_party=alice, num_classes=2
@@ -80,4 +80,4 @@ def test_grad_lia(sf_simulation_setup_devices):
         callbacks=[grad_lia],
     )
     attack_metrics = grad_lia.get_attack_metrics()
-    assert 'attack_acc' in attack_metrics
+    assert "attack_acc" in attack_metrics

@@ -120,6 +120,9 @@ message SFClusterConfig {
     repeated SPUConfig spu_configs = 2;
 
     bool barrier_on_shutdown = 3;
+
+    InferenceConfig inference_config = 4;
+    WebhookConfig webhook_config = 5;
   }
 
   // Different for each party.
@@ -128,6 +131,19 @@ message SFClusterConfig {
     string self_party = 1;
 
     string ray_head_addr = 2;
+  }
+
+  // the inferencer from secretflow_serving_lib.tools needs ports to
+  // communication. inferencer can make predition based on tar package of model.
+  message InferenceConfig {
+    repeated string parties = 1;
+
+    repeated string addresses = 2;
+  }
+
+  // sf will use webhook url to update status, such as train progress
+  message WebhookConfig {
+    string progress_url = 1;
   }
 
   // Intrinsic properties.

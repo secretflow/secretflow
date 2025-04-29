@@ -17,52 +17,61 @@ import json
 import logging
 import os
 
-import translators as ts
+import translators
 from google.protobuf.json_format import MessageToJson
 
-from secretflow.component.entry import COMP_LIST
-from secretflow.component.i18n import gettext
-
-LANG = "zh"
-this_directory = os.path.abspath(os.path.dirname(__file__))
-COMP_LIST_FILE = os.path.join(this_directory, 'comp_list.json')
-TRANSLATION_FILE = os.path.join(this_directory, 'translation.json')
+import secretflow.component as _
+import secretflow_fl.component as _
+from secretflow.component.core import Translator, get_comp_list_def, translate
 
 
-def translate(input, translator):
-    output = {}
+class MyTranslator(Translator):
+    def __init__(self, lang: str, translator: str):
+        self._lang = lang
+        self._translator = translator
 
-    for comp, comp_text in input.items():
-        comp_translation = {}
+    def translate(self, text):
+        return translators.translate_text(
+            text,
+            from_language='en',
+            to_language=self._lang,
+            translator=self._translator,
+        )
 
-        for k, v in comp_text.items():
-            comp_translation[k] = (
-                v
-                if v != ""
-                else ts.translate_text(k, to_language=LANG, translator=translator)
-            )
 
-        output[comp] = comp_translation
-
-    return output
+def do_translate(package: str, root_dir: str, ts: Translator):
+    root_package_path = os.path.join(root_dir, package)
+    translation_file = os.path.join(root_package_path, "component", "translation.json")
+    with open(translation_file, "r") as f:
+        archieve = json.load(f)
+    trans = translate(package, archieve, ts)
+    with open(translation_file, "w") as f:
+        json.dump(trans, f, indent=2, ensure_ascii=False)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Update sf component meta.")
     parser.add_argument('-s', '--skip_translate', action='store_false')
-    parser.add_argument('-t', '--translator', type=str, required=False, default="baidu")
+    parser.add_argument(
+        '-t', '--translator', type=str, required=False, default="alibaba"
+    )
+
     args = parser.parse_args()
 
+    current_file_path = os.path.abspath(__file__)
+    current_dir = os.path.dirname(current_file_path)
+    root_dir = os.path.dirname(current_dir)
+
     logging.info('1. Update secretflow comp list.')
-    with open(COMP_LIST_FILE, 'w') as f:
-        json.dump(json.loads(MessageToJson(COMP_LIST)), f, indent=2, ensure_ascii=False)
+    comp_list_file = os.path.join(current_dir, 'comp_list.json')
+    comp_list_def = get_comp_list_def()
+    with open(comp_list_file, 'w') as f:
+        json.dump(
+            json.loads(MessageToJson(comp_list_def)), f, indent=2, ensure_ascii=False
+        )
 
     if args.skip_translate:
         logging.info('2. Update translation.')
-        with open(TRANSLATION_FILE, "r") as f:
-            archieve = json.load(f)
-
-        trans = translate(gettext(COMP_LIST, archieve), args.translator)
-
-        with open(TRANSLATION_FILE, "w") as f:
-            json.dump(trans, f, indent=2, ensure_ascii=False)
+        my_ts = MyTranslator("zh", args.translator)
+        do_translate("secretflow", root_dir, my_ts)
+        do_translate("secretflow_fl", root_dir, my_ts)

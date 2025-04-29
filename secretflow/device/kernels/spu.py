@@ -322,6 +322,56 @@ def psi_csv(
 
 
 @register(DeviceType.SPU)
+def ub_psi(
+    device: SPU,
+    mode: str,
+    role: Dict[str, str],
+    input_path: Dict[str, str],
+    output_path: Dict[str, str],
+    keys: Dict[str, List[str]],
+    server_secret_key_path: str,
+    cache_path: Dict[str, str],
+    join_type: str,
+    left_side: str,
+    server_get_result: bool,
+    client_get_result: bool,
+    disable_alignment: bool,
+    null_rep: str,
+):
+    assert isinstance(device, SPU), 'device must be SPU device'
+    assert device.world_size == 2, 'only 2pc is allowed.'
+    res = []
+    for party, actor in device.actors.items():
+        res.append(
+            actor.ub_psi.remote(
+                mode=mode,
+                role=role[party],
+                input_path=(
+                    input_path[party] if input_path and party in input_path else None
+                ),
+                keys=keys[party] if keys and party in keys else None,
+                server_secret_key_path=server_secret_key_path,
+                cache_path=(
+                    cache_path[party] if cache_path and party in cache_path else None
+                ),
+                server_get_result=server_get_result,
+                client_get_result=client_get_result,
+                disable_alignment=disable_alignment,
+                output_path=(
+                    output_path[party]
+                    if (output_path and (party in output_path))
+                    else None
+                ),
+                join_type=join_type,
+                left_side=left_side,
+                null_rep=null_rep,
+            )
+        )
+    # wait for all tasks done
+    return sfd.get(res)
+
+
+@register(DeviceType.SPU)
 def psi_join_df(
     device: SPU,
     key: Union[str, List[str], Dict[Device, List[str]]],
@@ -472,113 +522,14 @@ def psi_join_csv(
 
 
 @register(DeviceType.SPU)
-def pir_setup(
-    device: SPU,
-    server: str,
-    input_path: str,
-    key_columns: Union[str, List[str]],
-    label_columns: Union[str, List[str]],
-    oprf_key_path: str,
-    setup_path: str,
-    num_per_query: int,
-    label_max_len: int,
-    bucket_size: int,
-):
-    assert isinstance(device, SPU), 'device must be SPU device'
-    assert isinstance(server, str), 'server must be str'
-    assert isinstance(input_path, str), 'input_path must be str'
-    assert isinstance(
-        key_columns, (str, List, Dict)
-    ), 'invalid key_columns, must be str of list of str or dict of list str'
-    assert isinstance(
-        label_columns, (str, List, Dict)
-    ), 'invalid label_columns, must be str of list of str or dict of list str'
-    assert isinstance(oprf_key_path, str), 'oprf_key_path must be str '
-    assert isinstance(setup_path, str), 'setup_path must be str '
-    assert isinstance(num_per_query, int), 'num_per_query must be int'
-    assert isinstance(label_max_len, int), 'label_max_len must be int'
-
-    assert server in device.actors.keys(), f'invalid server party name: {server}'
-
-    res = []
-
-    actor = device.actors[server]
-    res.append(
-        actor.pir_setup.remote(
-            server,
-            input_path,
-            key_columns,
-            label_columns,
-            oprf_key_path,
-            setup_path,
-            num_per_query,
-            label_max_len,
-            bucket_size,
-        )
-    )
-
-    # wait for all tasks done
-    return sfd.get(res)
-
-
-@register(DeviceType.SPU)
-def pir_query(
-    device: SPU,
-    server: str,
-    client: str,
-    server_setup_path: str,
-    client_key_columns: Union[str, List[str]],
-    client_input_path: str,
-    client_output_path: str,
-):
-    assert isinstance(device, SPU), 'device must be SPU device'
-    assert isinstance(server, str), 'server must be str'
-    assert isinstance(client, str), 'server must be str'
-
-    assert server in device.actors.keys(), 'invalid server party name: {server}'
-    assert client in device.actors.keys(), 'invalid server party name: {client}'
-
-    assert 2 == len(
-        device.actors
-    ), f'unexpected number({len(device.actors)}) of partys, should be 2'
-
-    res = []
-
-    server_actor = device.actors[server]
-    res.append(
-        server_actor.pir_query.remote(
-            server,
-            client,
-            server_setup_path,
-            client_key_columns,
-            client_input_path,
-            client_output_path,
-        )
-    )
-
-    client_actor = device.actors[client]
-    res.append(
-        client_actor.pir_query.remote(
-            server,
-            client,
-            server_setup_path,
-            client_key_columns,
-            client_input_path,
-            client_output_path,
-        )
-    )
-
-    # wait for all tasks done
-    return sfd.get(res)
-
-
-@register(DeviceType.SPU)
 def psi(
     device: SPU,
     keys: Dict[str, List[str]],
     input_path: Dict[str, str],
     output_path: Dict[str, str],
     receiver: str,
+    table_keys_duplicated: Dict[str, str],
+    output_csv_na_rep: str,
     broadcast_result: bool = True,
     protocol: str = 'PROTOCOL_KKRT',
     ecdh_curve: str = 'CURVE_FOURQ',
@@ -599,8 +550,10 @@ def psi(
             actor.psi.remote(
                 keys[party],
                 input_path[party],
-                output_path[party],
+                output_path[party] if party in output_path else "",
                 receiver,
+                table_keys_duplicated[party],
+                output_csv_na_rep,
                 broadcast_result,
                 protocol,
                 ecdh_curve,

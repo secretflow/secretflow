@@ -3,7 +3,6 @@
 # This file is distributed under the same license as the SecretFlow package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2023.
 #
-#, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: SecretFlow \n"
@@ -34,7 +33,7 @@ msgid "请使用v0.8.3或以上版本的隐语进行实验。"
 msgstr ""
 
 #: ../../tutorial/risk_control_scenario.ipynb:26
-msgid "以下代码仅作为示例，请勿在生产环境直接使用。"
+msgid "注意： 以下代码仅供演示用途，在演示过程中可能会揭露部分信息。请勿直接将此示例代码用于实际生产环境中。在实际部署前，请根据您的具体需求和安全标准进行必要的修改和调整。"
 msgstr ""
 
 #: ../../tutorial/risk_control_scenario.ipynb:37
