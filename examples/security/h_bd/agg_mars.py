@@ -35,21 +35,21 @@ def CLP(params_list: List[np.ndarray]) -> np.ndarray:
 
         # Detect convolutional layer (4D weights)
         if param.ndim == 4:
-            param_types.append(('conv', current_idx))
+            param_types.append(("conv", current_idx))
             current_idx += 1
 
         # Detect BN layer group (4 consecutive 1D params)
         elif param.ndim == 1 and current_idx + 3 < len(params_list):
-            next_params = params_list[current_idx:current_idx + 4]
+            next_params = params_list[current_idx : current_idx + 4]
             if all(p.ndim == 1 for p in next_params):
-                param_types.append(('bn', current_idx))
+                param_types.append(("bn", current_idx))
                 current_idx += 4
             else:
                 current_idx += 1
 
         # Detect fully-connected layer (2D weights)
         elif param.ndim == 2:
-            param_types.append(('fc', current_idx))
+            param_types.append(("fc", current_idx))
             current_idx += 1
 
         else:
@@ -57,13 +57,13 @@ def CLP(params_list: List[np.ndarray]) -> np.ndarray:
 
     # Process each layer based on detected types
     for i, (ptype, idx) in enumerate(param_types):
-        if ptype == 'conv':
+        if ptype == "conv":
             # ------ Convolutional Layer Processing ------
             conv_weight = params_list[idx]
 
             # Find subsequent BN parameters
             bn_weight = bn_bias = bn_var = None
-            if i + 1 < len(param_types) and param_types[i + 1][0] == 'bn':
+            if i + 1 < len(param_types) and param_types[i + 1][0] == "bn":
                 bn_idx = param_types[i + 1][1]
                 bn_weight = params_list[bn_idx]
                 bn_bias = params_list[bn_idx + 1]
@@ -95,7 +95,7 @@ def CLP(params_list: List[np.ndarray]) -> np.ndarray:
                 threshold = np.quantile(channel_lips, 1 - u)
                 all_lips.extend([lip for lip in channel_lips if lip >= threshold])
 
-        elif ptype == 'bn':
+        elif ptype == "bn":
             # ------ BatchNorm Layer Processing ------
             weight = params_list[idx]
             running_var = params_list[idx + 3]
@@ -109,7 +109,7 @@ def CLP(params_list: List[np.ndarray]) -> np.ndarray:
             threshold = np.quantile(lips, 1 - u)
             all_lips.extend(lips[lips >= threshold].tolist())
 
-        elif ptype == 'fc':
+        elif ptype == "fc":
             # ------ Fully-Connected Layer Processing ------
             fc_weight = params_list[idx]
 
@@ -128,13 +128,20 @@ def CLP(params_list: List[np.ndarray]) -> np.ndarray:
 
     # Fallback: Return parameter norms if no Lipschitz values computed
     if not all_lips:
-        return np.array([np.linalg.norm(p.ravel()) for p in params_list if isinstance(p, np.ndarray)])
+        return np.array(
+            [
+                np.linalg.norm(p.ravel())
+                for p in params_list
+                if isinstance(p, np.ndarray)
+            ]
+        )
     return np.array(all_lips)
 
 
 # -------------------------------
 # Helper Functions
 # -------------------------------
+
 
 def compute_wasserstein_distance_matrix(l):
     """Compute pairwise Wasserstein distance matrix between feature vectors
@@ -229,6 +236,7 @@ def cluster_and_detect_anomalies(l, threshold):
 # MARS Aggregator Implementation
 # -------------------------------
 
+
 class MarsAggregator(PlainAggregator):
     """
     Byzantine-Robust Aggregator using Lipschitz-based Anomaly Detection
@@ -248,8 +256,14 @@ class MarsAggregator(PlainAggregator):
     def average(self, data: List[DeviceObject], axis=None, weights=None) -> PYUObject:
         # Data preparation
         data = [d.to(self.device) for d in data]
-        weights = [w.to(self.device) if isinstance(w, DeviceObject) else (w or 1.0)
-                   for w in weights] if weights else None
+        weights = (
+            [
+                w.to(self.device) if isinstance(w, DeviceObject) else (w or 1.0)
+                for w in weights
+            ]
+            if weights
+            else None
+        )
 
         def _average(*data, axis, weights):
             num_clients = len(data)
@@ -265,7 +279,9 @@ class MarsAggregator(PlainAggregator):
                     lips_vectors.append(np.array([]))
 
             # 2. Anomaly detection
-            anomaly_labels = cluster_and_detect_anomalies(lips_vectors, self.anomaly_threshold)
+            anomaly_labels = cluster_and_detect_anomalies(
+                lips_vectors, self.anomaly_threshold
+            )
             print(f"Anomaly detection results: {anomaly_labels}")
 
             # 3. Filter anomalous clients
@@ -278,7 +294,9 @@ class MarsAggregator(PlainAggregator):
 
             # 4. Secure aggregation
             if not benign_clients:
-                print("Warning: All clients marked as anomalous, returning first client's parameters")
+                print(
+                    "Warning: All clients marked as anomalous, returning first client's parameters"
+                )
                 return deepcopy(data[0])
 
             # Layer-wise aggregation
