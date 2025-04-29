@@ -23,6 +23,7 @@ from secretflow_fl.ml.nn.callbacks.attack import AttackCallback
 from torch.utils.data import DataLoader, TensorDataset
 from sklearn.preprocessing import OneHotEncoder
 
+
 def poison_dataset(dataloader, poison_rate, target_label):
     # Retrieve the dataset from the DataLoader and compute its length
     dataset = dataloader.dataset
@@ -34,7 +35,7 @@ def poison_dataset(dataloader, poison_rate, target_label):
     # Prepare the target label by one-hot encoding it
     target_label = np.array([target_label])
     classes = np.arange(10).reshape(-1, 1)
-    encoder = OneHotEncoder(categories='auto', sparse_output=False)
+    encoder = OneHotEncoder(categories="auto", sparse_output=False)
     encoder.fit(classes)
     target_label = encoder.transform(target_label.reshape(-1, 1))
     target_label = np.squeeze(target_label)
@@ -56,8 +57,10 @@ def poison_dataset(dataloader, poison_rate, target_label):
                 fshift = np.fft.fftshift(f)
                 # Modify a patch in the center region of the frequency domain
                 centerH, centerW = fshift.shape[0] // 2, fshift.shape[1] // 2
-                fshift[centerH - patch_size // 2: centerH + patch_size // 2,
-                centerW - patch_size // 2: centerW + patch_size // 2] = 10.0
+                fshift[
+                    centerH - patch_size // 2 : centerH + patch_size // 2,
+                    centerW - patch_size // 2 : centerW + patch_size // 2,
+                ] = 10.0
                 # Inverse transform back to the spatial domain
                 f_ishift = np.fft.ifftshift(fshift)
                 channel_back = np.fft.ifft2(f_ishift)
