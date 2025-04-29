@@ -1,3 +1,17 @@
+# Copyright 2022 Ant Group Co., Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import collections
 import os
 from pathlib import Path
@@ -27,7 +41,9 @@ def update_dict(target_dict, key, value=None):
     """
     if key not in target_dict:
         if value is None:
-            target_dict[key] = len(target_dict) + 1  # 如果没有提供值，使用字典的当前长度加1作为新值
+            target_dict[key] = (
+                len(target_dict) + 1
+            )  # 如果没有提供值，使用字典的当前长度加1作为新值
         else:
             target_dict[key] = value
 
@@ -44,7 +60,9 @@ def get_sample(all_elements, num_sample):
         list: 抽样后的元素列表
     """
     if num_sample > len(all_elements):
-        return random.sample(all_elements * (num_sample // len(all_elements) + 1), num_sample)
+        return random.sample(
+            all_elements * (num_sample // len(all_elements) + 1), num_sample
+        )
     else:
         return random.sample(all_elements, num_sample)
 
@@ -60,7 +78,11 @@ def prepare_distributed_data(cfg, mode="train"):
     返回:
         int: 处理后的数据条数
     """
-    data_dir = {"train": cfg.dataset.train_dir, "val": cfg.dataset.val_dir, "test": cfg.dataset.test_dir}
+    data_dir = {
+        "train": cfg.dataset.train_dir,
+        "val": cfg.dataset.val_dir,
+        "test": cfg.dataset.test_dir,
+    }
 
     # 检查是否已处理过目标文件，如果存在且不需要重新处理，则直接返回
     target_file = os.path.join(data_dir[mode], f"behaviors_np{cfg.npratio}_0.tsv")
@@ -88,7 +110,9 @@ def prepare_distributed_data(cfg, mode="train"):
                 for pos_id in pos:
                     neg_candidate = get_sample(neg, cfg.npratio)  # 从负样本中随机选取
                     neg_str = ' '.join(neg_candidate)
-                    new_line = '\t'.join([iid, uid, time, history, pos_id, neg_str]) + '\n'
+                    new_line = (
+                        '\t'.join([iid, uid, time, history, pos_id, neg_str]) + '\n'
+                    )
                     behaviors.append(new_line)
         random.shuffle(behaviors)  # 打乱数据顺序
 
@@ -107,7 +131,9 @@ def prepare_distributed_data(cfg, mode="train"):
 
     print(f'[{mode}] Writing files...')
     for i in range(cfg.gpu_num):
-        processed_file_path = os.path.join(data_dir[mode], f'behaviors_np{cfg.npratio}_{i}.tsv')
+        processed_file_path = os.path.join(
+            data_dir[mode], f'behaviors_np{cfg.npratio}_{i}.tsv'
+        )
         with open(processed_file_path, 'w') as f:
             f.writelines(behaviors_per_file[i])
 
@@ -127,14 +153,21 @@ def read_raw_news(cfg, file_path, mode='train'):
         tuple: 返回新闻数据、新闻索引、分类字典、子分类字典、词汇字典
     """
     import nltk
+
     nltk.download('punkt')  # 下载 NLTK 需要的分词数据
 
-    data_dir = {"train": cfg.dataset.train_dir, "val": cfg.dataset.val_dir, "test": cfg.dataset.test_dir}
+    data_dir = {
+        "train": cfg.dataset.train_dir,
+        "val": cfg.dataset.val_dir,
+        "test": cfg.dataset.test_dir,
+    }
 
     # 如果是验证集或测试集，则加载已处理好的数据字典
     if mode in ['val', 'test']:
         news_dict = pickle.load(open(Path(data_dir["train"]) / "news_dict.bin", "rb"))
-        entity_dict = pickle.load(open(Path(data_dir["train"]) / "entity_dict.bin", "rb"))
+        entity_dict = pickle.load(
+            open(Path(data_dir["train"]) / "entity_dict.bin", "rb")
+        )
         news = pickle.load(open(Path(data_dir["train"]) / "nltk_news.bin", "rb"))
     else:
         news = {}
@@ -150,20 +183,30 @@ def read_raw_news(cfg, file_path, mode='train'):
         for line in tqdm(f, total=num_line, desc=f"[{mode}] Processing raw news"):
             # 分割每一行
             split_line = line.strip('\n').split('\t')
-            news_id, category, subcategory, title, abstract, url, t_entity_str, _ = split_line
+            news_id, category, subcategory, title, abstract, url, t_entity_str, _ = (
+                split_line
+            )
             update_dict(target_dict=news_dict, key=news_id)
 
             # 处理实体信息
             if t_entity_str:
                 entity_ids = [obj["WikidataId"] for obj in json.loads(t_entity_str)]
-                [update_dict(target_dict=entity_dict, key=entity_id) for entity_id in entity_ids]
+                [
+                    update_dict(target_dict=entity_dict, key=entity_id)
+                    for entity_id in entity_ids
+                ]
             else:
                 entity_ids = t_entity_str
 
-            tokens = word_tokenize(title.lower(), language=cfg.dataset.dataset_lang)  # 对标题进行分词
+            tokens = word_tokenize(
+                title.lower(), language=cfg.dataset.dataset_lang
+            )  # 对标题进行分词
 
-            update_dict(target_dict=news, key=news_id, value=[tokens, category, subcategory, entity_ids,
-                                                              news_dict[news_id]])
+            update_dict(
+                target_dict=news,
+                key=news_id,
+                value=[tokens, category, subcategory, entity_ids, news_dict[news_id]],
+            )
 
             if mode == 'train':
                 # 在训练模式下更新分类字典、子分类字典，并统计词频
@@ -175,18 +218,33 @@ def read_raw_news(cfg, file_path, mode='train'):
             # 对词汇进行过滤，只保留出现频率大于指定值的词
             word = [k for k, v in word_cnt.items() if v > cfg.model.word_filter_num]
             word_dict = {k: v for k, v in zip(word, range(1, len(word) + 1))}
-            return news, news_dict, category_dict, subcategory_dict, entity_dict, word_dict
+            return (
+                news,
+                news_dict,
+                category_dict,
+                subcategory_dict,
+                entity_dict,
+                word_dict,
+            )
         else:  # 验证集和测试集
             return news, news_dict, None, None, entity_dict, None
 
 
-def read_parsed_news(cfg, news, news_dict,
-                     category_dict=None, subcategory_dict=None, entity_dict=None,
-                     word_dict=None):
+def read_parsed_news(
+    cfg,
+    news,
+    news_dict,
+    category_dict=None,
+    subcategory_dict=None,
+    entity_dict=None,
+    word_dict=None,
+):
     # 获取新闻的总数，增加1是因为从1开始索引
     news_num = len(news) + 1
     # 初始化分类、子分类、新闻索引、实体的数组
-    news_category, news_subcategory, news_index = [np.zeros((news_num, 1), dtype='int32') for _ in range(3)]
+    news_category, news_subcategory, news_index = [
+        np.zeros((news_num, 1), dtype='int32') for _ in range(3)
+    ]
     news_entity = np.zeros((news_num, 5), dtype='int32')
 
     # 初始化标题的数组
@@ -197,13 +255,22 @@ def read_parsed_news(cfg, news, news_dict,
         _title, _category, _subcategory, _entity_ids, _news_index = news[_news_id]
 
         # 填充新闻的分类和子分类信息
-        news_category[_news_index, 0] = category_dict[_category] if _category in category_dict else 0
-        news_subcategory[_news_index, 0] = subcategory_dict[_subcategory] if _subcategory in subcategory_dict else 0
+        news_category[_news_index, 0] = (
+            category_dict[_category] if _category in category_dict else 0
+        )
+        news_subcategory[_news_index, 0] = (
+            subcategory_dict[_subcategory] if _subcategory in subcategory_dict else 0
+        )
         news_index[_news_index, 0] = news_dict[_news_id]
 
         # 处理实体信息
-        entity_index = [entity_dict[entity_id] if entity_id in entity_dict else 0 for entity_id in _entity_ids]
-        news_entity[_news_index, :min(cfg.model.entity_size, len(_entity_ids))] = entity_index[:cfg.model.entity_size]
+        entity_index = [
+            entity_dict[entity_id] if entity_id in entity_dict else 0
+            for entity_id in _entity_ids
+        ]
+        news_entity[_news_index, : min(cfg.model.entity_size, len(_entity_ids))] = (
+            entity_index[: cfg.model.entity_size]
+        )
 
         # 处理标题的单词信息
         for _word_id in range(min(cfg.model.title_size, len(_title))):
@@ -214,11 +281,22 @@ def read_parsed_news(cfg, news, news_dict,
 
 
 def prepare_preprocess_bin(cfg, mode):
-    data_dir = {"train": cfg.dataset.train_dir, "val": cfg.dataset.val_dir, "test": cfg.dataset.test_dir}
+    data_dir = {
+        "train": cfg.dataset.train_dir,
+        "val": cfg.dataset.val_dir,
+        "test": cfg.dataset.test_dir,
+    }
 
     if cfg.reprocess is True:
         # 加载原始新闻数据并进行处理
-        nltk_news, nltk_news_dict, category_dict, subcategory_dict, entity_dict, word_dict = read_raw_news(
+        (
+            nltk_news,
+            nltk_news_dict,
+            category_dict,
+            subcategory_dict,
+            entity_dict,
+            word_dict,
+        ) = read_raw_news(
             file_path=Path(data_dir[mode]) / "news.tsv",
             cfg=cfg,
             mode=mode,
@@ -226,14 +304,25 @@ def prepare_preprocess_bin(cfg, mode):
 
         if mode == "train":
             # 如果是训练模式，保存处理结果
-            pickle.dump(category_dict, open(Path(data_dir[mode]) / "category_dict.bin", "wb"))
-            pickle.dump(subcategory_dict, open(Path(data_dir[mode]) / "subcategory_dict.bin", "wb"))
+            pickle.dump(
+                category_dict, open(Path(data_dir[mode]) / "category_dict.bin", "wb")
+            )
+            pickle.dump(
+                subcategory_dict,
+                open(Path(data_dir[mode]) / "subcategory_dict.bin", "wb"),
+            )
             pickle.dump(word_dict, open(Path(data_dir[mode]) / "word_dict.bin", "wb"))
         else:
             # 如果是验证或测试模式，加载训练时保存的字典
-            category_dict = pickle.load(open(Path(data_dir["train"]) / "category_dict.bin", "rb"))
-            subcategory_dict = pickle.load(open(Path(data_dir["train"]) / "subcategory_dict.bin", "rb"))
-            word_dict = pickle.load(open(Path(data_dir["train"]) / "word_dict.bin", "rb"))
+            category_dict = pickle.load(
+                open(Path(data_dir["train"]) / "category_dict.bin", "rb")
+            )
+            subcategory_dict = pickle.load(
+                open(Path(data_dir["train"]) / "subcategory_dict.bin", "rb")
+            )
+            word_dict = pickle.load(
+                open(Path(data_dir["train"]) / "word_dict.bin", "rb")
+            )
 
         # 保存实体字典和处理后的新闻数据
         pickle.dump(entity_dict, open(Path(data_dir[mode]) / "entity_dict.bin", "wb"))
@@ -241,18 +330,30 @@ def prepare_preprocess_bin(cfg, mode):
         pickle.dump(nltk_news_dict, open(Path(data_dir[mode]) / "news_dict.bin", "wb"))
 
         # 解析新闻数据并合并特征
-        nltk_news_features = read_parsed_news(cfg, nltk_news, nltk_news_dict,
-                                              category_dict, subcategory_dict, entity_dict,
-                                              word_dict)
+        nltk_news_features = read_parsed_news(
+            cfg,
+            nltk_news,
+            nltk_news_dict,
+            category_dict,
+            subcategory_dict,
+            entity_dict,
+            word_dict,
+        )
         news_input = np.concatenate([x for x in nltk_news_features], axis=1)
-        pickle.dump(news_input, open(Path(data_dir[mode]) / "nltk_token_news.bin", "wb"))
+        pickle.dump(
+            news_input, open(Path(data_dir[mode]) / "nltk_token_news.bin", "wb")
+        )
         print("Glove token preprocess finish.")
     else:
         print(f'[{mode}] All preprocessed files exist.')
 
 
 def prepare_news_graph(cfg, mode='train'):
-    data_dir = {"train": cfg.dataset.train_dir, "val": cfg.dataset.val_dir, "test": cfg.dataset.test_dir}
+    data_dir = {
+        "train": cfg.dataset.train_dir,
+        "val": cfg.dataset.val_dir,
+        "test": cfg.dataset.test_dir,
+    }
 
     nltk_target_path = Path(data_dir[mode]) / "nltk_news_graph.pt"
 
@@ -270,14 +371,20 @@ def prepare_news_graph(cfg, mode='train'):
 
     # 加载新闻字典和处理后的新闻数据
     news_dict = pickle.load(open(Path(data_dir[mode]) / "news_dict.bin", "rb"))
-    nltk_token_news = pickle.load(open(Path(data_dir[mode]) / "nltk_token_news.bin", "rb"))
+    nltk_token_news = pickle.load(
+        open(Path(data_dir[mode]) / "nltk_token_news.bin", "rb")
+    )
 
     # ------------------- 构建图 -------------------------------
     if mode == 'train':
         edge_list, user_set = [], set()
         num_line = len(open(behavior_path, encoding='utf-8').readlines())
         with open(behavior_path, 'r', encoding='utf-8') as f:
-            for line in tqdm(f, total=num_line, desc=f"[{mode}] Processing behaviors news to News Graph"):
+            for line in tqdm(
+                f,
+                total=num_line,
+                desc=f"[{mode}] Processing behaviors news to News Graph",
+            ):
                 line = line.strip().split('\t')
 
                 # 检查用户是否已处理过
@@ -299,7 +406,9 @@ def prepare_news_graph(cfg, mode='train'):
         num_nodes = len(news_dict) + 1
 
         short_edges = []
-        for edge in tqdm(edge_list, total=len(edge_list), desc=f"Processing news edge list"):
+        for edge in tqdm(
+            edge_list, total=len(edge_list), desc=f"Processing news edge list"
+        ):
             # 根据配置选择图的类型（轨迹图或共现图）
             if cfg.model.use_graph_type == 0:
                 # 轨迹图
@@ -319,16 +428,23 @@ def prepare_news_graph(cfg, mode='train'):
         unique_edges = list(edge_weights.keys())
 
         edge_index = torch.tensor(list(zip(*unique_edges)), dtype=torch.long)
-        edge_attr = torch.tensor([edge_weights[edge] for edge in unique_edges], dtype=torch.long)
+        edge_attr = torch.tensor(
+            [edge_weights[edge] for edge in unique_edges], dtype=torch.long
+        )
 
         # 保存图数据
-        data = Data(x=torch.from_numpy(node_feat),
-                    edge_index=edge_index, edge_attr=edge_attr,
-                    num_nodes=num_nodes)
+        data = Data(
+            x=torch.from_numpy(node_feat),
+            edge_index=edge_index,
+            edge_attr=edge_attr,
+            num_nodes=num_nodes,
+        )
 
         torch.save(data, target_path)
         print(data)
-        print(f"[{mode}] Finish News Graph Construction, \nGraph Path: {target_path} \nGraph Info: {data}")
+        print(
+            f"[{mode}] Finish News Graph Construction, \nGraph Path: {target_path} \nGraph Info: {data}"
+        )
 
     elif mode in ['test', 'val']:
         # 加载已存在的图数据
@@ -338,12 +454,17 @@ def prepare_news_graph(cfg, mode='train'):
         node_feat = nltk_token_news
 
         # 保存图数据
-        data = Data(x=torch.from_numpy(node_feat),
-                    edge_index=edge_index, edge_attr=edge_attr,
-                    num_nodes=len(news_dict) + 1)
+        data = Data(
+            x=torch.from_numpy(node_feat),
+            edge_index=edge_index,
+            edge_attr=edge_attr,
+            num_nodes=len(news_dict) + 1,
+        )
 
         torch.save(data, nltk_target_path)
-        print(f"[{mode}] Finish nltk News Graph Construction, \nGraph Path: {nltk_target_path}\nGraph Info: {data}")
+        print(
+            f"[{mode}] Finish nltk News Graph Construction, \nGraph Path: {nltk_target_path}\nGraph Info: {data}"
+        )
 
 
 def prepare_neighbor_list(cfg, mode='train', target='news'):
@@ -351,7 +472,11 @@ def prepare_neighbor_list(cfg, mode='train', target='news'):
     print(f"[{mode}] Start to process neighbors list")
 
     # 设置数据目录，根据模式选择训练、验证或测试目录
-    data_dir = {"train": cfg.dataset.train_dir, "val": cfg.dataset.val_dir, "test": cfg.dataset.test_dir}
+    data_dir = {
+        "train": cfg.dataset.train_dir,
+        "val": cfg.dataset.val_dir,
+        "test": cfg.dataset.test_dir,
+    }
 
     # 定义邻居字典和权重字典的路径
     neighbor_dict_path = Path(data_dir[mode]) / f"{target}_neighbor_dict.bin"
@@ -364,7 +489,11 @@ def prepare_neighbor_list(cfg, mode='train', target='news'):
             reprocess_flag = True
 
     # 如果数据已经存在且无需重新处理，则跳过
-    if (reprocess_flag == False) and (cfg.reprocess == False) and (cfg.reprocess_neighbors == False):
+    if (
+        (reprocess_flag == False)
+        and (cfg.reprocess == False)
+        and (cfg.reprocess_neighbors == False)
+    ):
         print(f"[{mode}] All {target} Neighbor dict exist !")
         return
 
@@ -392,10 +521,10 @@ def prepare_neighbor_list(cfg, mode='train', target='news'):
     neighbor_weights_dict = collections.defaultdict(list)
 
     # 为每个节点（除了节点0）处理邻居信息
-    for i in range(1, len(target_dict)+1):
-        dst_edges = torch.where(edge_index[1] == i)[0]          # 以i为目标节点，查找邻居
+    for i in range(1, len(target_dict) + 1):
+        dst_edges = torch.where(edge_index[1] == i)[0]  # 以i为目标节点，查找邻居
         neighbor_weights = edge_attr[dst_edges]
-        neighbor_nodes = edge_index[0][dst_edges]               # 邻居作为源节点
+        neighbor_nodes = edge_index[0][dst_edges]  # 邻居作为源节点
         sorted_weights, indices = torch.sort(neighbor_weights, descending=True)
         # 根据权重排序邻居
         neighbor_dict[i] = neighbor_nodes[indices].tolist()
@@ -404,11 +533,17 @@ def prepare_neighbor_list(cfg, mode='train', target='news'):
     # 保存邻居字典和权重字典
     pickle.dump(neighbor_dict, open(neighbor_dict_path, "wb"))
     pickle.dump(neighbor_weights_dict, open(weights_dict_path, "wb"))
-    print(f"[{mode}] Finish {target} Neighbor dict \nDict Path: {neighbor_dict_path}, \nWeight Dict: {weights_dict_path}")
+    print(
+        f"[{mode}] Finish {target} Neighbor dict \nDict Path: {neighbor_dict_path}, \nWeight Dict: {weights_dict_path}"
+    )
 
 
 def prepare_entity_graph(cfg, mode='train'):
-    data_dir = {"train": cfg.dataset.train_dir, "val": cfg.dataset.val_dir, "test": cfg.dataset.test_dir}
+    data_dir = {
+        "train": cfg.dataset.train_dir,
+        "val": cfg.dataset.val_dir,
+        "test": cfg.dataset.test_dir,
+    }
 
     target_path = Path(data_dir[mode]) / "entity_graph.pt"
     reprocess_flag = False
@@ -416,7 +551,11 @@ def prepare_entity_graph(cfg, mode='train'):
     if target_path.exists() is False:
         reprocess_flag = True
     # 如果不需要重新处理数据，则跳过
-    if (reprocess_flag == False) and (cfg.reprocess == False) and (cfg.reprocess_neighbors == False):
+    if (
+        (reprocess_flag == False)
+        and (cfg.reprocess == False)
+        and (cfg.reprocess_neighbors == False)
+    ):
         print(f"[{mode}] Entity graph exists!")
         return
 
@@ -449,7 +588,9 @@ def prepare_entity_graph(cfg, mode='train'):
             src_entities = src_entities[src_entities_mask]
             dest_entities = dest_entities[dest_entities_mask]
             # 计算实体之间的边
-            edges = list(itertools.product(src_entities, dest_entities)) * edge_weights[i]
+            edges = (
+                list(itertools.product(src_entities, dest_entities)) * edge_weights[i]
+            )
             entity_edge_index.extend(edges)
 
         # 计算边的权重并创建边的索引
@@ -457,20 +598,26 @@ def prepare_entity_graph(cfg, mode='train'):
         unique_edges = list(edge_weights.keys())
 
         edge_index = torch.tensor(list(zip(*unique_edges)), dtype=torch.long)
-        edge_attr = torch.tensor([edge_weights[edge] for edge in unique_edges], dtype=torch.long)
+        edge_attr = torch.tensor(
+            [edge_weights[edge] for edge in unique_edges], dtype=torch.long
+        )
 
         # --- Entity Graph Undirected
         edge_index, edge_attr = to_undirected(edge_index, edge_attr)
 
         # 构建图数据对象
-        data = Data(x=torch.arange(len(entity_dict) + 1),
-                    edge_index=edge_index,
-                    edge_attr=edge_attr,
-                    num_nodes=len(entity_dict) + 1)
+        data = Data(
+            x=torch.arange(len(entity_dict) + 1),
+            edge_index=edge_index,
+            edge_attr=edge_attr,
+            num_nodes=len(entity_dict) + 1,
+        )
 
         # 保存图数据
         torch.save(data, target_path)
-        print(f"[{mode}] Finish Entity Graph Construction, \n Graph Path: {target_path} \nGraph Info: {data}")
+        print(
+            f"[{mode}] Finish Entity Graph Construction, \n Graph Path: {target_path} \nGraph Info: {data}"
+        )
     elif mode in ['val', 'test']:
         # 加载已经保存的图数据
         origin_graph = torch.load(origin_graph_path)
@@ -478,13 +625,18 @@ def prepare_entity_graph(cfg, mode='train'):
         edge_attr = origin_graph.edge_attr
 
         # 构建图数据对象
-        data = Data(x=torch.arange(len(entity_dict) + 1),
-                    edge_index=edge_index, edge_attr=edge_attr,
-                    num_nodes=len(entity_dict) + 1)
+        data = Data(
+            x=torch.arange(len(entity_dict) + 1),
+            edge_index=edge_index,
+            edge_attr=edge_attr,
+            num_nodes=len(entity_dict) + 1,
+        )
 
         # 保存图数据
         torch.save(data, target_path)
-        print(f"[{mode}] Finish Entity Graph Construction, \n Graph Path: {target_path} \nGraph Info: {data}")
+        print(
+            f"[{mode}] Finish Entity Graph Construction, \n Graph Path: {target_path} \nGraph Info: {data}"
+        )
 
 
 def prepare_preprocessed_data(cfg):
@@ -518,7 +670,11 @@ def prepare_preprocessed_data(cfg):
     prepare_neighbor_list(cfg, 'test', 'entity')
 
     # 处理实体向量
-    data_dir = {"train":cfg.dataset.train_dir, "val":cfg.dataset.val_dir, "test":cfg.dataset.test_dir}
+    data_dir = {
+        "train": cfg.dataset.train_dir,
+        "val": cfg.dataset.val_dir,
+        "test": cfg.dataset.test_dir,
+    }
     train_entity_emb_path = Path(data_dir['train']) / "entity_embedding.vec"
     val_entity_emb_path = Path(data_dir['val']) / "entity_embedding.vec"
     test_entity_emb_path = Path(data_dir['test']) / "entity_embedding.vec"
@@ -527,6 +683,13 @@ def prepare_preprocessed_data(cfg):
     test_combined_path = Path(data_dir['test']) / "combined_entity_embedding.vec"
 
     # 合并训练集、验证集和测试集的实体嵌入向量
-    os.system("cat " + f"{train_entity_emb_path} {val_entity_emb_path}" + f" > {val_combined_path}")
-    os.system("cat " + f"{train_entity_emb_path} {test_entity_emb_path}" + f" > {test_combined_path}")
-
+    os.system(
+        "cat "
+        + f"{train_entity_emb_path} {val_entity_emb_path}"
+        + f" > {val_combined_path}"
+    )
+    os.system(
+        "cat "
+        + f"{train_entity_emb_path} {test_entity_emb_path}"
+        + f" > {test_combined_path}"
+    )

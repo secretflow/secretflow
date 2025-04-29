@@ -1,3 +1,17 @@
+# Copyright 2022 Ant Group Co., Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import math
 import torch
 import numpy as np
@@ -33,10 +47,12 @@ class AttentionPooling(nn.Module):
         self.att_fc2 = nn.Linear(hidden_size, 1)
 
     def initialize(self):
-        nn.init.xavier_uniform_(self.att_fc1.weight, gain=nn.init.calculate_gain('tanh'))
+        nn.init.xavier_uniform_(
+            self.att_fc1.weight, gain=nn.init.calculate_gain('tanh')
+        )
         nn.init.zeros_(self.att_fc1.bias)
         nn.init.xavier_uniform_(self.att_fc2.weight)
-       
+
     def forward(self, x, attn_mask=None):
         e = self.att_fc1(x)
         e = nn.Tanh()(e)
@@ -58,11 +74,11 @@ class ScaledDotProductAttention(nn.Module):
 
     def forward(self, Q, K, V, attn_mask=None):
         """
-            Q: batch_size, n_head, candidate_num, d_k
-            K: batch_size, n_head, candidate_num, d_k
-            V: batch_size, n_head, candidate_num, d_v
-            attn_mask: batch_size, n_head, candidate_num
-            Return: batch_size, n_head, candidate_num, d_v
+        Q: batch_size, n_head, candidate_num, d_k
+        K: batch_size, n_head, candidate_num, d_k
+        V: batch_size, n_head, candidate_num, d_v
+        attn_mask: batch_size, n_head, candidate_num
+        Return: batch_size, n_head, candidate_num, d_v
         """
         scores = torch.matmul(Q, K.transpose(-1, -2)) / np.sqrt(self.d_k)
         scores = torch.exp(scores)
@@ -76,7 +92,9 @@ class ScaledDotProductAttention(nn.Module):
 
 
 class MultiHeadAttention(nn.Module):
-    def __init__(self, key_size, query_size, value_size, head_num, head_dim, residual=False):
+    def __init__(
+        self, key_size, query_size, value_size, head_num, head_dim, residual=False
+    ):
         super().__init__()
         self.head_num = head_num
         self.head_dim = head_dim
@@ -93,26 +111,39 @@ class MultiHeadAttention(nn.Module):
         nn.init.zeros_(self.W_Q.bias)
         nn.init.zeros_(self.W_V.bias)
 
-
     def forward(self, Q, K, V, mask=None):
         """
-            Q: batch_size, candidate_num, news_dim
-            K: batch_size, candidate_num, news_dim
-            V: batch_size, candidate_num, news_dim
-            mask: batch_size, candidate_num
+        Q: batch_size, candidate_num, news_dim
+        K: batch_size, candidate_num, news_dim
+        V: batch_size, candidate_num, news_dim
+        mask: batch_size, candidate_num
         """
         batch_size = Q.shape[0]
         if mask is not None:
             mask = mask.unsqueeze(dim=1).expand(-1, self.head_num, -1)
 
-        q_s = self.W_Q(Q).view(batch_size, -1, self.head_num, self.head_dim).transpose(1, 2)
-        k_s = self.W_K(K).view(batch_size, -1, self.head_num, self.head_dim).transpose(1, 2)
-        v_s = self.W_V(V).view(batch_size, -1, self.head_num, self.head_dim).transpose(1, 2)
+        q_s = (
+            self.W_Q(Q)
+            .view(batch_size, -1, self.head_num, self.head_dim)
+            .transpose(1, 2)
+        )
+        k_s = (
+            self.W_K(K)
+            .view(batch_size, -1, self.head_num, self.head_dim)
+            .transpose(1, 2)
+        )
+        v_s = (
+            self.W_V(V)
+            .view(batch_size, -1, self.head_num, self.head_dim)
+            .transpose(1, 2)
+        )
 
         context = self.scaled_dot_product_attn(q_s, k_s, v_s, mask)
-        output = context.transpose(1, 2).contiguous().view(batch_size, -1, self.head_num * self.head_dim)
+        output = (
+            context.transpose(1, 2)
+            .contiguous()
+            .view(batch_size, -1, self.head_num * self.head_dim)
+        )
         if self.residual:
             output += Q
         return output
-
-

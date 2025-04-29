@@ -1,3 +1,17 @@
+# Copyright 2022 Ant Group Co., Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import numpy as np
 from sklearn.metrics import roc_auc_score
 import torch
@@ -23,7 +37,7 @@ def area_under_curve(y_true, y_hat):
 def dcg_score(y_true, y_score, k=10):
     order = np.argsort(y_score)[::-1]
     y_true = np.take(y_true, order[:k])
-    gains = 2 ** y_true - 1
+    gains = 2**y_true - 1
     discounts = np.log2(np.arange(len(y_true)) + 2)
     return np.sum(gains / discounts)
 
@@ -52,17 +66,18 @@ def cal_metric(pair):
     mrr = mrr_score(*pair)
     ndcg5 = ndcg_score(*pair, 5)
     ndcg10 = ndcg_score(*pair, 10)
-    return  auc, mrr, ndcg5, ndcg10
+    return auc, mrr, ndcg5, ndcg10
 
 
 # Diversity Metrics
+
 
 def ILAD(vecs):
     # similarity = torch.mm(vecs, vecs.T)
     # similarity = cosine_similarity(X=vecs)
     similarity = F.cosine_similarity(vecs.unsqueeze(dim=0), vecs.unsqueeze(dim=1))
-    distance = (1 - similarity)/2
-    score = distance.mean()-1/distance.shape[0]
+    distance = (1 - similarity) / 2
+    score = distance.mean() - 1 / distance.shape[0]
     return score.item()
 
 
@@ -74,6 +89,7 @@ def ILMD(vecs):
     score = distance.min()
     return score.item()
 
+
 def density_ILxD(scores, news_emb, top_k=5):
     """
     Args:
@@ -82,14 +98,12 @@ def density_ILxD(scores, news_emb, top_k=5):
         top_k: integer, n=5, n=10
     """
     top_ids = torch.argsort(scores)[-top_k:]
-    news_emb =  news_emb / torch.sqrt(torch.square(news_emb).sum(dim=-1)).reshape((len(news_emb), 1))
+    news_emb = news_emb / torch.sqrt(torch.square(news_emb).sum(dim=-1)).reshape(
+        (len(news_emb), 1)
+    )
     # nv: (top_k, news_emb_size)
     nv = news_emb[top_ids]
     ilad = ILAD(nv)
     ilmd = ILMD(nv)
 
     return ilad, ilmd
-
-
-
-

@@ -1,3 +1,17 @@
+# Copyright 2022 Ant Group Co., Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import copy
 
 import torch
@@ -23,31 +37,40 @@ class NewsEncoder(nn.Module):
 
         if cfg.dataset.dataset_lang == 'english':
             pretrain = torch.from_numpy(glove_emb).float()
-            self.word_encoder = nn.Embedding.from_pretrained(pretrain, freeze=False, padding_idx=0)
+            self.word_encoder = nn.Embedding.from_pretrained(
+                pretrain, freeze=False, padding_idx=0
+            )
         else:
-            self.word_encoder = nn.Embedding(glove_emb+1, 300, padding_idx=0)
+            self.word_encoder = nn.Embedding(glove_emb + 1, 300, padding_idx=0)
             nn.init.uniform_(self.word_encoder.weight, -1.0, 1.0)
 
         self.view_size = [cfg.model.title_size, cfg.model.abstract_size]
-        
 
-        self.attention = Sequential('x, mask', [
-            (nn.Dropout(p=cfg.dropout_probability), 'x -> x'),
-            (MultiHeadAttention(token_emb_dim,
-                                token_emb_dim,
-                                token_emb_dim,
-                                cfg.model.head_num,
-                                cfg.model.head_dim), 'x,x,x,mask -> x'),
-            nn.LayerNorm(self.news_dim),
-            nn.Dropout(p=cfg.dropout_probability),
-
-            (AttentionPooling(self.news_dim,
-                                cfg.model.attention_hidden_dim), 'x,mask -> x'),
-            nn.LayerNorm(self.news_dim),
-            # nn.Linear(self.news_dim, self.news_dim),
-            # nn.LeakyReLU(0.2),
-        ])
-
+        self.attention = Sequential(
+            'x, mask',
+            [
+                (nn.Dropout(p=cfg.dropout_probability), 'x -> x'),
+                (
+                    MultiHeadAttention(
+                        token_emb_dim,
+                        token_emb_dim,
+                        token_emb_dim,
+                        cfg.model.head_num,
+                        cfg.model.head_dim,
+                    ),
+                    'x,x,x,mask -> x',
+                ),
+                nn.LayerNorm(self.news_dim),
+                nn.Dropout(p=cfg.dropout_probability),
+                (
+                    AttentionPooling(self.news_dim, cfg.model.attention_hidden_dim),
+                    'x,mask -> x',
+                ),
+                nn.LayerNorm(self.news_dim),
+                # nn.Linear(self.news_dim, self.news_dim),
+                # nn.LeakyReLU(0.2),
+            ],
+        )
 
     def forward(self, news_input, mask=None):
         """
@@ -61,12 +84,18 @@ class NewsEncoder(nn.Module):
         num_news = news_input.shape[1]
 
         # [batch_size * news_num, view_size, word_emb_dim]
-        title_input, _, _, _, _ = news_input.split([self.view_size[0], 5, 1, 1, 1], dim=-1)
+        title_input, _, _, _, _ = news_input.split(
+            [self.view_size[0], 5, 1, 1, 1], dim=-1
+        )
 
-        title_word_emb = self.word_encoder(title_input.long().view(-1, self.view_size[0]))
+        title_word_emb = self.word_encoder(
+            title_input.long().view(-1, self.view_size[0])
+        )
 
         total_word_emb = title_word_emb
 
         result = self.attention(total_word_emb, mask)
 
-        return result.view(batch_size, num_news, self.news_dim)     # [batch, num_news, news_dim]
+        return result.view(
+            batch_size, num_news, self.news_dim
+        )  # [batch, num_news, news_dim]
