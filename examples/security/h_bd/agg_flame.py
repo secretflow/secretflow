@@ -31,7 +31,9 @@ class FlameAggregator(PlainAggregator):
         # Move all data to aggregator's device
         data = [d.to(self.device) for d in data]
         if isinstance(weights, (list, tuple)):
-            weights = [w.to(self.device) if isinstance(w, DeviceObject) else w for w in weights]
+            weights = [
+                w.to(self.device) if isinstance(w, DeviceObject) else w for w in weights
+            ]
 
         def _average(*data, axis, weights):
             num_clients = len(data)
@@ -77,10 +79,16 @@ class FlameAggregator(PlainAggregator):
             # ---------------------------
             features = []
             for i in range(num_clients):
-                flat_model = np.concatenate([
-                    (arr.cpu().numpy() if isinstance(arr, torch.Tensor) else np.array(arr)).flatten()
-                    for arr in data[i]
-                ])
+                flat_model = np.concatenate(
+                    [
+                        (
+                            arr.cpu().numpy()
+                            if isinstance(arr, torch.Tensor)
+                            else np.array(arr)
+                        ).flatten()
+                        for arr in data[i]
+                    ]
+                )
                 features.append(flat_model)
             features_array = np.stack(features, axis=0)
 
@@ -93,7 +101,7 @@ class FlameAggregator(PlainAggregator):
                 min_cluster_size=int(num_clients / 2 + 1),  # Require majority cluster
                 min_samples=1,
                 allow_single_cluster=True,  # Handle all-in-one-cluster case
-                metric='precomputed'  # Use precomputed distance matrix
+                metric="precomputed",  # Use precomputed distance matrix
             ).fit(cd)
             cluster_labels = clusterer.labels_.tolist()
             print("Cluster labels:", cluster_labels)
@@ -123,7 +131,11 @@ class FlameAggregator(PlainAggregator):
                     continue
 
                 # Calculate scaling factor
-                scale = min(1.0, threshold / update_norms[i]) if update_norms[i] > 0 else 1.0
+                scale = (
+                    min(1.0, threshold / update_norms[i])
+                    if update_norms[i] > 0
+                    else 1.0
+                )
 
                 # Apply clipping layer-wise
                 clipped_update = []
@@ -133,7 +145,9 @@ class FlameAggregator(PlainAggregator):
                 # Reconstruct clipped model
                 clipped_model = []
                 for layer_idx in range(num_layers):
-                    clipped_model.append(estimated_global[layer_idx] + clipped_update[layer_idx])
+                    clipped_model.append(
+                        estimated_global[layer_idx] + clipped_update[layer_idx]
+                    )
 
                 clipped_client_models.append(clipped_model)
                 clipped_weights.append(weights[i] if weights is not None else 1.0)
@@ -151,7 +165,9 @@ class FlameAggregator(PlainAggregator):
             # ---------------------------
             aggregated = []
             for layer_idx in range(num_layers):
-                layer_vals = [client_model[layer_idx] for client_model in clipped_client_models]
+                layer_vals = [
+                    client_model[layer_idx] for client_model in clipped_client_models
+                ]
                 avg = np.average(layer_vals, axis=0, weights=clipped_weights)
                 aggregated.append(avg)
 
@@ -162,7 +178,9 @@ class FlameAggregator(PlainAggregator):
             final_agg = []
             lamda = 0  # Noise multiplier (0 = no noise)
             for arr in aggregated:
-                noise = np.random.normal(loc=0.0, scale=lamda * threshold, size=arr.shape)
+                noise = np.random.normal(
+                    loc=0.0, scale=lamda * threshold, size=arr.shape
+                )
                 final_agg.append(arr + noise)
 
             return final_agg
