@@ -152,6 +152,7 @@ def _torch_model_with_cifar10(
         data, label, batch_size=128, random_seed=1234
     )
 
+
 @pytest.mark.skipif(skip_live, reason="Skip the tests that require real networks/data")
 def test_torch_model(sf_simulation_setup_devices):
     (train_data, train_label), (test_data, test_label) = load_cifar10_horiontal(
