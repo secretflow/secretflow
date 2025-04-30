@@ -14,6 +14,7 @@
 import torch
 import torch.nn as nn
 
+
 class Deep(nn.Module):
     def __init__(self, input_dim, deep_layers):
         super(Deep, self).__init__()
@@ -34,13 +35,15 @@ class Deep(nn.Module):
         out = self._deep(x)
         return out
 
+
 class Cross(nn.Module):
     """
     x_0 * x_l^T * w_l + x_l + b_l ， x_0 是最初的输入
     """
+
     def __init__(self, input_dim, num_cross_layers):
         super(Cross, self).__init__()
-        
+
         self.num_cross_layers = num_cross_layers
         weight_w = []
         weight_b = []
@@ -61,10 +64,13 @@ class Cross(nn.Module):
         x = x.reshape(x.shape[0], -1, 1)
         for i in range(self.num_cross_layers):
             # torch.transpose(out, 1, 2)转置 out
-            xTw=torch.matmul(torch.transpose(out.reshape(out.shape[0], -1, 1), 1, 2), self.weight_w[i].reshape(1, -1, 1))
-            xxTw = torch.matmul(x,xTw)
+            xTw = torch.matmul(
+                torch.transpose(out.reshape(out.shape[0], -1, 1), 1, 2),
+                self.weight_w[i].reshape(1, -1, 1),
+            )
+            xxTw = torch.matmul(x, xTw)
             xxTw = xxTw.reshape(xxTw.shape[0], -1)
             out = xxTw + self.weight_b[i] + out
-            #的作用是对当前层的输出 out 进行批归一化。
+            # 的作用是对当前层的输出 out 进行批归一化。
             out = self.bn[i](out)
-        return out,xTw
+        return out, xTw

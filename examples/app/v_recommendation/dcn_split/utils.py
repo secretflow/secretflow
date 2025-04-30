@@ -53,27 +53,26 @@ def DataPreprocess():
     mms = MinMaxScaler()
     data_df[dense_feas] = mms.fit_transform(data_df[dense_feas])
 
-    
-
     # 创建一个列表来存储每个稀疏特征的最大类别数
     sparse_feature_info = []
 
     # 对每个稀疏特征列，计算其最大值，并将其添加到列表中
     for feature in sparse_feas:
         max_value = data_df[feature].max()
-        sparse_feature_info.append({'feat_num': int(max_value) + 1})  # +1 因为类别从 0 开始
+        sparse_feature_info.append(
+            {'feat_num': int(max_value) + 1}
+        )  # +1 因为类别从 0 开始
 
     # 将列表转换为 NumPy 数组并保存
     np.save('fea_col.npy', sparse_feature_info)
 
-    
     # 分开测试集和训练集
-    train = data_df[:train_df.shape[0]]
-    test = data_df[train_df.shape[0]:]
+    train = data_df[: train_df.shape[0]]
+    test = data_df[train_df.shape[0] :]
 
     train['Label'] = label
 
-    train_set, val_set = train_test_split(train, test_size = 0.2, random_state=2020)
+    train_set, val_set = train_test_split(train, test_size=0.2, random_state=2020)
 
     print(train_set['Label'].value_counts())
     print(val_set['Label'].value_counts())
@@ -87,7 +86,6 @@ def DataPreprocess():
     test.to_csv('data/test_set1.csv', index=0)
 
 
-
 # 存储每个稀疏特征的最大类别数
 def generate_fea_col(filename, output_file):
     # 读取 CSV 文件
@@ -97,7 +95,7 @@ def generate_fea_col(filename, output_file):
     sparse_features = [col for col in df.columns if col.startswith('C')]
 
     # 创建一个列表来存储每个稀疏特征的最大类别数
- 
+
     max_value_dict = {feature: df[feature].max() for feature in sparse_features}
     # 保存字典为 .npy 文件
     np.save(output_file, max_value_dict)
@@ -105,16 +103,14 @@ def generate_fea_col(filename, output_file):
     print("max_value_dict 已保存为 max_value_dict.npy")
 
 
-
 # 得到训练所使用的数据形式
-def getTrainData(filename, feafile, columns_for_alice,columns_for_bob):
+def getTrainData(filename, feafile, columns_for_alice, columns_for_bob):
     df = pd.read_csv(filename)
     print(df.columns)
 
     # C开头的列代表稀疏特征，I开头的列代表的是稠密特征
     dense_features_cols_alice = [col for col in columns_for_alice if col[0] == 'I']
     dense_features_cols_bob = [col for col in columns_for_bob if col[0] == 'I']
-   
 
     # 这个文件里面存储了稀疏特征的最大范围，用于设置Embedding的输入维度
 
@@ -123,16 +119,24 @@ def getTrainData(filename, feafile, columns_for_alice,columns_for_bob):
     # fea_col = pickle.load(feafile)
     sparse_features_cols_alice = []
     for col in columns_for_alice:
-        if col[0]=='C':
+        if col[0] == 'C':
             sparse_features_cols_alice.append(max_fea_col[col])
     sparse_features_cols_bob = []
     for col in columns_for_bob:
-        if col[0]=='C':
+        if col[0] == 'C':
             sparse_features_cols_bob.append(max_fea_col[col])
 
     # 将处理后的数据用于模型训练
-    df_data_alice= df[columns_for_alice].values
-    df_data=df[columns_for_bob]
+    df_data_alice = df[columns_for_alice].values
+    df_data = df[columns_for_bob]
     df_data_bob, labels = df_data.drop(columns='Label').values, df_data['Label'].values
 
-    return df_data_alice , df_data_bob,labels, dense_features_cols_alice, sparse_features_cols_alice,dense_features_cols_bob, sparse_features_cols_bob
+    return (
+        df_data_alice,
+        df_data_bob,
+        labels,
+        dense_features_cols_alice,
+        sparse_features_cols_alice,
+        dense_features_cols_bob,
+        sparse_features_cols_bob,
+    )
