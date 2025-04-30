@@ -30,7 +30,7 @@ Before starting experiments, make sure you are in the right working directory.
 You need to get the heterogeneous datasets from [https://github.com/TsingZ0/PFLlib] and save it at `\dst`.
 
 ```commandline
-cd /FedALA
+cd /FedALA/ALAsys
 ```
 
 You can use following commands to start your experiments.
