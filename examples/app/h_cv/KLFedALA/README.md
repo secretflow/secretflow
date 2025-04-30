@@ -33,7 +33,7 @@ In order to reproduce the experimental results in the paper, the hyperparameter 
 `p`  =2
 
 ## Quick Start
-Before starting experiments, make sure you are in the right working directory.
+Before starting experiments, make sure you are in the right working path.
 You need to get the heterogeneous datasets from [https://github.com/TsingZ0/PFLlib] and save it at `/dst`.
 
 ```commandline
