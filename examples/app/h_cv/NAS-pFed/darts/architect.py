@@ -452,7 +452,7 @@ class Architect(object):
         unrolled_model = self._compute_unrolled_model(
             input_train, target_train, eta, network_optimizer
         )
-        #print("BEFORE:" + str(unrolled_model.parameters()))
+        # print("BEFORE:" + str(unrolled_model.parameters()))
 
         """(7)"""
         logits_val = unrolled_model(input_valid)
@@ -546,7 +546,7 @@ class Architect(object):
         unrolled_model = self._compute_unrolled_model(
             input_train, target_train, eta, network_optimizer
         )
-        #print("BEFORE:" + str(unrolled_model.parameters()))
+        # print("BEFORE:" + str(unrolled_model.parameters()))
 
         """(7)"""
         logits_val = unrolled_model(input_valid)
