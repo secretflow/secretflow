@@ -38,7 +38,7 @@ class Architect(object):
 
         self.optimizer = torch.optim.Adam(
             arch_parameters,
-            lr=args.arch_learning_rate, 
+            lr=args.arch_learning_rate,
             betas=(0.5, 0.999),
             weight_decay=args.arch_weight_decay,
         )
@@ -56,13 +56,13 @@ class Architect(object):
         theta = _concat(self.model.parameters()).data
         try:
             moment = _concat(
-                network_optimizer.state[v]['momentum_buffer'] 
+                network_optimizer.state[v]['momentum_buffer']
                 for v in self.model.parameters()
             ).mul_(self.network_momentum)
         except:
             moment = torch.zeros_like(theta)
         dtheta = (
-            _concat(torch.autograd.grad(loss, self.model.parameters())).data 
+            _concat(torch.autograd.grad(loss, self.model.parameters())).data
             + self.network_weight_decay * theta
         )
         unrolled_model = self._construct_model_from_theta(
@@ -72,25 +72,25 @@ class Architect(object):
 
     # DARTS
     def step(
-        self, 
-        input_train, 
-        target_train, 
-        input_valid, 
-        target_valid, 
-        eta, 
-        network_optimizer, 
-        unrolled
+        self,
+        input_train,
+        target_train,
+        input_valid,
+        target_valid,
+        eta,
+        network_optimizer,
+        unrolled,
     ):
         self.optimizer.zero_grad()
         if unrolled:
             # logging.info("first order")
             self._backward_step_unrolled(
-                input_train, 
-                target_train, 
-                input_valid, 
-                target_valid, 
-                eta, 
-                network_optimizer
+                input_train,
+                target_train,
+                input_valid,
+                target_valid,
+                eta,
+                network_optimizer,
             )
         else:
             # logging.info("second order")
@@ -99,13 +99,13 @@ class Architect(object):
 
     # ours
     def step_v2(
-        self, 
-        input_train, 
-        target_train, 
-        input_valid, 
-        target_valid, 
+        self,
+        input_train,
+        target_train,
+        input_valid,
+        target_valid,
         lambda_train_regularizer,
-        lambda_valid_regularizer
+        lambda_valid_regularizer,
     ):
         self.optimizer.zero_grad()
 
@@ -158,15 +158,15 @@ class Architect(object):
         # logging.info("AFTER step params = %s" % str(p_sum))
 
     def distillation_step_v2(
-        self, 
-        input_train, 
-        target_train, 
-        input_valid, 
-        target_valid, 
+        self,
+        input_train,
+        target_train,
+        input_valid,
+        target_valid,
         lambda_train_regularizer,
-        lambda_valid_regularizer, 
-        global_model, 
-        temperature
+        lambda_valid_regularizer,
+        global_model,
+        temperature,
     ):
         self.optimizer.zero_grad()
 
@@ -221,8 +221,8 @@ class Architect(object):
         loss_train = self.criterion(logits, target_train)
 
         arch_parameters = (
-            self.model.module.arch_parameters() 
-            if self.is_multi_gpu 
+            self.model.module.arch_parameters()
+            if self.is_multi_gpu
             else self.model.arch_parameters()
         )
         grads_alpha_with_train_dataset = torch.autograd.grad(
@@ -230,8 +230,8 @@ class Architect(object):
         )
 
         arch_parameters = (
-            self.model.module.arch_parameters() 
-            if self.is_multi_gpu 
+            self.model.module.arch_parameters()
+            if self.is_multi_gpu
             else self.model.arch_parameters()
         )
         for v, g in zip(arch_parameters, grads_alpha_with_train_dataset):
@@ -252,8 +252,8 @@ class Architect(object):
         loss_train = self.criterion(logits, target_train)
 
         arch_parameters = (
-            self.model.module.arch_parameters() 
-            if self.is_multi_gpu 
+            self.model.module.arch_parameters()
+            if self.is_multi_gpu
             else self.model.arch_parameters()
         )
         grads_alpha_with_train_dataset = torch.autograd.grad(
@@ -278,7 +278,7 @@ class Architect(object):
             g_val.data.add_(temp)
 
         arch_parameters = (
-            self.model.module.arch_parameters() 
+            self.model.module.arch_parameters()
             if self.is_multi_gpu
             else self.model.arch_parameters()
         )
@@ -305,11 +305,11 @@ class Architect(object):
 
     def _backward_step_unrolled(
         self,
-        input_train, 
+        input_train,
         target_train,
-        input_valid, 
-        target_valid, 
-        eta, 
+        input_valid,
+        target_valid,
+        eta,
         network_optimizer,
     ):
         # calculate w' in equation (7):
@@ -336,8 +336,8 @@ class Architect(object):
             g.data.sub_(eta, ig.data)
 
         arch_parameters = (
-            self.model.module.arch_parameters() 
-            if self.is_multi_gpu 
+            self.model.module.arch_parameters()
+            if self.is_multi_gpu
             else self.model.arch_parameters()
         )
 
@@ -353,8 +353,8 @@ class Architect(object):
 
         params, offset = {}, 0
         named_parameters = (
-            self.model.module.named_parameters() 
-            if self.is_multi_gpu 
+            self.model.module.named_parameters()
+            if self.is_multi_gpu
             else self.model.named_parameters()
         )
         for k, v in named_parameters:
@@ -385,7 +385,7 @@ class Architect(object):
         # vector is (gradient of w' on validation dataset)
         R = r / _concat(vector).norm()
         parameters = (
-            self.model.module.parameters() 
+            self.model.module.parameters()
             if self.is_multi_gpu
             else self.model.parameters()
         )
@@ -398,7 +398,7 @@ class Architect(object):
 
         arch_parameters = (
             self.model.module.arch_parameters()
-            if self.is_multi_gpu 
+            if self.is_multi_gpu
             else self.model.arch_parameters()
         )
         grads_p = torch.autograd.grad(loss, arch_parameters)
@@ -416,7 +416,7 @@ class Architect(object):
         loss = self.criterion(logits, target)
 
         arch_parameters = (
-            self.model.module.arch_parameters() 
+            self.model.module.arch_parameters()
             if self.is_multi_gpu
             else self.model.arch_parameters()
         )
@@ -435,14 +435,14 @@ class Architect(object):
 
     # DARTS
     def step_v2_2ndorder(
-        self, 
-        input_train, 
+        self,
+        input_train,
         target_train,
         input_valid,
-        target_valid, 
-        eta, 
+        target_valid,
+        eta,
         network_optimizer,
-        lambda_train_regularizer, 
+        lambda_train_regularizer,
         lambda_valid_regularizer,
     ):
         self.optimizer.zero_grad()
@@ -460,14 +460,10 @@ class Architect(object):
         valid_loss.backward()  # w, alpha
 
         # the 1st term of equation (7)
-        grad_alpha_wrt_val_on_w_prime = [
-            v.grad for v in unrolled_model.arch_parameters()
-        ]
+        grad_alpha_wrt_val_on_w_prime = [v.grad for v in unrolled_model.arch_parameters()]
 
         # vector is (gradient of w' on validation dataset)
-        grad_w_wrt_val_on_w_prime = [
-            v.grad.data for v in unrolled_model.parameters()
-        ]
+        grad_w_wrt_val_on_w_prime = [v.grad.data for v in unrolled_model.parameters()]
 
         # the 2nd term of equation (7)
         implicit_grads = self._hessian_vector_product(
@@ -516,8 +512,8 @@ class Architect(object):
             g_val.data.add_(temp)
 
         arch_parameters = (
-            self.model.module.arch_parameters() 
-            if self.is_multi_gpu 
+            self.model.module.arch_parameters()
+            if self.is_multi_gpu
             else self.model.arch_parameters()
         )
         for v, g in zip(arch_parameters, grad_alpha_term):
@@ -530,14 +526,14 @@ class Architect(object):
 
     # DARTS
     def step_v2_2ndorder2(
-        self, input_train, 
-        target_train, 
-        input_valid, 
-        target_valid, 
-        eta, 
+        self, input_train,
+        target_train,
+        input_valid,
+        target_valid,
+        eta,
         network_optimizer,
-        lambda_train_regularizer, 
-        lambda_valid_regularizer
+        lambda_train_regularizer,
+        lambda_valid_regularizer,
     ):
         self.optimizer.zero_grad()
 
@@ -605,7 +601,7 @@ class Architect(object):
 
         arch_parameters = (
             self.model.module.arch_parameters()
-            if self.is_multi_gpu 
+            if self.is_multi_gpu
             else self.model.arch_parameters()
         )
         for v, g in zip(arch_parameters, grad_alpha_term):
