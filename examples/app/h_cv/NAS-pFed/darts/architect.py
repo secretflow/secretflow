@@ -266,7 +266,7 @@ class Architect(object):
 
         arch_parameters = (
             self.model.module.arch_parameters()
-            if self.is_multi_gpu 
+            if self.is_multi_gpu
             else self.model.arch_parameters()
         )
         grads_alpha_with_val_dataset = torch.autograd.grad(loss_val, arch_parameters)
@@ -359,7 +359,7 @@ class Architect(object):
         )
         for k, v in named_parameters:
             v_length = np.prod(v.size())
-            params[k] = theta[offset: offset + v_length].view(v.size())
+            params[k] = theta[offset : offset + v_length].view(v.size())
             offset += v_length
 
         assert offset == len(theta)
@@ -404,8 +404,8 @@ class Architect(object):
         grads_p = torch.autograd.grad(loss, arch_parameters)
 
         parameters = (
-            self.model.module.parameters() 
-            if self.is_multi_gpu 
+            self.model.module.parameters()
+            if self.is_multi_gpu
             else self.model.parameters()
         )
         for p, v in zip(parameters, vector):
@@ -460,7 +460,9 @@ class Architect(object):
         valid_loss.backward()  # w, alpha
 
         # the 1st term of equation (7)
-        grad_alpha_wrt_val_on_w_prime = [v.grad for v in unrolled_model.arch_parameters()]
+        grad_alpha_wrt_val_on_w_prime = [
+            v.grad for v in unrolled_model.arch_parameters()
+        ]
 
         # vector is (gradient of w' on validation dataset)
         grad_w_wrt_val_on_w_prime = [v.grad.data for v in unrolled_model.parameters()]
@@ -492,9 +494,7 @@ class Architect(object):
         ]
 
         # vector is (gradient of w' on validation dataset)
-        grad_w_wrt_train_on_w_prime = [
-            v.grad.data for v in unrolled_model.parameters()
-        ]
+        grad_w_wrt_train_on_w_prime = [v.grad.data for v in unrolled_model.parameters()]
 
         # the 2nd term of equation (7)
         implicit_grads = self._hessian_vector_product(
@@ -526,7 +526,8 @@ class Architect(object):
 
     # DARTS
     def step_v2_2ndorder2(
-        self, input_train,
+        self,
+        input_train,
         target_train,
         input_valid,
         target_valid,
