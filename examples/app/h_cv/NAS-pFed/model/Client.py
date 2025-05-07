@@ -1,3 +1,17 @@
+# Copyright 2024 Ant Group Co., Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import logging
 
 import torch
@@ -14,37 +28,64 @@ from darts.model_search import Network, EMNIST
 @proxy(PYUObject)
 class Client(object):
 
-    def __init__(self, client_index, search_dataloader, val_dataloader, train_dataloader, test_dataloader, local_sample_number, dev, args):
+    def __init__(
+        self,
+        client_index,
+        search_dataloader,
+        val_dataloader,
+        train_dataloader,
+        test_dataloader,
+        local_sample_number,
+        dev,
+        args,
+    ):
         self.client_index = client_index
         self.search_dataloader = search_dataloader
         self.val_dataloader = val_dataloader
         self.train_dataloader = train_dataloader
         self.test_dataloader = test_dataloader
         self.local_sample_number = local_sample_number
-        self.temperature=args.temperature
+        self.temperature = args.temperature
         self.dev = dev
         self.args = args
         self.criterion = nn.CrossEntropyLoss().to(self.dev)
-        self.soft_criterion = nn.KLDivLoss(reduction='batchmean')
+        self.soft_criterion = nn.KLDivLoss(reduction="batchmean")
         self.model = self.init_model()
         self.model.to(self.dev)
-        self.weights=None
-        self.alphas=None
+        self.weights = None
+        self.alphas = None
         self.server_model = None
         self.test_acc = None
         self.test_loss = None
 
-
     def init_model(self):
         if self.args.stage == "search":
             if self.args.dataset == "mnist":
-                model = EMNIST(self.args.init_channels, self.args.num_classes, self.args.layers, self.criterion, self.dev)
+                model = EMNIST(
+                    self.args.init_channels,
+                    self.args.num_classes,
+                    self.args.layers,
+                    self.criterion,
+                    self.dev,
+                )
             else:
-                model = Network(self.args.init_channels, self.args.num_classes, self.args.layers, self.criterion, self.dev)
+                model = Network(
+                    self.args.init_channels,
+                    self.args.num_classes,
+                    self.args.layers,
+                    self.criterion,
+                    self.dev,
+                )
         else:
             genotype = genotypes.FedNAS_V1
             logging.info(genotype)
-            model = NetworkCIFAR(self.args.init_channels, self.args.num_classes, self.args.layers, self.args.auxiliary, genotype)
+            model = NetworkCIFAR(
+                self.args.init_channels,
+                self.args.num_classes,
+                self.args.layers,
+                self.args.auxiliary,
+                genotype,
+            )
 
         return model
 
@@ -63,9 +104,21 @@ class Client(object):
 
     def init_server_model(self, server_model_weight):
         if self.args.dataset == "mnist":
-            self.server_model = EMNIST(self.args.init_channels, self.args.num_classes, self.args.layers, self.criterion, self.dev)
+            self.server_model = EMNIST(
+                self.args.init_channels,
+                self.args.num_classes,
+                self.args.layers,
+                self.criterion,
+                self.dev,
+            )
         else:
-            self.server_model = Network(self.args.init_channels, self.args.num_classes, self.args.layers, self.criterion, self.dev)
+            self.server_model = Network(
+                self.args.init_channels,
+                self.args.num_classes,
+                self.args.layers,
+                self.criterion,
+                self.dev,
+            )
         self.server_model.load_state_dict(server_model_weight)
         self.server_model.to(self.dev)
 
@@ -84,25 +137,33 @@ class Client(object):
         arch_params = list(map(id, arch_parameters))
 
         parameters = self.model.parameters()
-        weight_params = filter(lambda p: id(p) not in arch_params,
-                               parameters)
+        weight_params = filter(lambda p: id(p) not in arch_params, parameters)
 
         optimizer = torch.optim.SGD(
             weight_params,  # model.parameters(),
             self.args.learning_rate,
             momentum=self.args.momentum,
-            weight_decay=self.args.weight_decay)
+            weight_decay=self.args.weight_decay,
+        )
 
-        architect = Architect(self.model, self.criterion, self.soft_criterion, self.args, self.dev)
+        architect = Architect(
+            self.model, self.criterion, self.soft_criterion, self.args, self.dev
+        )
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-            optimizer, float(self.args.epochs), eta_min=self.args.learning_rate_min)
+            optimizer, float(self.args.epochs), eta_min=self.args.learning_rate_min
+        )
 
         local_avg_train_acc = []
         local_avg_train_loss = []
         for epoch in range(self.args.epochs):
-            train_acc, train_obj, train_loss = self.local_search(self.search_dataloader, self.val_dataloader,
-                                                                 self.model, architect, self.criterion,
-                                                                 optimizer)
+            train_acc, train_obj, train_loss = self.local_search(
+                self.search_dataloader,
+                self.val_dataloader,
+                self.model,
+                architect,
+                self.criterion,
+                optimizer,
+            )
             local_avg_train_acc.append(train_acc)
             local_avg_train_loss.append(train_loss)
 
@@ -129,7 +190,6 @@ class Client(object):
     def get_local_sample_number(self):
         return self.local_sample_number
 
-
     # 全局模型通过知识蒸馏的方式指导客户端模型搜索
     def distillation_search(self):
         self.model.to(self.dev)
@@ -139,41 +199,66 @@ class Client(object):
         arch_params = list(map(id, arch_parameters))
 
         parameters = self.model.parameters()
-        weight_params = filter(lambda p: id(p) not in arch_params,
-                               parameters)
+        weight_params = filter(lambda p: id(p) not in arch_params, parameters)
 
         optimizer = torch.optim.SGD(
             weight_params,
             self.args.learning_rate,
             momentum=self.args.momentum,
-            weight_decay=self.args.weight_decay)
+            weight_decay=self.args.weight_decay,
+        )
 
-        architect = Architect(self.model, self.criterion, self.soft_criterion, self.args, self.dev)
+        architect = Architect(
+            self.model, self.criterion, self.soft_criterion, self.args, self.dev
+        )
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-            optimizer, float(self.args.epochs), eta_min=self.args.learning_rate_min)
+            optimizer, float(self.args.epochs), eta_min=self.args.learning_rate_min
+        )
 
         local_avg_train_acc = []
         local_avg_train_loss = []
         for epoch in range(self.args.epochs):
-            train_acc, train_obj, train_loss = self.distillation_local_search(self.search_dataloader, self.val_dataloader,
-                                                                              self.model, architect,
-                                                                              self.criterion, self.soft_criterion,
-                                                                              optimizer, self.server_model,
-                                                                              self.temperature)
-            logging.info('client_idx = %d, epoch = %d, local search_acc %f' % (self.client_index, epoch, train_acc))
+            train_acc, train_obj, train_loss = self.distillation_local_search(
+                self.search_dataloader,
+                self.val_dataloader,
+                self.model,
+                architect,
+                self.criterion,
+                self.soft_criterion,
+                optimizer,
+                self.server_model,
+                self.temperature,
+            )
+            logging.info(
+                "client_idx = %d, epoch = %d, local search_acc %f"
+                % (self.client_index, epoch, train_acc)
+            )
             local_avg_train_acc.append(train_acc)
             local_avg_train_loss.append(train_loss)
 
             scheduler.step()
             lr = scheduler.get_lr()[0]
-            logging.info('client_idx = %d, epoch %d lr %e' % (self.client_index, epoch, lr))
+            logging.info(
+                "client_idx = %d, epoch %d lr %e" % (self.client_index, epoch, lr)
+            )
 
         weights = self.model.cpu().state_dict()
         alphas = self.model.cpu().arch_parameters()
         self.weights = weights
         self.alphas = alphas
 
-    def distillation_local_search(self, train_queue, valid_queue, model, architect, criterion, soft_criterion, optimizer, global_model, temperature):
+    def distillation_local_search(
+        self,
+        train_queue,
+        valid_queue,
+        model,
+        architect,
+        criterion,
+        soft_criterion,
+        optimizer,
+        global_model,
+        temperature,
+    ):
         objs = utils.AvgrageMeter()
         top1 = utils.AvgrageMeter()
         top5 = utils.AvgrageMeter()
@@ -187,8 +272,16 @@ class Client(object):
             input_search = input_search.to(self.dev)
             target_search = target_search.to(self.dev)
 
-            architect.distillation_step_v2(input, target, input_search, target_search, self.args.lambda_train_regularizer,
-                              self.args.lambda_valid_regularizer, global_model, temperature)
+            architect.distillation_step_v2(
+                input,
+                target,
+                input_search,
+                target_search,
+                self.args.lambda_train_regularizer,
+                self.args.lambda_valid_regularizer,
+                global_model,
+                temperature,
+            )
 
             optimizer.zero_grad()
             logits = model(input)
@@ -196,10 +289,9 @@ class Client(object):
                 teacher_logits = global_model(input)
             student_loss = criterion(logits, target)
             distillation_loss = soft_criterion(
-                F.log_softmax(logits/5, dim=1),
-                F.softmax(teacher_logits/5, dim=1)
+                F.log_softmax(logits / 5, dim=1), F.softmax(teacher_logits / 5, dim=1)
             )
-            loss = 0.5*student_loss + 0.5*distillation_loss
+            loss = 0.5 * student_loss + 0.5 * distillation_loss
 
             loss.backward()
             parameters = model.arch_parameters()
@@ -212,12 +304,20 @@ class Client(object):
             top5.update(prec5.item(), n)
 
             if step % self.args.report_freq == 0:
-                logging.info('client_index = %d, search %03d %e %f %f', self.client_index,
-                             step, objs.avg, top1.avg, top5.avg)
+                logging.info(
+                    "client_index = %d, search %03d %e %f %f",
+                    self.client_index,
+                    step,
+                    objs.avg,
+                    top1.avg,
+                    top5.avg,
+                )
 
         return top1.avg / 100.0, objs.avg / 100.0, loss
 
-    def local_search(self, train_queue, valid_queue, model, architect, criterion, optimizer):
+    def local_search(
+        self, train_queue, valid_queue, model, architect, criterion, optimizer
+    ):
         objs = utils.AvgrageMeter()
         top1 = utils.AvgrageMeter()
         top5 = utils.AvgrageMeter()
@@ -232,8 +332,14 @@ class Client(object):
             input_search = input_search.to(self.dev)
             target_search = target_search.to(self.dev)
 
-            architect.step_v2(input, target, input_search, target_search, self.args.lambda_train_regularizer,
-                              self.args.lambda_valid_regularizer)
+            architect.step_v2(
+                input,
+                target,
+                input_search,
+                target_search,
+                self.args.lambda_train_regularizer,
+                self.args.lambda_valid_regularizer,
+            )
 
             optimizer.zero_grad()
             logits = model(input)
@@ -250,8 +356,14 @@ class Client(object):
             top5.update(prec5.item(), n)
 
             if step % self.args.report_freq == 0:
-                logging.info('client_index = %d, search %03d %e %f %f', self.client_index,
-                             step, objs.avg, top1.avg, top5.avg)
+                logging.info(
+                    "client_index = %d, search %03d %e %f %f",
+                    self.client_index,
+                    step,
+                    objs.avg,
+                    top1.avg,
+                    top5.avg,
+                )
 
         return top1.avg / 100.0, objs.avg / 100.0, loss
 
@@ -275,8 +387,14 @@ class Client(object):
             top5.update(prec5.item(), n)
 
             if step % self.args.report_freq == 0:
-                logging.info('client_index = %d, valid %03d %e %f %f', self.client_index,
-                             step, objs.avg, top1.avg, top5.avg)
+                logging.info(
+                    "client_index = %d, valid %03d %e %f %f",
+                    self.client_index,
+                    step,
+                    objs.avg,
+                    top1.avg,
+                    top5.avg,
+                )
 
         return top1.avg / 100.0, objs.avg / 100.0, loss
 
@@ -301,7 +419,10 @@ class Client(object):
                 test_correct += correct.item()
                 test_loss += loss.item() * target.size(0)
                 test_sample_number += target.size(0)
-            logging.info("client_idx = %d, local_train_loss = %s" % (self.client_index, test_loss))
+            logging.info(
+                "client_idx = %d, local_train_loss = %s"
+                % (self.client_index, test_loss)
+            )
         return test_correct / test_sample_number, test_loss
 
     def train(self):
@@ -314,27 +435,37 @@ class Client(object):
             parameters,
             self.args.learning_rate,
             momentum=self.args.momentum,
-            weight_decay=self.args.weight_decay)
+            weight_decay=self.args.weight_decay,
+        )
 
-        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, float(self.args.epochs), eta_min=self.args.learning_rate_min)
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+            optimizer, float(self.args.epochs), eta_min=self.args.learning_rate_min
+        )
 
         local_avg_train_acc = []
         local_avg_train_loss = []
         for epoch in range(self.args.epochs):
             train_acc, train_obj, train_loss = self.local_train(optimizer)
-            logging.info('client_idx = %d, local train_acc %f' % (self.client_index, train_acc))
+            logging.info(
+                "client_idx = %d, local train_acc %f" % (self.client_index, train_acc)
+            )
             local_avg_train_acc.append(train_acc)
             local_avg_train_loss.append(train_loss)
 
             scheduler.step()
             lr = scheduler.get_lr()[0]
-            logging.info('client_idx = %d, epoch %d lr %e' % (self.client_index, epoch, lr))
+            logging.info(
+                "client_idx = %d, epoch %d lr %e" % (self.client_index, epoch, lr)
+            )
 
         weights = self.model.cpu().state_dict()
 
-        return weights, self.local_sample_number, \
-               sum(local_avg_train_acc) / len(local_avg_train_acc), \
-               sum(local_avg_train_loss) / len(local_avg_train_loss)
+        return (
+            weights,
+            self.local_sample_number,
+            sum(local_avg_train_acc) / len(local_avg_train_acc),
+            sum(local_avg_train_loss) / len(local_avg_train_loss),
+        )
 
     def local_train(self, optimizer):
         objs = utils.AvgrageMeter()
@@ -365,10 +496,9 @@ class Client(object):
             top5.update(prec5.item(), n)
 
             if step % self.args.report_freq == 0:
-                logging.info('train %03d %e %f %f', step, objs.avg, top1.avg, top5.avg)
+                logging.info("train %03d %e %f %f", step, objs.avg, top1.avg, top5.avg)
 
         return top1.avg, objs.avg, loss
-
 
     def test(self):
         self.model.to(self.dev)
@@ -390,7 +520,9 @@ class Client(object):
                 test_correct += correct.item()
                 test_loss += loss.item() * target.size(0)
                 test_sample_number += target.size(0)
-            logging.info("client_idx = %d, local_test_loss = %s" % (self.client_index, test_loss))
+            logging.info(
+                "client_idx = %d, local_test_loss = %s" % (self.client_index, test_loss)
+            )
         self.test_acc = test_correct / test_sample_number
         self.test_loss = test_loss
 

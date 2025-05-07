@@ -1,9 +1,21 @@
+# Copyright 2024 Ant Group Co., Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import torch
 import torch.nn as nn
 from darts.operations import *
 from darts.utils import drop_path
-
 
 
 class Cell(nn.Module):
@@ -50,7 +62,7 @@ class Cell(nn.Module):
             op2 = self._ops[2 * i + 1]
             h1 = op1(h1)
             h2 = op2(h2)
-            if self.training and drop_prob > 0.:
+            if self.training and drop_prob > 0.0:
                 if not isinstance(op1, Identity):
                     h1 = drop_path(h1, drop_prob)
                 if not isinstance(op2, Identity):
@@ -67,13 +79,15 @@ class AuxiliaryHeadCIFAR(nn.Module):
         super(AuxiliaryHeadCIFAR, self).__init__()
         self.features = nn.Sequential(
             nn.ReLU(inplace=True),
-            nn.AvgPool2d(5, stride=3, padding=0, count_include_pad=False),  # image size = 2 x 2
+            nn.AvgPool2d(
+                5, stride=3, padding=0, count_include_pad=False
+            ),  # image size = 2 x 2
             nn.Conv2d(C, 128, 1, bias=False),
             nn.BatchNorm2d(128),
             nn.ReLU(inplace=True),
             nn.Conv2d(128, 768, 2, bias=False),
             nn.BatchNorm2d(768),
-            nn.ReLU(inplace=True)
+            nn.ReLU(inplace=True),
         )
         self.classifier = nn.Linear(768, num_classes)
 
@@ -98,7 +112,7 @@ class AuxiliaryHeadImageNet(nn.Module):
             # NOTE: This batchnorm was omitted in my earlier implementation due to a typo.
             # Commenting it out for consistency with the experiments in the paper.
             # nn.BatchNorm2d(768),
-            nn.ReLU(inplace=True)
+            nn.ReLU(inplace=True),
         )
         self.classifier = nn.Linear(768, num_classes)
 
@@ -120,8 +134,7 @@ class NetworkCIFAR(nn.Module):
         stem_multiplier = 3
         C_curr = stem_multiplier * C
         self.stem = nn.Sequential(
-            nn.Conv2d(3, C_curr, 3, padding=1, bias=False),
-            nn.BatchNorm2d(C_curr)
+            nn.Conv2d(3, C_curr, 3, padding=1, bias=False), nn.BatchNorm2d(C_curr)
         )
 
         C_prev_prev, C_prev, C_curr = C_curr, C_curr, C
@@ -133,7 +146,9 @@ class NetworkCIFAR(nn.Module):
                 reduction = True
             else:
                 reduction = False
-            cell = Cell(genotype, C_prev_prev, C_prev, C_curr, reduction, reduction_prev)
+            cell = Cell(
+                genotype, C_prev_prev, C_prev, C_curr, reduction, reduction_prev
+            )
             reduction_prev = reduction
             self.cells += [cell]
             C_prev_prev, C_prev = C_prev, cell.multiplier * C_curr
@@ -156,6 +171,7 @@ class NetworkCIFAR(nn.Module):
         out = self.global_pooling(s1)
         logits = self.classifier(out.view(out.size(0), -1))
         return logits, logits_aux
+
 
 class NetworkEMNIST(nn.Module):
 
@@ -169,8 +185,7 @@ class NetworkEMNIST(nn.Module):
         stem_multiplier = 3
         C_curr = stem_multiplier * C
         self.stem = nn.Sequential(
-            nn.Conv2d(1, C_curr, 3, padding=1, bias=False),
-            nn.BatchNorm2d(C_curr)
+            nn.Conv2d(1, C_curr, 3, padding=1, bias=False), nn.BatchNorm2d(C_curr)
         )
 
         C_prev_prev, C_prev, C_curr = C_curr, C_curr, C
@@ -182,7 +197,9 @@ class NetworkEMNIST(nn.Module):
                 reduction = True
             else:
                 reduction = False
-            cell = Cell(genotype, C_prev_prev, C_prev, C_curr, reduction, reduction_prev)
+            cell = Cell(
+                genotype, C_prev_prev, C_prev, C_curr, reduction, reduction_prev
+            )
             reduction_prev = reduction
             self.cells += [cell]
             C_prev_prev, C_prev = C_prev, cell.multiplier * C_curr
@@ -205,6 +222,7 @@ class NetworkEMNIST(nn.Module):
         out = self.global_pooling(s1)
         logits = self.classifier(out.view(out.size(0), -1))
         return logits, logits_aux
+
 
 class NetworkImageNet(nn.Module):
 
@@ -238,7 +256,9 @@ class NetworkImageNet(nn.Module):
                 reduction = True
             else:
                 reduction = False
-            cell = Cell(genotype, C_prev_prev, C_prev, C_curr, reduction, reduction_prev)
+            cell = Cell(
+                genotype, C_prev_prev, C_prev, C_curr, reduction, reduction_prev
+            )
             reduction_prev = reduction
             self.cells += [cell]
             C_prev_prev, C_prev = C_prev, cell.multiplier * C_curr

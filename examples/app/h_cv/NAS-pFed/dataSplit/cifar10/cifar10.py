@@ -1,6 +1,17 @@
-"""
-按照狄利克雷分布为每个客户端划分数据集
-"""
+# Copyright 2024 Ant Group Co., Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import os.path
 from datetime import datetime
 
@@ -9,6 +20,7 @@ from torchvision import datasets
 
 import random
 import torch
+
 RANDOM_SEED = 0
 random.seed(RANDOM_SEED)
 torch.manual_seed(RANDOM_SEED)
@@ -22,12 +34,13 @@ TEST_EXAMPLES_PER_LABEL = int(TEST_EXAMPLES / 10)
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
+
 def split_cifar10(
     dirichlet_parameter: float = 0.1,
     total_clients: int = 500,
 ):
-    train_dataset = datasets.CIFAR10(root='./dataset', train=True, download=False)
-    test_dataset = datasets.CIFAR10(root='./dataset', train=False, download=False)
+    train_dataset = datasets.CIFAR10(root="./dataset", train=True, download=False)
+    test_dataset = datasets.CIFAR10(root="./dataset", train=False, download=False)
 
     train_indices_by_class = [[] for _ in range(10)]
     test_indices_by_class = [[] for _ in range(10)]
@@ -58,8 +71,8 @@ def split_cifar10(
     train_count = np.zeros(NUM_CLASSES).astype(int)
     test_count = np.zeros(NUM_CLASSES).astype(int)
 
-    train_examples_per_client = (int(TRAIN_EXAMPLES / total_clients))
-    test_examples_per_client = (int(TEST_EXAMPLES / total_clients))
+    train_examples_per_client = int(TRAIN_EXAMPLES / total_clients)
+    test_examples_per_client = int(TEST_EXAMPLES / total_clients)
 
     for k in range(total_clients):
         for i in range(train_examples_per_client):
@@ -73,7 +86,7 @@ def split_cifar10(
             if train_count[sampled_label] == TRAIN_EXAMPLES_PER_LABEL:
                 train_multinomial_vals[:, sampled_label] = 0
                 train_multinomial_vals = (
-                        train_multinomial_vals / train_multinomial_vals.sum(axis=1)[:, None]
+                    train_multinomial_vals / train_multinomial_vals.sum(axis=1)[:, None]
                 )
         for i in range(test_examples_per_client):
             sampled_label = np.argwhere(
@@ -86,6 +99,6 @@ def split_cifar10(
             if test_count[sampled_label] == TEST_EXAMPLES_PER_LABEL:
                 test_multinomial_vals[:, sampled_label] = 0
                 test_multinomial_vals = (
-                        test_multinomial_vals / test_multinomial_vals.sum(axis=1)[:, None]
+                    test_multinomial_vals / test_multinomial_vals.sum(axis=1)[:, None]
                 )
     return train_client_samples, test_client_samples
