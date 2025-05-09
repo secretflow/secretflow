@@ -33,12 +33,12 @@ AuthManager is the module responsible for authorization management.
 
 1. Download the docker image
 ```shell
-docker pull secretflow/authmanager-release-sim-ubuntu:latest
+docker pull secretflow/authmanager-ubuntu-sim-release:latest
 ```
 
 2. Enter the docker image
 ```shell
-docker run -it --net host secretflow/authmanager-release-sim-ubuntu:latest
+docker run -it --net host secretflow/authmanager-ubuntu-sim-release:latest
 ```
 
 3. (Optional) Configure TLS
@@ -48,7 +48,6 @@ AuthManager enables TLS by default. If you only use it for local simulation, you
 4. Start the service
 
 ```shell
-cd occlum_release
 occlum run /bin/auth-manager --config_path /host/config.yaml
 ```
 The default port is 8835. Feel free to modify the `port` in config.yaml if port conflicts.
