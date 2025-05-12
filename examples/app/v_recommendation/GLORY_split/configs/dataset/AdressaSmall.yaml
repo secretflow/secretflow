@@ -1,0 +1,24 @@
+defaults:
+  - _self_
+  - default
+
+dataset_name: AdressaSmall
+dataset_dir: ${path.data_dir}/AdressaSmall
+dataset_lang: norwegian
+
+pos_count: 290523
+train_len: 145126
+train_divided_len: 145126    # np = 1
+
+val_len: 63226
+test_len: 252902
+
+# Info
+news_num: 20429
+word_num: 0
+user_num: 0
+
+# train
+category_num: 0
+subcategory_num: 0
+
