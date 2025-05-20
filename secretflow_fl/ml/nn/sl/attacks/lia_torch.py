@@ -764,10 +764,6 @@ class MaliciousSGD(Optimizer):
                         last_parameter_grad = self.last_parameters_grads[id_group][
                             id_parameter
                         ]
-                        # if id_group == 0 and id_parameter == 0:
-                        #     logging.info(
-                        #         f"last_parameter_grad before: {last_parameter_grad.mean()}"
-                        #     )
                         current_parameter_grad = p.grad.clone().detach()
                         ratio_grad_scale_up = 1.0 + self.gamma_lr_scale_up * (
                             current_parameter_grad / (last_parameter_grad + 1e-7)
@@ -780,11 +776,6 @@ class MaliciousSGD(Optimizer):
                 self.last_parameters_grads[id_group][
                     id_parameter
                 ] = current_parameter_grad
-                # if id_group == 0 and id_parameter == 0:
-                #     logging.info(f"grad: {p.grad.mean()}")
-                #     logging.info(
-                #         f"last_parameter_grad before: {self.last_parameters_grads[id_group][id_parameter].mean()}"
-                #     )
 
                 p.data.add_(-group["lr"], p.grad.data)
 
