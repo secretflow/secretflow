@@ -21,6 +21,7 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
     - [Semi-Honest Secret Sharing](#semi-honest-secret-sharing)
     - [Malicious Secret Sharing](#malicious-secret-sharing)
     - [Function Secret Sharing](#function-secret-sharing)
+  - [Related awesome lists](#related-awesome-lists)
 
 ## Basic
 
@@ -363,3 +364,8 @@ Note: one paper may be included in several categories (e.g. a paper may introduc
 - Distributed Point Functions and Their Applications
   *Niv Gilboa, Yuval Ishai*
   EuroCrypt 2014, [eprint](https://www.iacr.org/archive/eurocrypt2014/84410245/84410245.pdf), GI14
+
+## Related awesome lists
+
+
+- [awesome-mpc](https://github.com/rdragos/awesome-mpc)

@@ -31,6 +31,7 @@ Since its invention in 1986, ZKP systems, more and more,  become building blocks
     - [For Blockchains](#for-blockchains)
     - [Signature from ZKP](#signature-from-zkp)
   - [ZKP Standard Efforts](#zkp-standard-efforts)
+  - [Related awesome lists](#related-awesome-lists)
 
 ## Survey & Tutorial
 
@@ -603,3 +604,9 @@ Below are from organization [zkproof](https://zkproof.org/):
   ZKProof 4th workshop, 2021, [paper](https://docs.zkproof.org/pages/standards/accepted-workshop4/proposal-sigma.pdf), KO21
 
 - See more at [zkproof proposals](https://docs.zkproof.org/standards/proposals).
+
+## Related awesome lists
+
+
+- [awesome-zero-knowledge-proofs](https://github.com/matter-labs/awesome-zero-knowledge-proofs)
+- [awesome-mpc](https://github.com/rdragos/awesome-mpc)

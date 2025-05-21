@@ -281,4 +281,3 @@ undamental-principles)
 
 - Abadi M, Chu A, Goodfellow I, et al. [Deep Learning with Differential Privacy](https://arxiv.org/pdf/1607.00133.pdf)
   Proceedings of the 2016 ACM SIGSAC conference on computer and communications security. 2016: 308-318.
-
