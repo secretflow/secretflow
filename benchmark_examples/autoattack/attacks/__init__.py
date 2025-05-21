@@ -35,5 +35,5 @@ __all__ = [
     'fsha',
     'batch_lia',
     'sdar',
-    'sim_lia'
+    'sim_lia',
 ]
