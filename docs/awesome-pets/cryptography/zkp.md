@@ -609,4 +609,3 @@ Below are from organization [zkproof](https://zkproof.org/):
 
 
 - [awesome-zero-knowledge-proofs](https://github.com/matter-labs/awesome-zero-knowledge-proofs)
-- [awesome-mpc](https://github.com/rdragos/awesome-mpc)
