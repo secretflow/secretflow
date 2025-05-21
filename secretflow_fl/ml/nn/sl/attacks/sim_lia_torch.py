@@ -13,9 +13,9 @@
 # limitations under the License.
 
 """
-This file references code of paper Label Inference Attacks Against Federated Learning on Usenix Security 2022: https://www.usenix.org/conference/usenixsecurity22/presentation/fu-chong
+This file references code of paper : Similarity-based Label Inference Attack against Training and Inference of Split Learning(IEEE2024)
+https://ieeexplore.ieee.org/document/10411061
 """
-
 
 import numpy as np
 
