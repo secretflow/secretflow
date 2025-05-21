@@ -47,7 +47,7 @@ import benchmark_examples.autoattack.utils.dispatch as dispatch
 import secretflow as sf
 import secretflow.distributed as sfd
 from benchmark_examples.autoattack import global_config
-from secretflow import tune
+from secretflow_fl import tune
 from secretflow.distributed.const import DISTRIBUTION_MODE
 from secretflow.utils.errors import NotSupportedError
 
