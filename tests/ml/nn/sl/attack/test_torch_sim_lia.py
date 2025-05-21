@@ -13,7 +13,6 @@
 # limitations under the License.
 
 
-
 import numpy as np
 
 
@@ -27,7 +26,6 @@ from secretflow_fl.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wra
 from secretflow_fl.ml.nn.sl.attacks.sim_lia_torch import SimilarityLabelInferenceAttack
 
 
-
 def do_test_sl_and_sim_lia(alice, bob, config):
 
     class BaseNet(nn.Module):
@@ -39,17 +37,17 @@ def do_test_sl_and_sim_lia(alice, bob, config):
             self.ReLU = nn.ReLU()
 
         def forward(self, x):
-            
+
             x = self.fc1(x)
             x = self.ReLU(x)
             x = self.fc2(x)
             x = self.ReLU(x)
             x = self.fc3(x)
             return x
-        
+
         def output_num(self):
             return 1
-        
+
     class FuseNet(nn.Module):
         def __init__(self):
             super(FuseNet, self).__init__()
@@ -62,10 +60,10 @@ def do_test_sl_and_sim_lia(alice, bob, config):
             x = self.ReLU(x)
             x = self.fc2(x)
             return x
-    
+
     train_data = np.random.rand(1000, 100).astype(np.float32)
     train_label = np.random.randint(0, 10, size=(1000,)).astype(np.int64)
-    
+
     # put into FedNdarray
     fed_data = FedNdarray(
         partitions={
@@ -118,9 +116,13 @@ def do_test_sl_and_sim_lia(alice, bob, config):
         backend="torch",
         strategy="split_nn",
     )
-    
+
     attack_method, data_type, distance_metric = config.split(",")
-    logging.info((f"attack_method: {attack_method}, distance_metric: {distance_metric}, data_type: {data_type}"))
+    logging.info(
+        (
+            f"attack_method: {attack_method}, distance_metric: {distance_metric}, data_type: {data_type}"
+        )
+    )
 
     sim_lia_callback = SimilarityLabelInferenceAttack(
         attack_party=alice,
@@ -152,7 +154,13 @@ def do_test_sl_and_sim_lia(alice, bob, config):
 def test_sl_and_lia(sf_simulation_setup_devices):
     alice = sf_simulation_setup_devices.alice
     bob = sf_simulation_setup_devices.bob
-    config = ["k-means,feature,cosine", "k-means,grad,cosine", "distance,feature,cosine","distance,grad,cosine","distance,feature,euclidean","distance,grad,euclidean"]
+    config = [
+        "k-means,feature,cosine",
+        "k-means,grad,cosine",
+        "distance,feature,cosine",
+        "distance,grad,cosine",
+        "distance,feature,euclidean",
+        "distance,grad,euclidean",
+    ]
     for i in config:
         do_test_sl_and_sim_lia(alice, bob, i)
-
