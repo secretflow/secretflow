@@ -24,7 +24,7 @@ executors:
   linux_aarch64_executor:
     docker:
       - image: secretflow/release-ci-aarch64:latest
-    resource_class: arm.2xlarge
+    resource_class: arm.xlarge
     shell: /bin/bash --login -eo pipefail
 
 
