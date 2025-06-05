@@ -274,7 +274,7 @@ details, please refer to the original paper: [DP-PSI]_
 Tutorial
 --------
 
-Please check :ref:`/tutorial/PSI_On_SPU.ipynb` for details.
+Please check :doc:`/tutorial/PSI_On_SPU` for details.
 
 
 Reference

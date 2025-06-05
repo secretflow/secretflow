@@ -731,8 +731,8 @@ msgid "Tutorial"
 msgstr "使用教程"
 
 #: ../../user_guide/psi.rst:277
-msgid "Please check :ref:`/tutorial/PSI_On_SPU.ipynb` for details."
-msgstr "详细的使用教程请参考 :ref:`/tutorial/PSI_On_SPU.ipynb`."
+msgid "Please check :doc:`/tutorial/PSI_On_SPU` for details."
+msgstr "详细的使用教程请参考 :doc:`/tutorial/PSI_On_SPU`."
 
 #: ../../user_guide/psi.rst:283
 msgid ""

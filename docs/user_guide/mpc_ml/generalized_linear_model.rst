@@ -27,7 +27,7 @@ The GLM fitting process involves estimating the coefficients (:math:`\beta`) tha
 
 Different solvers can be used to to estimate the coefficients. Currently, two solvers are availbale:
 
-1. mini batch SGD training solver (please refer to `SGD <linear_model.rst>`_)
+1. mini batch SGD training solver (please refer to `SGD <linear_model>`_)
 
 2. iterated reweighted least squares (IRLS) sovler.
 
@@ -72,7 +72,7 @@ SecretFlow provides one secure implementation of GLM:
 
 The SS-GLM module :py:meth:`~secretflow.ml.linear.ss_glm.model.SSGLM` provides both linear and logistic regression linear models for vertical split dataset setting by using secret sharing.
 
-For more detailed examples, checkout the `tutorial <../../tutorial/ss_glm.ipynb>`_ or unit tests in secretflow source code.
+For more detailed examples, checkout the `tutorial <../../tutorial/ss_glm>`_ or unit tests in secretflow source code.
 
 Security Analysis
 -------
@@ -98,4 +98,4 @@ Secret Sharing can perform the modeling faster with LAN or 10 Gb/s network. For 
 Tutorial
 ~~~~~~~~
 
-- :ref:`/tutorial/ss_glm.ipynb`
+- :any:`/tutorial/ss_glm`

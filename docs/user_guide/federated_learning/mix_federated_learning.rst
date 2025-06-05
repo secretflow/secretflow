@@ -18,5 +18,5 @@ You can check the tutorial to have a try.
 Tutorial
 ~~~~~~~~
 
-- :ref:`/tutorial/mix_lr.ipynb`
+- :doc:`/tutorial/mix_lr`
 

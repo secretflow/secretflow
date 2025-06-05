@@ -49,6 +49,6 @@ msgid "Tutorial"
 msgstr "教程"
 
 #: ../../user_guide/federated_learning/mix_federated_learning.rst:21
-msgid ":ref:`/tutorial/mix_lr.ipynb`"
-msgstr ":ref:`/tutorial/mix_lr.ipynb`"
+msgid ":doc:`/tutorial/mix_lr`"
+msgstr ":doc:`/tutorial/mix_lr`"
 

@@ -8,4 +8,4 @@ This reference manual details modules, objects and functions included in SecretF
 .. toctree::
    :maxdepth: 3
 
-   ../source/modules.rst
+   ../source/modules
