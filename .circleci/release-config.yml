@@ -19,7 +19,7 @@ executors:
   linux_x64_executor: # declares a reusable executor
     docker:
       - image: secretflow/release-ci:latest
-    resource_class: 2xlarge
+    resource_class: xlarge
     shell: /bin/bash --login -eo pipefail
   linux_aarch64_executor:
     docker:
