@@ -115,9 +115,6 @@ commands:
       mode:
         type: string
         default: "sim"
-      parallel:
-        type: string
-        default: "auto"
     steps:
       - restore_cache:
           name: Restore pytest testmondata
@@ -135,7 +132,7 @@ commands:
           name: "Run tests"
           command: |
             conda init
-            pytest --suppress-no-test-exit-code --testmon --env <<parameters.mode>>  -n <<parameters.parallel>> --junitxml=results.xml -v -x --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml  << parameters.target_folder >>
+            pytest --suppress-no-test-exit-code --testmon --env <<parameters.mode>>  -n auto --junitxml=results.xml -v -x --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml  << parameters.target_folder >>
       - store_test_results:
           path: ./results.xml
       - save_cache:
@@ -233,7 +230,6 @@ commands:
                 target_folder: tests/ml/nn/
                 testmon_prefix: ml_nn_sim
                 mode: "sim"
-                parallel: "1"
   run_other_sim_test:
     steps:
       - kill_countdown
@@ -601,7 +597,7 @@ workflows:
       - linux_ml_nn_sim_test:
           matrix:
             parameters:
-              resource_class: ["xlarge"]
+              resource_class: ["2xlarge+"]
           requires:
             - linux_build-<<matrix.resource_class>>
       - linux_preprocessing_test:
