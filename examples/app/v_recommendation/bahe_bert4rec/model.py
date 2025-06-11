@@ -34,47 +34,6 @@ class EmbeddingLayer(nn.Module):
     def forward(self, ids):
         return self.embedding(ids)
 
-
-# class MultiHeadAttention(nn.Module):
-#     """
-#     多头自注意力机制。
-#     """
-#     def __init__(self, embed_dim, num_heads, dropout=0.1):
-#         super(MultiHeadAttention, self).__init__()
-#         self.embed_dim = embed_dim
-#         self.num_heads = num_heads
-#         self.head_dim = embed_dim // num_heads
-
-#         assert self.head_dim * num_heads == embed_dim, "embed_dim must be divisible by num_heads"
-
-#         self.query = nn.Linear(embed_dim, embed_dim)
-#         self.key = nn.Linear(embed_dim, embed_dim)
-#         self.value = nn.Linear(embed_dim, embed_dim)
-#         self.dropout = nn.Dropout(dropout)
-#         self.out = nn.Linear(embed_dim, embed_dim)
-
-#     def forward(self, query, key, value, mask=None):
-#         batch_size = query.size(0)
-
-#         # 线性变换并分头
-#         query = self.query(query).view(batch_size, -1, self.num_heads, self.head_dim).transpose(1, 2)
-#         key = self.key(key).view(batch_size, -1, self.num_heads, self.head_dim).transpose(1, 2)
-#         value = self.value(value).view(batch_size, -1, self.num_heads, self.head_dim).transpose(1, 2)
-
-#         # 计算注意力分数
-#         scores = torch.matmul(query, key.transpose(-2, -1)) / math.sqrt(self.head_dim)
-#         if mask is not None:
-#             scores = scores.masked_fill(mask == 0, -1e9)
-
-#         # 计算注意力权重
-#         attn_weights = F.softmax(scores, dim=-1)
-#         attn_weights = self.dropout(attn_weights)
-
-
-#         # 加权求和
-#         attn_output = torch.matmul(attn_weights, value)
-#         attn_output = attn_output.transpose(1, 2).contiguous().view(batch_size, -1, self.embed_dim)
-#         return self.out(attn_output)
 class MultiHeadAttention(nn.Module):
     def __init__(self, embed_dim, num_heads, dropout=0.1):
         super(MultiHeadAttention, self).__init__()
@@ -165,21 +124,6 @@ class BERT4Rec(nn.Module):
     """
     BERT4Rec 模型：基于 Transformer 的序列推荐模型，支持多域推荐。
     """
-
-    # def __init__(self, user_vocab_size, item_vocab_size, embed_dim, num_heads, ff_dim, num_layers, seq_len, num_domains=2, dropout=0.1):
-    #     super(BERT4Rec, self).__init__()
-    #     self.user_embedding = EmbeddingLayer(user_vocab_size, embed_dim)
-    #     self.item_embedding = EmbeddingLayer(item_vocab_size, embed_dim)
-    #     self.position_embedding = nn.Embedding(seq_len, embed_dim)
-    #     self.domain_embedding = nn.Embedding(num_domains, embed_dim)  # 多域嵌入
-
-    #     # Transformer 编码器
-    #     self.transformer_blocks = nn.ModuleList([
-    #         TransformerBlock(embed_dim, num_heads, ff_dim, dropout) for _ in range(num_layers)
-    #     ])
-
-    #     # 预测层
-    #     self.predict_layer = nn.Linear(embed_dim, 1)
     def __init__(
         self,
         user_length,
@@ -216,36 +160,7 @@ class BERT4Rec(nn.Module):
         self.threshold1 = threshold1
         self.threshold2 = threshold2
 
-    # def forward(self, user_ids, item_ids, seq, domain_ids):
-    #     """
-    #     输入：
-    #         user_ids: 用户 ID [batch_size]
-    #         item_ids: 物品 ID [batch_size, seq_len]
-    #         seq: 用户行为序列 [batch_size, seq_len]
-    #         domain_ids: 域 ID [batch_size]
-    #     输出：
-    #         logits: 预测的点击概率 [batch_size, seq_len]
-    #     """
-    #     batch_size, seq_len = seq.size()
 
-    #     # 嵌入层
-    #     user_emb = self.user_embedding(user_ids)  # [batch_size, embed_dim]
-    #     item_emb = self.item_embedding(item_ids)  # [batch_size, seq_len, embed_dim]
-    #     pos_emb = self.position_embedding(torch.arange(seq_len, device=seq.device))  # [seq_len, embed_dim]
-    #     domain_emb = self.domain_embedding(domain_ids)  # [batch_size, embed_dim]
-
-    #     # 序列嵌入
-    #     seq_emb = item_emb + pos_emb.unsqueeze(0)  # [batch_size, seq_len, embed_dim]
-    #     seq_emb = seq_emb + domain_emb.unsqueeze(1)  # 添加域信息
-
-    #     # Transformer 编码
-    #     mask = (seq > 0).unsqueeze(1).unsqueeze(2)  # [batch_size, 1, 1, seq_len]
-    #     for block in self.transformer_blocks:
-    #         seq_emb = block(seq_emb, mask)
-
-    #     # 预测点击概率
-    #     logits = self.predict_layer(seq_emb).squeeze(-1)  # [batch_size, seq_len]
-    #     return torch.sigmoid(logits)
     def process_sequence(self, item_ids, seq, domain_ids, user_embedding):
         batch_size, seq_len = seq.size()
 

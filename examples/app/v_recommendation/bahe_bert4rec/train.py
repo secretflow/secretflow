@@ -63,22 +63,8 @@ def test(model, bahe_model, val_loader):
 
             # 获取用户嵌入
             user_embedding = bahe_model(behavior_texts)
-
-            # 模型输出
-            # output_d1, output_d2 = model(user_embedding, item_node, seq_d1, seq_d2, domain_id)
-
-            # # 分别根据 domain_id 决定用哪个输出
-            # # domain_id == 0 → 用 output_d1
-            # # domain_id == 1 → 用 output_d2
-            # mask_d1 = (domain_id == 0).float()
-            # mask_d2 = (domain_id == 1).float()
-
-            # # 输出 reshape，确保和 label 对齐
-            # output_d1 = output_d1.view(-1)
-            # output_d2 = output_d2.view(-1)
-
-            # # 按域选择正确输出参与损失
-            # selected_output = output_d1 * mask_d1 + output_d2 * mask_d2
+            # 按域选择正确输出参与损失
+          
             output = model(user_embedding, item_node, seq_d1, seq_d2, domain_id)
             output = output.view(-1)  # 进行必要的形状调整
             loss = criterion(output, label)
@@ -130,11 +116,6 @@ def train(model, bahe_model, train_loader, val_loader, optimizer, args):
             output = model(user_embedding, item_node, seq_d1, seq_d2, domain_id)
 
             output = output.view(-1)  # 进行必要的形状调整
-            # output_d1 = output_d1.view(-1)
-            # output_d2 = output_d2.view(-1)
-            # mask_d1 = (domain_id == 0).float()
-            # mask_d2 = (domain_id == 1).float()
-            # selected_output = output_d1 * mask_d1 + output_d2 * mask_d2
             loss_fn = nn.BCEWithLogitsLoss()
             loss = loss_fn(output, label)
 
@@ -224,7 +205,6 @@ if __name__ == "__main__":
     item_length = 447410  # item_length_d1 + item_length_d2 + 1 + 20000#1739+2 #13713 cdr23 #1739 + 2#item_length_d1 + item_length_d2 + 1 + 20000#1739 + 1 +200 # 1 = pad item #item_length_d1 + item_length_d2 + 1 + 20000
 
     # 设备设置
-    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     device = torch.device('cpu')
 
     # 加载数据集

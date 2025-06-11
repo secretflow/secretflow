@@ -215,36 +215,6 @@ class BERT4Rec(nn.Module):
         self.threshold1 = threshold1
         self.threshold2 = threshold2
 
-    # def forward(self, user_ids, item_ids, seq, domain_ids):
-    #     """
-    #     输入：
-    #         user_ids: 用户 ID [batch_size]
-    #         item_ids: 物品 ID [batch_size, seq_len]
-    #         seq: 用户行为序列 [batch_size, seq_len]
-    #         domain_ids: 域 ID [batch_size]
-    #     输出：
-    #         logits: 预测的点击概率 [batch_size, seq_len]
-    #     """
-    #     batch_size, seq_len = seq.size()
-
-    #     # 嵌入层
-    #     user_emb = self.user_embedding(user_ids)  # [batch_size, embed_dim]
-    #     item_emb = self.item_embedding(item_ids)  # [batch_size, seq_len, embed_dim]
-    #     pos_emb = self.position_embedding(torch.arange(seq_len, device=seq.device))  # [seq_len, embed_dim]
-    #     domain_emb = self.domain_embedding(domain_ids)  # [batch_size, embed_dim]
-
-    #     # 序列嵌入
-    #     seq_emb = item_emb + pos_emb.unsqueeze(0)  # [batch_size, seq_len, embed_dim]
-    #     seq_emb = seq_emb + domain_emb.unsqueeze(1)  # 添加域信息
-
-    #     # Transformer 编码
-    #     mask = (seq > 0).unsqueeze(1).unsqueeze(2)  # [batch_size, 1, 1, seq_len]
-    #     for block in self.transformer_blocks:
-    #         seq_emb = block(seq_emb, mask)
-
-    #     # 预测点击概率
-    #     logits = self.predict_layer(seq_emb).squeeze(-1)  # [batch_size, seq_len]
-    #     return torch.sigmoid(logits)
     def process_sequence(self, item_ids, seq, domain_ids, user_embedding):
         batch_size, seq_len = seq.size()
 

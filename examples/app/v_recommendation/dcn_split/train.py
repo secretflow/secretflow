@@ -30,10 +30,6 @@ def sf_train(clients, server, epochs, train_dataset, batch_size):
     ################################################################
 
     for epoch in range(epochs):
-        # 加载数据
-        # for client in clients:
-        #     client._model.train()  # 设置客户端模型为训练模式
-        # server._model.train()  # 设置服务器模型为训练模式
 
         train_loader = DataLoader(
             train_dataset, batch_size=batch_size, shuffle=True, drop_last=False
