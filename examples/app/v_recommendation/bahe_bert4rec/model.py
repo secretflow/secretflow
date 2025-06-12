@@ -34,6 +34,7 @@ class EmbeddingLayer(nn.Module):
     def forward(self, ids):
         return self.embedding(ids)
 
+
 class MultiHeadAttention(nn.Module):
     def __init__(self, embed_dim, num_heads, dropout=0.1):
         super(MultiHeadAttention, self).__init__()
@@ -124,6 +125,7 @@ class BERT4Rec(nn.Module):
     """
     BERT4Rec 模型：基于 Transformer 的序列推荐模型，支持多域推荐。
     """
+
     def __init__(
         self,
         user_length,
@@ -159,7 +161,6 @@ class BERT4Rec(nn.Module):
         self.isItC = isItC
         self.threshold1 = threshold1
         self.threshold2 = threshold2
-
 
     def process_sequence(self, item_ids, seq, domain_ids, user_embedding):
         batch_size, seq_len = seq.size()

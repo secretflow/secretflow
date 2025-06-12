@@ -64,7 +64,7 @@ def test(model, bahe_model, val_loader):
             # 获取用户嵌入
             user_embedding = bahe_model(behavior_texts)
             # 按域选择正确输出参与损失
-          
+
             output = model(user_embedding, item_node, seq_d1, seq_d2, domain_id)
             output = output.view(-1)  # 进行必要的形状调整
             loss = criterion(output, label)
