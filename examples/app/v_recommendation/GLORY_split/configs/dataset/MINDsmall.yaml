@@ -1,0 +1,22 @@
+defaults:
+  - _self_
+  - default
+
+dataset_name: MINDsmall
+dataset_dir: ${path.data_dir}/MINDsmall
+dataset_lang: english
+
+train_len: 156965
+val_len: 73154
+test_len: 73154
+
+pos_count: 236344
+
+# Info
+news_num: 51282
+word_num: 70974
+user_num: 50000
+
+# train
+category_num: 17
+subcategory_num: 264
