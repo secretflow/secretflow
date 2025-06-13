@@ -75,7 +75,7 @@ Example
 --------
 
 A local cluster(Standalone Mode) needs to be initialized as the running environment for this example.
-See `Deployment <../../getting_started/deployment.md>`_ and refer to the 'Cluster Mode'.
+See `Deployment <../../getting_started/deployment>`_ and refer to the 'Cluster Mode'.
 
 For more details about the APIs, see :py:meth:`~secretflow.ml.boost.ss_xgb_v.model.Xgb`
 
