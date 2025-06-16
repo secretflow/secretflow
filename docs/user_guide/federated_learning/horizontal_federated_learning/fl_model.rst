@@ -7,7 +7,7 @@ Please check API of :py:class:`~secretflow_fl.ml.nn.FLModel`.
 
 You may also check tutorials:
 
-- :ref:`/tutorial/federate_learning_for_image_classification.ipynb` This is an example to demonstrate defining a model with TensorFlow.
-- :ref:`/tutorial/federated_learning_with_pytorch_backend.ipynb` This is an example to demonstrate defining a model with PyTorch.
+- :doc:`/tutorial/Federate_Learning_for_Image_Classification` This is an example to demonstrate defining a model with TensorFlow.
+- :doc:`/tutorial/Federated_Learning_with_Pytorch_backend` This is an example to demonstrate defining a model with PyTorch.
 
-If you are interested, we also encourage you to check :ref:`/developer/design/flmodel.md`.
+If you are interested, we also encourage you to check :doc:`/developer/design/flmodel`.

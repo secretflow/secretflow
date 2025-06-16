@@ -179,11 +179,11 @@ msgstr "用例"
 msgid ""
 "A local cluster(Standalone Mode) needs to be initialized as the running "
 "environment for this example. See `Deployment "
-"<../../getting_started/deployment.md>`_ and refer to the 'Cluster "
+"<../../getting_started/deployment>`_ and refer to the 'Cluster "
 "Mode'."
 msgstr ""
 "在本示例中使用单节点模式做示范。集群模式的部署方式： "
-"`Deployment <../../getting_started/deployment.md>`_ "
+"`Deployment <../../getting_started/deployment>`_ "
 
 
 #: ../../user_guide/mpc_ml/decision_tree.rst:80

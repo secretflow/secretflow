@@ -110,7 +110,7 @@ msgid ""
 msgstr ""
 
 #: ../../user_guide/mpc_ml/generalized_linear_model.rst:30
-msgid "mini batch SGD training solver (please refer to `SGD <linear_model.rst>`_)"
+msgid "mini batch SGD training solver (please refer to `SGD <linear_model>`_)"
 msgstr ""
 
 #: ../../user_guide/mpc_ml/generalized_linear_model.rst:32
@@ -188,8 +188,8 @@ msgstr ""
 #: ../../user_guide/mpc_ml/generalized_linear_model.rst:75
 msgid ""
 "For more detailed examples, checkout the `tutorial "
-"<../../tutorial/ss_glm.ipynb>`_ or unit tests in secretflow source code."
-msgstr "有关更详细的示例，请查看secretflow源代码中的 `教程 <../../tutorial/ss_glm.ipynb>`_ 或单元测试。"
+"<../../tutorial/ss_glm>`_ or unit tests in secretflow source code."
+msgstr "有关更详细的示例，请查看secretflow源代码中的 `教程 <../../tutorial/ss_glm>`_ 或单元测试。"
 
 #: ../../user_guide/mpc_ml/generalized_linear_model.rst:78
 msgid "Security Analysis"
@@ -253,5 +253,5 @@ msgid "Tutorial"
 msgstr "教程"
 
 #: ../../user_guide/mpc_ml/generalized_linear_model.rst:101
-msgid ":ref:`/tutorial/ss_glm.ipynb`"
-msgstr ":ref:`/tutorial/ss_glm.ipynb`"
+msgid ":any:`/tutorial/ss_glm`"
+msgstr ":any:`/tutorial/ss_glm`"

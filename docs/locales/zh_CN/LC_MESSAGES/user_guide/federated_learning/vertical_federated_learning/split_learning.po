@@ -95,10 +95,10 @@ msgid "Tutorial"
 msgstr "教程"
 
 #: ../../user_guide/federated_learning/vertical_federated_learning/split_learning.rst:34
-msgid ":ref:`/tutorial/split_learning_for_bank_marketing.ipynb`"
+msgid ":doc:`/tutorial/split_learning_for_bank_marketing`"
 msgstr ""
 
 #: ../../user_guide/federated_learning/vertical_federated_learning/split_learning.rst:35
-msgid ":ref:`/tutorial/split_learning_gnn.ipynb`"
+msgid ":doc:`/tutorial/split_learning_gnn`"
 msgstr ""
 

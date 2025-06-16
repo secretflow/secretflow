@@ -422,9 +422,11 @@ Then generate input for two parties.
 3. In two separate terminals, run
 
 .. code-block:: python
+
     $ python psi_demo.py alice
 
 .. code-block:: python
+
     $ python psi_demo.py bob
 
 You should see the following output at both terminals:
