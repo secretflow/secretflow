@@ -590,14 +590,6 @@ if __name__ == '__main__':
     <td>5310<br>(1.47 h)</td>
   </tr>
   <tr>
-    <td rowspan="2">receiver='alice',<br>protocol='RR22_MALICIOUS_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
-    <td rowspan="2">RR22_MALICIOUS_PSI_2PC<br>(百万分桶)</td>
-    <td>LAN</td>
-    <td>23</td>
-    <td>232</td>
-    <td>1791<br>(0.49 h)</td>
-  </tr>
-  <tr>
     <td>100Mbps/10ms</td>
     <td>82</td>
     <td>705</td>
@@ -701,14 +693,6 @@ if __name__ == '__main__':
     <td>58</td>
     <td>545</td>
     <td>1.87 h</td>
-  </tr>
-  <tr>
-    <td rowspan="2">receiver='alice',<br>protocol='RR22_MALICIOUS_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
-    <td rowspan="2">RR22_MALICIOUS_PSI_2PC<br>(百万分桶)</td>
-    <td>LAN</td>
-    <td>23</td>
-    <td>184</td>
-    <td>0.57 h</td>
   </tr>
   <tr>
     <td>100Mbps/10ms</td>
@@ -816,14 +800,6 @@ if __name__ == '__main__':
     <td>1.86 h</td>
   </tr>
   <tr>
-    <td rowspan="2">receiver='alice',<br>protocol='RR22_MALICIOUS_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
-    <td rowspan="2">RR22_MALICIOUS_PSI_2PC<br>(百万分桶)</td>
-    <td>LAN</td>
-    <td>25</td>
-    <td>194</td>
-    <td>0.6 h</td>
-  </tr>
-  <tr>
     <td>100Mbps/10ms</td>
     <td>80</td>
     <td>734</td>
@@ -900,11 +876,5 @@ if __name__ == '__main__':
     <td>RR22_LOWCOMM_PSI_2PC<br/> (百万分桶)</td>
     <td>5659<br>(1.57 h)</td>
      <td>323</td>
-  </tr>
-  <tr>
-    <td>"receiver='alice',<br>protocol='RR22_MALICIOUS_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
-    <td>RR22_MALICIOUS_PSI_2PC<br/> (百万分桶)</td>
-    <td>14847<br>(4.12 h)</td>
-     <td>203</td>
   </tr>
 </table>
