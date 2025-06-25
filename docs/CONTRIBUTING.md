@@ -191,7 +191,7 @@ and you should not modify them.
 > recommended.
 >
 > <figure>
->   <img src="https://github.com/secretflow/doctools/raw/21e7d4d04f88c29fb68d9d668c6a74d43726eddf/tests/demo/media/poedit.png" alt="screenshot of Poedit">
+>   <img src="_static/CONTRIBUTING/poedit.png" alt="screenshot of Poedit">
 > </figure>
 
 > [!IMPORTANT]
@@ -449,7 +449,7 @@ msgstr "你好，世界！"
 > [Poedit] 是一个用于编辑 PO 文件的自由开源软件。可以尝试使用它来进行翻译。
 >
 > <figure>
->   <img src="https://github.com/secretflow/doctools/raw/21e7d4d04f88c29fb68d9d668c6a74d43726eddf/tests/demo/media/poedit.png" alt="screenshot of Poedit">
+>   <img src="_static/CONTRIBUTING/poedit.png" alt="screenshot of Poedit">
 > </figure>
 
 > [!IMPORTANT]
