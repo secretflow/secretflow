@@ -1,0 +1,13 @@
+# path to root directory
+# this requires PROJECT_ROOT environment variable to exist
+root_dir: ${oc.env:PROJECT_ROOT}
+
+data_dir: ${path.root_dir}/data
+
+log_dir: ${path.root_dir}/logs
+
+ckp_dir: ${path.root_dir}/checkpoint
+
+pred_dir: ${path.root_dir}/pred
+
+glove_path: ${path.root_dir}/data/glove/glove.840B.300d.txt

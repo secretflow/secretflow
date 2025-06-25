@@ -1,0 +1,21 @@
+his_size: 50  # Number of sampled click history for each user
+title_size: 30
+abstract_size: 50
+word_freq_threshold: 1
+entity_size: 5
+
+# dim
+word_emb_dim: 300
+category_emb_dim: 100
+subcategory_emb_dim: 100
+entity_emb_dim: 100
+
+# For additive attention
+attention_hidden_dim: 200
+head_num: 20
+head_dim: 20
+word_filter_num: 0
+
+use_graph: false
+use_entity: false
+num_neighbors: 10
