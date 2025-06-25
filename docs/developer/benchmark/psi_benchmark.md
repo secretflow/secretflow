@@ -491,7 +491,7 @@ if __name__ == '__main__':
     <th>10亿~10亿</th>
   </tr>
   <tr>
-    <td rowspan="16">32C64G</td>
+    <td rowspan="14">32C64G</td>
     <td rowspan="2">receiver='alice',<br>protocol='ECDH_PSI_2PC',<br>curve_type='CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
     <td rowspan="2">ECDH-PSI-2PC<br/> (FourQ)</td>
     <td>LAN</td>
@@ -590,13 +590,7 @@ if __name__ == '__main__':
     <td>5310<br>(1.47 h)</td>
   </tr>
   <tr>
-    <td>100Mbps/10ms</td>
-    <td>82</td>
-    <td>705</td>
-    <td>6840<br>(1.9 h)</td>
-  </tr>
-  <tr>
-    <td rowspan="16">16C32G</td>
+    <td rowspan="14">16C32G</td>
     <td rowspan="2">receiver='alice',<br>protocol='ECDH_PSI_2PC',<br>curve_type='CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
     <td rowspan="2">ECDH-PSI-2PC <br/>(FourQ)</td>
     <td>LAN</td>
@@ -695,13 +689,7 @@ if __name__ == '__main__':
     <td>1.87 h</td>
   </tr>
   <tr>
-    <td>100Mbps/10ms</td>
-    <td>86</td>
-    <td>737</td>
-    <td>2.05 h</td>
-  </tr>
-  <tr>
-    <td rowspan="16">8C16G</td>
+    <td rowspan="14">8C16G</td>
     <td rowspan="2">receiver='alice',<br>protocol='ECDH_PSI_2PC',<br>curve_type='CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
     <td rowspan="2">ECDH-PSI-2PC<br/> (FourQ)</td>
     <td>LAN</td>
@@ -799,12 +787,6 @@ if __name__ == '__main__':
     <td>550</td>
     <td>1.86 h</td>
   </tr>
-  <tr>
-    <td>100Mbps/10ms</td>
-    <td>80</td>
-    <td>734</td>
-    <td>2.05 h</td>
-  </tr>
 </table>
 
 
@@ -823,7 +805,7 @@ if __name__ == '__main__':
     <th>标准<br/>1亿～1亿<br/>（LAN）</th>
   </tr>
   <tr>
-    <td rowspan="10">32C256G</td>
+    <td rowspan="9">32C256G</td>
     <td>"receiver='alice',<br>protocol='ECDH_PSI_2PC',<br>curve_type = 'CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
     <td>ECDH-PSI-2PC<br/>(CURVE_FOURQ)</td>
     <td>7764<br/>(2.15 h)</td>
