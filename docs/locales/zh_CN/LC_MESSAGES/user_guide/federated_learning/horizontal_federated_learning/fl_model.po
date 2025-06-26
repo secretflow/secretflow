@@ -36,23 +36,23 @@ msgstr "您也可以查看相关教程。"
 
 #: ../../user_guide/federated_learning/horizontal_federated_learning/fl_model.rst:10
 msgid ""
-":ref:`/tutorial/federate_learning_for_image_classification.ipynb` This is"
+":doc:`/tutorial/Federate_Learning_for_Image_Classification` This is"
 " an example to demonstrate defining a model with TensorFlow."
 msgstr ""
 "使用 TensorFlow 定义模型的示例： "
-":ref:`/tutorial/federate_learning_for_image_classification.ipynb`"
+":doc:`/tutorial/Federate_Learning_for_Image_Classification`"
 
 #: ../../user_guide/federated_learning/horizontal_federated_learning/fl_model.rst:11
 msgid ""
-":ref:`/tutorial/federated_learning_with_pytorch_backend.ipynb` This is an"
+":doc:`/tutorial/Federated_Learning_with_Pytorch_backend` This is an"
 " example to demonstrate defining a model with PyTorch."
 msgstr ""
 "使用 PyTorch 定义模型的示例： "
-":ref:`/tutorial/federated_learning_with_pytorch_backend.ipynb`"
+":doc:`/tutorial/Federated_Learning_with_Pytorch_backend`"
 
 #: ../../user_guide/federated_learning/horizontal_federated_learning/fl_model.rst:13
 msgid ""
 "If you are interested, we also encourage you to check "
-":ref:`/developer/design/flmodel.md`."
-msgstr "如果您想深入了解细节，欢迎查看设计文档：:ref:`/developer/design/flmodel.md`。"
+":doc:`/developer/design/flmodel`."
+msgstr "如果您想深入了解细节，欢迎查看设计文档：:doc:`/developer/design/flmodel`。"
 

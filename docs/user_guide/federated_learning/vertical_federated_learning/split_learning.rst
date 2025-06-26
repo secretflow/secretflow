@@ -31,6 +31,6 @@ You can check the tutorial to have a try.
 Tutorial
 ~~~~~~~~
 
-- :ref:`/tutorial/split_learning_for_bank_marketing.ipynb`
-- :ref:`/tutorial/split_learning_gnn.ipynb`
+- :doc:`/tutorial/Split_Learning_for_bank_marketing`
+- :doc:`/tutorial/split_learning_gnn`
 

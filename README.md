@@ -26,11 +26,11 @@ it provides:
 
 ## Documentation
 
-- [SecretFlow](https://www.secretflow.org.cn/docs/secretflow/en/)
-  - [Getting Started](https://www.secretflow.org.cn/docs/secretflow/en/getting_started/index.html)
-  - [User Guide](https://www.secretflow.org.cn/docs/secretflow/en/user_guide/index.html)
-  - [API Reference](https://www.secretflow.org.cn/docs/secretflow/en/api/index.html)
-  - [Tutorial](https://www.secretflow.org.cn/docs/secretflow/en/tutorial/index.html)
+- [SecretFlow](https://www.secretflow.org.cn/docs/secretflow)
+  - [Getting Started](https://www.secretflow.org.cn/docs/secretflow/getting_started)
+  - [User Guide](https://www.secretflow.org.cn/docs/secretflow/user_guide)
+  - [API Reference](https://www.secretflow.org.cn/docs/secretflow/api)
+  - [Tutorial](https://www.secretflow.org.cn/docs/secretflow/tutorial)
 
 ## SecretFlow Related Projects
 
