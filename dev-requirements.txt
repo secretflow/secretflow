@@ -6,5 +6,4 @@ tweedie
 psutil
 tabulate
 hdbscan # added for FreqFed
-liac-arff==2.5.0
 filelock==3.18.0
