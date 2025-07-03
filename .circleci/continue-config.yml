@@ -132,7 +132,7 @@ commands:
           name: "Run tests"
           command: |
             conda init
-            pytest --suppress-no-test-exit-code --testmon --env <<parameters.mode>>  -n auto --junitxml=results.xml -v -x --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml  << parameters.target_folder >>
+            pytest --testmon --env <<parameters.mode>>  -n auto --junitxml=results.xml -v -x --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml  << parameters.target_folder >>
       - store_test_results:
           path: ./results.xml
       - save_cache:
