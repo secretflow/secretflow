@@ -510,6 +510,8 @@ def barrier():
         DISTRIBUTION_MODE.RAY_PRODUCTION,
     ):
         barriers = []
+        if global_state.parties() is None:
+            return
         for party in global_state.parties():
             barriers.append(PYU(party)(lambda: None)())
         reveal(barriers)
