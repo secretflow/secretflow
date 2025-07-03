@@ -12,37 +12,44 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List
+from typing import List, Optional
 
 import numpy as np
 
 from secretflow_fl.security.privacy.accounting.rdp_accountant import (
+    DEFAULT_RDP_ORDERS,
     get_privacy_spent_rdp,
     get_rdp,
 )
 
 
 class GaussianModelDP:
-    """global model differential privacy perturbation using gaussian noise"""
+    """
+    global model differential privacy perturbation using gaussian noise
+
+    Ref: https://arxiv.org/pdf/1712.07557
+    """
 
     def __init__(
         self,
         noise_multiplier: float,
         num_clients: int,
-        num_updates: int = None,
+        num_updates: Optional[int] = None,
         l2_norm_clip: float = 1.0,
-        delta: float = None,
+        delta: Optional[float] = None,
         is_secure_generator: bool = False,
         is_clip_each_layer: bool = False,
     ) -> None:
         """
         Args:
-            epnoise_multipliers: Epsilon for pure DP.
+            noise_multiplier: A non-negative float representing the ratio of the
+          standard deviation of the Gaussian noise to the l2-sensitivity of the
+          function to which it is added.
             num_clients: Number of all clients.
             num_updates:  Number of Clients that participate in the update.
             l2_norm_clip: The clipping norm to apply to the parameters or gradients.
             is_secure_generator: whether use the secure generator to generate noise.
-            is_clip_prelayer: The 2norm of each layer is dynamically assigned.
+            is_clip_each_layer: The 2norm of each layer is dynamically assigned.
         """
         self.noise_multiplier = noise_multiplier
         self.l2_norm_clip = l2_norm_clip
@@ -53,7 +60,7 @@ class GaussianModelDP:
         self.is_clip_each_layer = is_clip_each_layer
 
     def __call__(self, inputs: List):
-        """Add gaussion dp on model parameters or gradients.
+        """Add gaussian dp on model parameters or gradients.
 
         Args:
             inputs: Model parameters.
@@ -78,17 +85,20 @@ class GaussianModelDP:
 
                     noise = random.secure_normal_real(
                         0,
-                        self.noise_multiplier * self.l2_norm_clip,
+                        self.noise_multiplier * self.l2_norm_clip * self.l2_norm_clip,
                         size=inputs[i].shape,
-                    )
+                    ).astype(np.float32)
                 else:
                     noise = np.random.normal(
-                        inputs[i].shape,
-                        stddev=self.noise_multiplier * self.l2_norm_clip,
-                    )
+                        loc=0.0,
+                        scale=self.noise_multiplier
+                        * self.l2_norm_clip
+                        * self.l2_norm_clip,
+                        size=inputs[i].shape,
+                    ).astype(np.float32)
 
                 model_weights_noised.append(
-                    np.add(gradient_clipped, noise / np.sqrt(self.num_updates))
+                    np.add(gradient_clipped, noise / self.num_updates)
                 )
         else:
             scale = min(1, self.l2_norm_clip / gradient_norm_all)
@@ -102,18 +112,20 @@ class GaussianModelDP:
 
                     noise = random.secure_normal_real(
                         0,
-                        self.noise_multiplier * self.l2_norm_clip,
+                        self.noise_multiplier * self.l2_norm_clip * self.l2_norm_clip,
                         size=inputs[i].shape,
                     ).astype(np.float32)
                 else:
                     noise = np.random.normal(
                         loc=0.0,
-                        scale=self.noise_multiplier * self.l2_norm_clip,
+                        scale=self.noise_multiplier
+                        * self.l2_norm_clip
+                        * self.l2_norm_clip,
                         size=inputs[i].shape,
                     ).astype(np.float32)
 
                 model_weights_noised.append(
-                    np.add(gradient_clipped, noise / np.sqrt(self.num_updates))
+                    np.add(gradient_clipped, noise / self.num_updates)
                 )
         return model_weights_noised
 
@@ -122,7 +134,7 @@ class GaussianModelDP:
 
         return np.sqrt(sum(inputs))
 
-    def privacy_spent_rdp(self, step: int, orders: List = None):
+    def privacy_spent_rdp(self, step: int, orders: Optional[List[float]] = None):
         """Get accountant using RDP.
 
         Args:
@@ -131,14 +143,7 @@ class GaussianModelDP:
         """
 
         if orders is None:
-            # order \in [2,128] empirically
-            orders = [1 + x / 10.0 for x in range(1, 100)] + list(range(12, 64))
-            # optional value
-            # orders = (
-            #     [1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 3.0, 3.5, 4.0, 4.5]
-            #     + list(range(5, 64))
-            #     + [128, 256, 512]
-            # )
+            orders = DEFAULT_RDP_ORDERS
 
         q = self.num_updates / self.num_clients
         rdp = get_rdp(q, self.noise_multiplier, step, orders)

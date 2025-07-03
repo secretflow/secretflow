@@ -13,17 +13,20 @@
 # limitations under the License.
 
 import random
-import time
 
 import numpy as np
 import pandas as pd
 import pytest
 from google.protobuf import json_format
+from secretflow_spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 
-from secretflow.component.core import DistDataType, build_node_eval_param, make_storage
-from secretflow.component.entry import comp_eval
+from secretflow.component.core import (
+    DistDataType,
+    build_node_eval_param,
+    comp_eval,
+    make_storage,
+)
 from secretflow.spec.extend.calculate_rules_pb2 import CalculateOpRules
-from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 from tests.component.infra.util import (
     eval_export,
     get_meta_and_dump_data,
@@ -37,7 +40,8 @@ from tests.component.infra.util import (
     "features_in_one_party, he_mode",
     [(False, True), (False, False), (True, True), (True, False)],
 )
-def test_ss_sgd_export(comp_prod_sf_cluster_config, features_in_one_party, he_mode):
+@pytest.mark.mpc
+def test_ss_sgd_export(sf_production_setup_comp, features_in_one_party, he_mode):
     work_path = f"test_ss_sgd_{features_in_one_party}_{he_mode}"
     alice_path = f"{work_path}/x_alice.csv"
     bob_path = f"{work_path}/x_bob.csv"
@@ -45,13 +49,13 @@ def test_ss_sgd_export(comp_prod_sf_cluster_config, features_in_one_party, he_mo
     report_path = f"{work_path}/model.report"
     predict_path = f"{work_path}/predict.csv"
 
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
     sf_cluster_config = setup_cluster_config(sf_cluster_config, he_mode)
 
     train_param = get_ss_sgd_train_param(alice_path, bob_path, model_path, report_path)
     meta = get_meta_and_dump_data(
         work_path,
-        comp_prod_sf_cluster_config,
+        sf_production_setup_comp,
         alice_path,
         bob_path,
         features_in_one_party,
@@ -101,14 +105,17 @@ def test_ss_sgd_export(comp_prod_sf_cluster_config, features_in_one_party, he_mo
 
 
 @pytest.mark.parametrize("features_in_one_party", [True, False])
-def test_ss_xgb_export(comp_prod_sf_cluster_config, features_in_one_party):
-    work_path = f"test_xgb_{features_in_one_party}"
+@pytest.mark.parametrize("he_mode", [True, False])
+@pytest.mark.mpc
+def test_ss_xgb_export(sf_production_setup_comp, features_in_one_party, he_mode):
+    work_path = f"test_ss_xgb_{features_in_one_party}_{he_mode}"
     alice_path = f"{work_path}/x_alice.csv"
     bob_path = f"{work_path}/x_bob.csv"
     model_path = f"{work_path}/model.sf"
     predict_path = f"{work_path}/predict.csv"
 
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
+    sf_cluster_config = setup_cluster_config(sf_cluster_config, he_mode)
 
     train_param = build_node_eval_param(
         domain="ml.train",
@@ -143,7 +150,7 @@ def test_ss_xgb_export(comp_prod_sf_cluster_config, features_in_one_party):
 
     meta = get_meta_and_dump_data(
         work_path,
-        comp_prod_sf_cluster_config,
+        sf_production_setup_comp,
         alice_path,
         bob_path,
         features_in_one_party,
@@ -198,6 +205,7 @@ def test_ss_xgb_export(comp_prod_sf_cluster_config, features_in_one_party):
         storage_config,
         sf_cluster_config,
         expected_input,
+        he_mode,
     )
 
     # by pred comp
@@ -208,40 +216,12 @@ def test_ss_xgb_export(comp_prod_sf_cluster_config, features_in_one_party):
         storage_config,
         sf_cluster_config,
         expected_input,
+        he_mode,
     )
 
-    with pytest.raises(
-        AssertionError, match="feature not supported yet. change `he_mode` to False."
-    ):
-        # by train comp
-        eval_export(
-            work_path,
-            [train_param],
-            [train_res],
-            storage_config,
-            sf_cluster_config,
-            expected_input,
-            True,
-        )
-    time.sleep(4)
 
-    with pytest.raises(
-        AssertionError, match="feature not supported yet. change `he_mode` to False."
-    ):
-        # by pred comp
-        eval_export(
-            work_path,
-            [predict_param],
-            [predict_res],
-            storage_config,
-            sf_cluster_config,
-            expected_input,
-            True,
-        )
-    time.sleep(4)
-
-
-def test_score_card_transformer_export(comp_prod_sf_cluster_config):
+@pytest.mark.mpc
+def test_score_card_transformer_export(sf_production_setup_comp):
     work_path = "test_score_card_transformer_export"
     alice_path = f"{work_path}/x_alice.csv"
     bob_path = f"{work_path}/x_bob.csv"
@@ -249,7 +229,7 @@ def test_score_card_transformer_export(comp_prod_sf_cluster_config):
     predict_path = f"{work_path}/predict.csv"
     score_card_trans_path = f"{work_path}/score_card_trans.csv"
 
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
 
     train_param = build_node_eval_param(
         domain="ml.train",
@@ -284,7 +264,7 @@ def test_score_card_transformer_export(comp_prod_sf_cluster_config):
 
     meta = get_meta_and_dump_data(
         work_path,
-        comp_prod_sf_cluster_config,
+        sf_production_setup_comp,
         alice_path,
         bob_path,
         False,
@@ -363,40 +343,8 @@ def test_score_card_transformer_export(comp_prod_sf_cluster_config):
         expected_input,
     )
 
-    with pytest.raises(
-        AssertionError, match="feature not supported yet. change `he_mode` to False."
-    ):
-        # by train comp
-        eval_export(
-            work_path,
-            [train_param],
-            [train_res],
-            storage_config,
-            sf_cluster_config,
-            expected_input,
-            True,
-        )
-    time.sleep(4)
 
-    with pytest.raises(
-        AssertionError, match="feature not supported yet. change `he_mode` to False."
-    ):
-        # by pred comp
-        eval_export(
-            work_path,
-            [predict_param],
-            [predict_res],
-            storage_config,
-            sf_cluster_config,
-            expected_input,
-            True,
-        )
-    time.sleep(4)
-
-
-def _inner_test_model_export(
-    comp_prod_sf_cluster_config, features_in_one_party, he_mode
-):
+def _inner_test_model_export(sf_production_setup_comp, features_in_one_party, he_mode):
     work_path = f"test_model_export_{features_in_one_party}"
     alice_input_path = f"{work_path}/alice.csv"
     bob_input_path = f"{work_path}/bob.csv"
@@ -420,7 +368,7 @@ def _inner_test_model_export(
 
     score_card_trans_path = f"{work_path}/score_card_transformer.csv"
 
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
     sf_cluster_config = setup_cluster_config(sf_cluster_config, he_mode)
     self_party = sf_cluster_config.private_config.self_party
     storage = make_storage(storage_config)
@@ -755,45 +703,45 @@ def _inner_test_model_export(
     )
 
 
-def test_model_export_features_in_one_party_true_phe_true(comp_prod_sf_cluster_config):
+@pytest.mark.mpc
+def test_model_export_features_in_one_party_true_phe_true(sf_production_setup_comp):
     '''
     In order to accommodate the parallel execution feature of pytest tests to speed up ci pipeline,
     parameters originally configured by parameterize need to be split across two different test_ functions.
     '''
     _inner_test_model_export(
-        comp_prod_sf_cluster_config, features_in_one_party=True, he_mode=True
+        sf_production_setup_comp, features_in_one_party=True, he_mode=True
     )
 
 
-def test_model_export_features_in_one_party_false_phe_true(comp_prod_sf_cluster_config):
+@pytest.mark.mpc
+def test_model_export_features_in_one_party_false_phe_true(sf_production_setup_comp):
     '''
     In order to accommodate the parallel execution feature of pytest tests to speed up ci pipeline,
     parameters originally configured by parameterize need to be split across two different test_ functions.
     '''
     _inner_test_model_export(
-        comp_prod_sf_cluster_config, features_in_one_party=False, he_mode=True
+        sf_production_setup_comp, features_in_one_party=False, he_mode=True
     )
 
 
-def test_model_export_features_in_one_party_false_phe_false(
-    comp_prod_sf_cluster_config,
-):
+@pytest.mark.mpc
+def test_model_export_features_in_one_party_false_phe_false(sf_production_setup_comp):
     '''
     In order to accommodate the parallel execution feature of pytest tests to speed up ci pipeline,
     parameters originally configured by parameterize need to be split across two different test_ functions.
     '''
     _inner_test_model_export(
-        comp_prod_sf_cluster_config, features_in_one_party=False, he_mode=False
+        sf_production_setup_comp, features_in_one_party=False, he_mode=False
     )
 
 
-def test_model_export_features_in_one_party_true_phe_false(
-    comp_prod_sf_cluster_config,
-):
+@pytest.mark.mpc
+def test_model_export_features_in_one_party_true_phe_false(sf_production_setup_comp):
     '''
     In order to accommodate the parallel execution feature of pytest tests to speed up ci pipeline,
     parameters originally configured by parameterize need to be split across two different test_ functions.
     '''
     _inner_test_model_export(
-        comp_prod_sf_cluster_config, features_in_one_party=True, he_mode=False
+        sf_production_setup_comp, features_in_one_party=True, he_mode=False
     )

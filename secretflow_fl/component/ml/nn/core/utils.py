@@ -15,7 +15,6 @@
 import logging
 
 from secretflow.component.core import Envs, get_bool_env
-from secretflow.error_system.exceptions import CompEvalError
 
 
 def enabled():
@@ -37,6 +36,6 @@ def enabled():
 
 def check_enabled_or_fail():
     if not enabled():
-        raise CompEvalError(
+        raise RuntimeError(
             f"slnn component is not enabled, please make sure tensorflow is installed and set env {Envs.ENABLE_NN.value}=true."
         )

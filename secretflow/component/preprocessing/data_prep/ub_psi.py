@@ -76,7 +76,7 @@ class UnbalancePsi(Component):
     )
 
     def evaluate(self, ctx: Context):
-        client_tbl = VTable.from_distdata(self.client_ds).party(0)
+        client_tbl = VTable.from_distdata(self.client_ds).get_party(0)
         client_tbl.schema = trans_keys_to_ids(client_tbl.schema, self.keys)
         data_client = client_tbl.party
         random_str = uuid4(data_client)
@@ -91,14 +91,10 @@ class UnbalancePsi(Component):
         server_party = public_info['server']
         client_party = public_info['client']
         cache_dir_name = public_info['cache_dir_name']
-        server_null_str = public_info['server_csv_null']
+        na_rep = public_info['server_csv_na_rep']
         cache_path = os.path.join(task_dir, cache_dir_name)
 
-        left_side = "ROLE_SERVER"
         join_type = self.join_type.get_selected()
-        if join_type == "left_join":
-            if self.join_type.left_join.left_side != server_party:
-                left_side = "ROLE_CLIENT"
 
         with PathCleanUp({server_party: task_dir, client_party: task_dir}):
             client_csv_path = os.path.join(task_dir, f'{random_str}.client_ds.csv')
@@ -109,7 +105,7 @@ class UnbalancePsi(Component):
                 )
             # for consistency, use server null str, so server NULL and client NULL can be joined
             download_res = PYU(client_party)(download_csv)(
-                ctx.storage, client_tbl, client_csv_path, server_null_str[0]
+                ctx.storage, client_tbl, client_csv_path, na_rep
             )
             wait(download_res)
 
@@ -133,7 +129,7 @@ class UnbalancePsi(Component):
                 )
             if client_get_result:
                 output_path[client_party] = os.path.join(
-                    ctx.data_dir, f'{random_str}.client_output.csv'
+                    task_dir, f'{random_str}.client_output.csv'
                 )
 
             spu = ctx.make_spu()
@@ -153,9 +149,13 @@ class UnbalancePsi(Component):
                     client_get_result=client_get_result,
                     disable_alignment=not (server_get_result and client_get_result),
                     output_path=output_path,
-                    left_side=left_side,
+                    left_side=(
+                        self.join_type.left_join.left_side
+                        if join_type == "left_join"
+                        else ""
+                    ),
                     join_type=to_join_type(join_type),
-                    null_rep=server_null_str[0],
+                    null_rep=na_rep,
                 )
             parties = {}
             server_schema = VTableSchema.from_pb_str(
@@ -168,8 +168,8 @@ class UnbalancePsi(Component):
                         ctx.storage,
                         self.output_ds.uri,
                         output_path[server_party],
-                        server_schema.to_arrow(),
-                        null_values=public_info['server_csv_null'],
+                        server_schema,
+                        null_values=na_rep,
                     )
                 )
 
@@ -185,8 +185,8 @@ class UnbalancePsi(Component):
                         ctx.storage,
                         self.output_ds.uri,
                         output_path[client_party],
-                        client_tbl.schema.to_arrow(),
-                        null_values=client_tbl.null_strs + [server_null_str[0]],
+                        client_tbl.schema,
+                        null_values=na_rep,
                     )
                 )
 

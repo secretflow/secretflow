@@ -23,36 +23,28 @@ import numpy as np
 import pandas as pd
 import pyarrow as pa
 import pyarrow.compute as pc
-
-from secretflow.data import FedNdarray, partition
-from secretflow.data.vertical.dataframe import VDataFrame
-from secretflow.device import PYU, PYUObject, reveal, wait
-from secretflow.device.device.base import Device
-from secretflow.error_system.exceptions import (
-    CompEvalError,
-    DataFormatError,
-    NotSupportedError,
-)
-from secretflow.spec.v1.data_pb2 import (
-    DistData,
-    IndividualTable,
-    SystemInfo,
-    VerticalTable,
-)
-
-from .common.io import IReader, IWriter
-from .common.types import Output, TimeTracer
-from .dataframe_io import new_reader_proxy, new_writer_proxy
-from .dist_data.base import DistDataType, IDumper
-from .dist_data.vtable import (
-    NP_DTYPE_TO_PA_DTYPE,
+from secretflow_spec import (
+    Output,
+    Storage,
     VTable,
     VTableField,
     VTableFieldKind,
     VTableFormat,
     VTableSchema,
 )
-from .storage import Storage
+from secretflow_spec.v1.data_pb2 import DistData, SystemInfo
+
+from secretflow.component.core.dist_data.vtable_utils import VTableUtils
+from secretflow.data import FedNdarray, partition
+from secretflow.data.vertical.dataframe import VDataFrame
+from secretflow.device import PYU, PYUObject, reveal, wait
+from secretflow.device.device.base import Device
+from secretflow.utils.errors import InvalidArgumentError, InvalidStateError
+
+from .dataframe_io import new_reader_proxy, new_writer_proxy
+from .dist_data.base import IDumper
+from .io import IReader, IWriter
+from .types import TimeTracer
 
 
 class CompPartition:
@@ -81,6 +73,7 @@ class CompPartition:
     @property
     def shape(self) -> Tuple[int, int]:
         pyu = self.device
+
         return reveal(pyu(lambda t: t.shape)(self.data))
 
     @property
@@ -139,6 +132,7 @@ class CompPartition:
                 return pa.concat_tables([t1, t2])
 
         else:
+
             assert self.shape[0] == other.shape[0]
             assert len(set(self.columns).intersection(set(other.columns))) == 0
 
@@ -161,7 +155,7 @@ class CompVDataFrame(IDumper):
 
     def data(self, pyu: PYU) -> PYUObject:
         if pyu not in self.partitions:
-            raise CompEvalError.party_check_failed(f"pyu {pyu} not exist in comp data")
+            raise InvalidArgumentError(f"pyu {pyu} not exist in comp data")
         return self.partitions[pyu].data
 
     def set_data(self, data: PYUObject) -> None:
@@ -191,7 +185,10 @@ class CompVDataFrame(IDumper):
             # so, failed if table contains NULL.
             for c in t.column_names:
                 if pc.any(pc.is_null(t[c], nan_is_null=True)).as_py():
-                    raise DataFormatError.none_filed_in_column(column=c)
+                    raise InvalidStateError(
+                        message="None or NaN contains in column, pls fillna before use in training.",
+                        detail={"column": c},
+                    )
 
             return t.to_pandas()
 
@@ -213,10 +210,8 @@ class CompVDataFrame(IDumper):
             kinds = ts.kinds
             fields = []
             for name, dtype in zip(df.columns, df.dtypes):
-                pa_dtype = NP_DTYPE_TO_PA_DTYPE.get(dtype.type)
-                if pa_dtype is None:
-                    raise ValueError(f"unsupported type: {dtype}")
-                field = VTableField.pa_field(name, pa_dtype, kinds[name])
+                pa_dtype = VTableUtils.np_dtype_to_pa_dtype(dtype)
+                field = VTableUtils.pa_field(name, pa_dtype, kinds[name])
                 fields.append(field)
             schema = pa.schema(fields)
             res = pa.Table.from_pandas(df, schema=schema, preserve_index=False)
@@ -238,41 +233,38 @@ class CompVDataFrame(IDumper):
         assert isinstance(f_nd, FedNdarray)
 
         def _from_values(data: np.ndarray, ts: VTableSchema) -> pa.Table:
-            pa_dtype = NP_DTYPE_TO_PA_DTYPE.get(data.dtype.type)
-            if pa_dtype is None:
-                raise NotSupportedError.not_supported_data_type(
-                    f"unsupported type: {data.dtype}"
+            pa_dtype = VTableUtils.np_dtype_to_pa_dtype(data.dtype)
+            if data.ndim == 1 and len(ts.fields) != 1:
+                raise InvalidArgumentError(
+                    f"1d array schema field should be one, but got {data.shape}"
                 )
-
-            if data.shape[1] != len(ts.fields):
-                raise DataFormatError.feature_not_matched(
+            elif data.ndim == 2 and data.shape[1] != len(ts.fields):
+                raise InvalidArgumentError(
                     f"columns size mismatch, {data.shape}, {ts.fields.keys()}"
                 )
 
             fields = []
             for f in ts.fields.values():
-                field = VTableField.pa_field(f.name, pa_dtype, f.kind)
+                field = VTableUtils.pa_field(f.name, pa_dtype, f.kind)
                 fields.append(field)
             schema = pa.schema(fields)
             df = pd.DataFrame(data, columns=schema.names)
             res = pa.Table.from_pandas(df, schema=schema, preserve_index=False)
-            # res = pa.Table.from_arrays(data, schema=schema)
             return res
 
         partitions = {}
         for pyu, partition in f_nd.partitions.items():
             if pyu.party not in schemas:
-                raise CompEvalError.party_check_failed(
-                    f"pyu.party {pyu.party} not in schemas"
-                )
+                raise InvalidArgumentError(f"pyu.party {pyu.party} not in schemas")
             data = pyu(_from_values)(partition, schemas[pyu.party])
+
             partitions[pyu] = CompPartition(data)
 
         return CompVDataFrame(partitions, system_info)
 
     def _col_index(self, items) -> Dict[PYU, List[str]]:
         if not self.partitions:
-            raise DataFormatError.empty_dataset(f"can not get index on empty DataFrame")
+            raise RuntimeError(f"can not get index on empty DataFrame")
 
         if hasattr(items, "tolist"):
             items = items.tolist()
@@ -287,7 +279,9 @@ class CompVDataFrame(IDumper):
         for item in items:
             pyu = columns_to_party.get(item, None)
             if pyu is None:
-                raise CompEvalError(f'Item {item} does not exist in columns_to_party.')
+                raise InvalidArgumentError(
+                    f'Item {item} does not exist in columns_to_party.'
+                )
             ret[pyu].append(item)
 
         # keep party order
@@ -320,12 +314,12 @@ class CompVDataFrame(IDumper):
         assert axis in [0, 1]
         if axis == 1:
             if not set(other.partitions.keys()).issubset(self.partitions.keys()):
-                raise CompEvalError(
+                raise InvalidArgumentError(
                     f"other DataFrame's partition {other.partitions.keys()} not in self partition {self.partitions.keys()}"
                 )
         else:
             if set(other.partitions.keys()) != set(self.partitions.keys()):
-                raise CompEvalError(
+                raise InvalidArgumentError(
                     f"other DataFrame's partition {other.partitions.keys()} not equal to self partition {self.partitions.keys()}"
                 )
 
@@ -398,7 +392,7 @@ class CompVDataFrame(IDumper):
         vtbl = dd if isinstance(dd, VTable) else VTable.from_distdata(dd)
         partitions = {}
         for party, p in vtbl.parties.items():
-            pa_schema = p.schema.to_arrow()
+            pa_schema = VTableUtils.to_arrow_schema(p.schema)
             r = new_reader_proxy(
                 PYU(party), storage, p.format, p.uri, pa_schema, null_strs=p.null_strs
             )
@@ -407,14 +401,14 @@ class CompVDataFrame(IDumper):
             partitions[PYU(party)] = CompPartition(data_obj)
         ret = CompVDataFrame(partitions=partitions, system_info=dd.system_info)
         if not math.prod(ret.shape):
-            raise DataFormatError.empty_dataset(
-                f"empty dataset {ret.shape} is not allowed"
-            )
+            raise InvalidStateError("empty dataset is not allowed")
         return ret
 
-    def dump(self, storage: Storage, uri: str, format: VTableFormat = VTableFormat.ORC) -> DistData:  # type: ignore
+    def dump(
+        self, storage: Storage, uri: str, format: VTableFormat = VTableFormat.ORC
+    ) -> DistData:
         if not self.partitions:
-            raise DataFormatError.empty_dataset("can not dump empty dataframe")
+            raise InvalidStateError("can not dump empty dataframe")
 
         closes = []
         lines = []
@@ -424,22 +418,21 @@ class CompVDataFrame(IDumper):
             closes.append(w.close())
         lines = reveal(lines)
         if len(set(lines)) != 1:
-            raise DataFormatError.dataset_not_aligned(
-                f"DataFrame is not aligned, {lines}"
+            raise InvalidStateError(
+                message="DataFrame is not aligned", detail={"lines": lines}
             )
         if lines[0] <= 0:
-            raise DataFormatError.empty_dataset(
-                f"empty dataset is not allowed, line_count={lines[0]}"
-            )
+            raise InvalidStateError("empty dataset is not allowed")
         wait(closes)
 
         schemas = {}
         for pyu, obj in self.partitions.items():
-            schemas[pyu.party] = VTableSchema.from_arrow(obj.schema)
+            schemas[pyu.party] = VTableUtils.from_arrow_schema(obj.schema)
 
-        return _to_distdata_by_uri(
-            schemas, uri, format, line_count=lines[0], system_info=self.system_info
+        vtbl = VTable.from_output_uri(
+            uri, schemas, line_count=lines[0], system_info=self.system_info
         )
+        return vtbl.to_distdata()
 
 
 class CompVDataFrameReader:
@@ -454,7 +447,7 @@ class CompVDataFrameReader:
         readers: dict[str, IReader] = {}
         for p in vtbl.parties.values():
             pyu = PYU(p.party)
-            pa_schema = p.schema.to_arrow()
+            pa_schema = VTableUtils.to_arrow_schema(p.schema)
             reader = new_reader_proxy(
                 pyu,
                 storage,
@@ -487,27 +480,25 @@ class CompVDataFrameReader:
 
     def read_next(self) -> CompVDataFrame:
         datas = {}
-        eofs = []
+        lines = []
         for p, r in self._readers.items():
-            (data_obj, eof_obj) = r.read_next()
+            (data_obj, line_obj) = r.read_next()
             datas[p] = CompPartition(data_obj)
-            eofs.append(eof_obj)
+            lines.append(line_obj)
 
-        eofs = set(reveal(eofs))
-        if len(eofs) != 1:
-            raise DataFormatError.dataset_not_aligned(
-                f"DataFrame is not aligned, {eofs}"
+        lines = set(reveal(lines))
+        if len(lines) != 1:
+            raise InvalidStateError(
+                message="DataFrame is not aligned", detail={"lines": lines}
             )
-        eof = next(iter(eofs)) == True
+        eof = next(iter(lines)) == True
 
         if eof:
             return None
 
         ret = CompVDataFrame(datas, system_info=self._system_info)
         if not math.prod(ret.shape):
-            raise DataFormatError.empty_dataset(
-                f"empty dataset {ret.shape} is not allowed"
-            )
+            raise InvalidStateError("empty dataset is not allowed")
         return ret
 
     def close(self) -> None:
@@ -543,7 +534,7 @@ class CompVDataFrameWriter:
         if self._writers is not None:
             return
         if not df.partitions:
-            raise DataFormatError.empty_dataset("cannot write empty DataFrame")
+            raise InvalidStateError("cannot write empty DataFrame")
         self._writers = {}
         self._schemas = {}
         for pyu, obj in df.partitions.items():
@@ -551,7 +542,7 @@ class CompVDataFrameWriter:
             w = new_writer_proxy(
                 pyu, self._storage, self._format, self._uri, schema=obj.schema
             )
-            self._schemas[party] = VTableSchema.from_arrow(obj.schema)
+            self._schemas[party] = VTableUtils.from_arrow_schema(obj.schema)
             self._writers[pyu] = w
 
         self._system_info = df.system_info
@@ -565,8 +556,8 @@ class CompVDataFrameWriter:
             write_lines.append(w.write(partitions[p].data))
         write_lines = reveal(write_lines)
         if len(set(write_lines)) != 1:
-            raise DataFormatError.dataset_not_aligned(
-                f"DataFrame is not aligned, lines: {write_lines}"
+            raise InvalidStateError(
+                message="DataFrame is not aligned", detail={"lines": write_lines}
             )
         self.line_count += write_lines[0]
 
@@ -577,49 +568,22 @@ class CompVDataFrameWriter:
 
     def dump(self) -> DistData:
         if self._schemas is None or self.line_count <= 0:
-            raise DataFormatError.empty_dataset(
-                f"empty dataset is not allowed, schema={self._schemas}, line_count={self.line_count}"
-            )
-        return _to_distdata_by_uri(
-            self._schemas,
+            raise InvalidStateError("empty dataset is not allowed")
+
+        vtbl = VTable.from_output_uri(
             self._uri,
-            format=self._format,
+            self._schemas,
             line_count=self.line_count,
+            format=self._format,
             system_info=self._system_info,
         )
+        return vtbl.to_distdata()
 
     def dump_to(self, out: Output):
         out.data = self.dump()
 
 
-def _to_distdata_by_uri(
-    schemas: dict[str, VTableSchema],
-    uri: str,
-    format: VTableFormat = VTableFormat.ORC,
-    line_count: int = 0,
-    system_info: SystemInfo = None,
-) -> DistData:
-    parties = list(schemas.keys())
-    is_individual = len(schemas) == 1
-    if is_individual:
-        dd_type = DistDataType.INDIVIDUAL_TABLE
-        pb_schema = schemas[parties[0]].to_pb()
-        meta = IndividualTable(schema=pb_schema, line_count=line_count)
-    else:
-        dd_type = DistDataType.VERTICAL_TABLE
-        pb_schemas = [schemas[p].to_pb() for p in parties]
-        meta = VerticalTable(schemas=pb_schemas, line_count=line_count)
-
-    dd = DistData(
-        name=uri,
-        type=str(dd_type),
-        system_info=system_info,
-        data_refs=[
-            DistData.DataRef(uri=uri, party=p, format=str(format)) for p in parties
-        ],
-    )
-    dd.meta.Pack(meta)
-    return dd
+import logging
 
 
 def save_prediction(
@@ -648,17 +612,23 @@ def save_prediction(
     if saved_labels:
         addition_cols.extend(saved_labels)
 
-    # all columns must belong be receiver
+    # all columns must belong to receiver
     receiver_cols_set = set(tbl.parties[pyu.party].columns)
     addition_cols_set = set()
     for f in addition_cols:
         if f in addition_cols_set or f == pred_name:
-            raise DataFormatError.feature_intersection_with_label(
-                f"do not select {f} as saved feature, repeated with id or label"
+            raise InvalidStateError(
+                message="The column cannot be used as both label and feature",
+                detail={"column": f},
             )
         if f not in receiver_cols_set:
-            raise CompEvalError.party_check_failed(
-                f"The saved feature {addition_cols} can only belong to receiver party {pyu.party}, but {f} is not"
+            raise InvalidStateError(
+                message="The saved feature can only belong to receiver",
+                detail={
+                    "column": f,
+                    "receiver": pyu.party,
+                    "receiver_columns": receiver_cols_set,
+                },
             )
         addition_cols_set.add(f)
 
@@ -688,14 +658,17 @@ def save_prediction(
             pred = batch_pred(pred_batch)
             assert len(pred.partitions) == 1
             if pyu not in pred.partitions:
-                raise CompEvalError.party_check_failed(
-                    f"pyu [{pyu}] not in pred.partitions [{pred.partitions}]"
+                raise InvalidStateError(
+                    message="pyu not in pred.partitions",
+                    detail={"pyu": pyu.party, "partitions": pred.partitions},
                 )
             if isinstance(pred, FedNdarray):
+                logging.info('from value')
                 pred_df = CompVDataFrame.from_values(
                     pred, pred_schemas, feature_dataset.system_info
                 )
             elif isinstance(pred, VDataFrame):
+                logging.info('from pandas')
                 pred_df = CompVDataFrame.from_pandas(
                     pred, pred_schemas, feature_dataset.system_info
                 )
@@ -704,9 +677,15 @@ def save_prediction(
                 addition_df = batch[addition_cols]
                 assert len(addition_df.partitions) == 1
                 if pyu not in addition_df.partitions:
-                    raise CompEvalError.party_check_failed(
-                        f"pyu [{pyu}] not in addition_df.partitions [{addition_df.partitions}]"
+                    raise InvalidStateError(
+                        message="pyu not in addition_df.partitions",
+                        detail={"pyu": pyu.party, "partitions": addition_df.partitions},
                     )
+
+                logging.info(f'pred_df: {type(pred_df)}')
+                logging.info(f'pred_df: {pred_df.shape}')
+                logging.info(f'addition_df: {addition_df.shape}')
+
                 out_df = pred_df.concat(addition_df, axis=1)
             else:
                 out_df = pred_df

@@ -13,27 +13,30 @@
 # limitations under the License.
 
 import json
+import logging
+
+from google.protobuf.json_format import MessageToJson
 
 from secretflow.component.core import (
-    SPU_RUNTIME_CONFIG_FM128_FXP40,
-    SS_GLM_MODEL_MAX,
-    SS_SGD_MODEL_MAX,
     Component,
     Context,
     DistDataType,
     Field,
     Input,
     Output,
+    register,
     Reporter,
+    SPU_RUNTIME_CONFIG_FM128_FXP40,
+    SS_GLM_MODEL_MAX,
+    SS_SGD_MODEL_MAX,
     VTable,
     VTableFieldKind,
-    register,
 )
 from secretflow.device import SPUObject
-from secretflow.ml.linear import SSGLM, RegType, SSRegression
+from secretflow.ml.linear import RegType, SSGLM, SSRegression
 from secretflow.ml.linear.linear_model import LinearModel
 from secretflow.ml.linear.ss_glm.core.distribution import DistributionType
-from secretflow.ml.linear.ss_glm.core.link import LinkType, get_link
+from secretflow.ml.linear.ss_glm.core.link import get_link, LinkType
 from secretflow.stats.ss_pvalue_v import PValue
 from secretflow.utils.sigmoid import SigType
 
@@ -76,6 +79,7 @@ class SSPValue(Component):
         system_info = self.input_ds.system_info
         r = Reporter(name="pvalue", desc="pvalue list", system_info=system_info)
         r.add_tab(desc)
+        logging.info(f'\n--\n*report* \n\n{MessageToJson(r.report())}\n--\n')
         self.report.data = r.to_distdata()
 
     def sgd_pvalue(self, ctx: Context) -> tuple[list[float], list[str]]:

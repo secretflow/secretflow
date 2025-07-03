@@ -18,6 +18,9 @@ from typing import Dict, List, Tuple
 import numpy as np
 import pyarrow as pa
 from pyarrow import compute as pc
+from secretflow_spec.v1.component_pb2 import Attribute
+from secretflow_spec.v1.data_pb2 import DistData
+from secretflow_spec.v1.report_pb2 import Descriptions, Div, Report, Tab
 
 import secretflow.compute as sc
 from secretflow.component.core import (
@@ -27,19 +30,18 @@ from secretflow.component.core import (
     Field,
     Input,
     Interval,
+    IServingExporter,
     Output,
     ServingBuilder,
     UnionSelection,
     VTable,
-    VTableField,
+    VTableUtils,
     float_almost_equal,
     register,
 )
 from secretflow.device import PYUObject
 from secretflow.device.driver import reveal
-from secretflow.spec.v1.component_pb2 import Attribute
-from secretflow.spec.v1.data_pb2 import DistData
-from secretflow.spec.v1.report_pb2 import Descriptions, Div, Report, Tab
+from secretflow.utils.errors import InvalidArgumentError
 
 from ..preprocessing import PreprocessingMixin
 
@@ -64,7 +66,7 @@ def apply_onehot_rule_on_table(table: sc.Table, additional_info: Dict) -> sc.Tab
                     onehot_cond = sc.or_(onehot_cond, cond)
 
             new_col = sc.if_else(onehot_cond, np.float32(1), np.float32(0))
-            new_field = VTableField.pa_field_from(
+            new_field = VTableUtils.pa_field_from(
                 f"{col_name}_{idx}", new_col.dtype, col_field
             )
             table = table.append_column(new_field, new_col)
@@ -78,13 +80,15 @@ def fit_col(
     # remove null / nan
     col = pc.filter(col, pc.invert(pc.is_null(col, nan_is_null=True)))
     if len(col) == 0:
-        raise RuntimeError(
-            f"feature {col_name} contains only null and nan, can not onehotencode on this feature"
+        raise InvalidArgumentError(
+            "the feature only contains null and nan",
+            detail={"feature": col_name},
         )
     value_counts = pc.value_counts(col)
     if len(value_counts) >= 100:
-        raise RuntimeError(
-            f"feature {col_name} has too many categories {len(value_counts)}"
+        raise InvalidArgumentError(
+            "the feature has too many categories",
+            detail={"feature": col_name, "categories": len(value_counts)},
         )
     if drop_mode == "mode":
         value_counts = value_counts.sort(order="descending", by=1)
@@ -94,7 +98,9 @@ def fit_col(
     elif drop_mode == "no_drop":
         drop_category = None
     else:
-        raise AttributeError(f"unknown drop_mode {drop_mode}")
+        raise InvalidArgumentError(
+            "unsupported drop_mode", detail={"drop_mode": drop_mode}
+        )
 
     category = [
         [vc[0].as_py()]
@@ -132,7 +138,7 @@ def _onehot_encode_fit(trans_data: pa.Table, drop: str, min_frequency: float):
 
 
 @register(domain="preprocessing", version="1.0.0")
-class OnehotEncode(PreprocessingMixin, Component):
+class OnehotEncode(PreprocessingMixin, Component, IServingExporter):
     '''
     onehot_encode
     '''

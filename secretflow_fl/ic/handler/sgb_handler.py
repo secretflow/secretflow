@@ -299,7 +299,7 @@ class SgbIcHandler(IcHandler):
         return v_data, label_data
 
     def _train(self, params: dict, x: FedNdarray, y: FedNdarray) -> SgbModel:
-        heu = sf.HEU(self._phe.config, spu.spu_pb2.FM128)
+        heu = sf.HEU(self._phe.config, spu.FieldType.FM128)
         sgb = Sgb(heu)
         return sgb.train(params, x, y)
 

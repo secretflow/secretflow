@@ -16,11 +16,13 @@ import pytest
 
 from secretflow.security.compare.spu_comparator import SPUComparator
 from tests.security.compare.test_comparator_base import ComparatorBase
+from tests.sf_fixtures import mpc_fixture
 
 
-class TestSPUComparator(ComparatorBase):
-    @pytest.fixture()
-    def env_and_comparator(self, sf_production_setup_devices):
-        yield sf_production_setup_devices, SPUComparator(
-            sf_production_setup_devices.spu
-        )
+@mpc_fixture(alias="env_and_comparator")
+def spu_env_and_comparator(sf_production_setup_devices):
+    return sf_production_setup_devices, SPUComparator(sf_production_setup_devices.spu)
+
+
+@pytest.mark.mpc(fixtures=["spu_env_and_comparator"])
+class TestSPUComparator(ComparatorBase): ...

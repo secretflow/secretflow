@@ -20,7 +20,7 @@ import numpy as np
 import pandas as pd
 from pandas.core.indexes.base import Index
 
-from secretflow.utils.errors import InvalidArgumentError, NotFoundError, UnexpectedError
+from secretflow.utils.errors import InvalidArgumentError
 
 from ..core.partition import Partition
 from ..horizontal import HDataFrame
@@ -144,7 +144,7 @@ class MixDataFrame:
         elif isinstance(self.partitions[0], VDataFrame):
             return PartitionWay.HORIZONTAL
         else:
-            raise UnexpectedError(f'Unknown partition type: {type(self.partitions[0])}')
+            raise RuntimeError(f'Unknown partition type: {type(self.partitions[0])}')
 
     def mean(self, *args, **kwargs) -> pd.Series:
         """
@@ -401,7 +401,7 @@ class MixDataFrame:
                 break
 
             if not found:
-                raise NotFoundError(f'Item {key} does not exist.')
+                raise KeyError(f'Item {key} does not exist.')
         return part_col
 
     def __getitem__(self, item) -> 'MixDataFrame':

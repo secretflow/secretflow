@@ -23,19 +23,15 @@ from secretflow.component.core import (
     VTable,
     VTableParty,
     build_node_eval_param,
+    comp_eval,
     make_storage,
     write_csv,
 )
-from secretflow.component.entry import comp_eval
 
 
-@pytest.mark.parametrize(
-    'comp_prod_sf_cluster_config',
-    [{'spu_party_size': 3}],
-    indirect=True,
-)
-def test_psi_tp(comp_prod_sf_cluster_config):
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+@pytest.mark.mpc(parties=3)
+def test_psi_tp(sf_production_setup_comp):
+    storage_config, sf_cluster_config = sf_production_setup_comp
     self_party = sf_cluster_config.private_config.self_party
     storage = make_storage(storage_config)
 

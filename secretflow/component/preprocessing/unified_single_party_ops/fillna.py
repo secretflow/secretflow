@@ -24,12 +24,14 @@ from secretflow.component.core import (
     DistDataType,
     Field,
     Input,
+    IServingExporter,
     Output,
     ServingBuilder,
     VTable,
     float_almost_equal,
     register,
 )
+from secretflow.utils.errors import InvalidArgumentError, NotSupportedError
 
 from ..preprocessing import PreprocessingMixin
 
@@ -124,7 +126,7 @@ def fit_col(
     dtype = col.type
     col = clear_col(col, outliers, nan_is_null)
     if fill_strategy != "constant" and col.length() == 0:
-        raise AttributeError(
+        raise InvalidArgumentError(
             f"Column {col_name} contains only null values and outlie values, "
             "no available most frequent value."
         )
@@ -146,8 +148,9 @@ def fit_col(
     ):
         fill_value = pc.approximate_median(col).as_py()
     else:
-        raise AttributeError(
-            f"unsupported fill_strategy {fill_strategy} for dtype {dtype} col"
+        raise InvalidArgumentError(
+            "unsupported fill_strategy for dtype col",
+            detail={"dtype": dtype, "fill_strategy": fill_strategy},
         )
 
     if pa.types.is_integer(dtype):
@@ -158,7 +161,7 @@ def fit_col(
 
 
 @register(domain="preprocessing", version="1.0.0", name="fillna")
-class FillNA(PreprocessingMixin, Component):
+class FillNA(PreprocessingMixin, Component, IServingExporter):
     '''
     Fill null/nan or other specificed outliers in dataset
     '''
@@ -198,7 +201,7 @@ class FillNA(PreprocessingMixin, Component):
 
         If "median", then replace missing values using the median along each column
 
-        If "most_frequent", then replace missing using the most frequent value along each column.
+        If "most_frequent", then replace missing using the most frequent value along each column. 
 
         If "constant", then replace missing values with fill_value_int.
         """,
@@ -215,7 +218,7 @@ class FillNA(PreprocessingMixin, Component):
 
         If "median", then replace missing values using the median along each column
 
-        If "most_frequent", then replace missing using the most frequent value along each column.
+        If "most_frequent", then replace missing using the most frequent value along each column. 
 
         If "constant", then replace missing values with fill_value_float.
         """,
@@ -294,7 +297,9 @@ class FillNA(PreprocessingMixin, Component):
                         n, col, [], self.bool_fill_strategy, self.fill_value_bool, False
                     )
                 else:
-                    raise AttributeError(f"unsupported column dtype {dtype} ")
+                    raise NotSupportedError(
+                        "unsupported column dtype.", detail={"dtype": dtype}
+                    )
 
             return {"nan_is_null": self.nan_is_null, "fill_rules": fill_rules}
 

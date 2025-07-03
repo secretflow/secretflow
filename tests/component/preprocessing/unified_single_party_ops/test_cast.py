@@ -13,32 +13,31 @@
 # limitations under the License.
 
 import logging
-import time
 
 import pandas as pd
 import pytest
 from pyarrow import orc
+from secretflow_spec.v1.data_pb2 import VerticalTable
 
 import secretflow.compute as sc
 from secretflow.component.core import (
     VTable,
     VTableParty,
     build_node_eval_param,
+    comp_eval,
     make_storage,
 )
-from secretflow.component.entry import comp_eval
 from secretflow.component.preprocessing.unified_single_party_ops.cast import Cast
-from secretflow.spec.v1.component_pb2 import Attribute
-from secretflow.spec.v1.data_pb2 import VerticalTable
 
 
-def test_cast(comp_prod_sf_cluster_config):
+@pytest.mark.mpc
+def test_cast(sf_production_setup_comp):
     alice_input_path = "test_cast/alice_input.csv"
     bob_input_path = "test_cast/bob_input.csv"
     output_path = "test_cast/output.csv"
     output_rule = "test_cast/output.rule"
 
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
     self_party = sf_cluster_config.private_config.self_party
     storage = make_storage(storage_config)
 
@@ -133,23 +132,73 @@ def test_cast(comp_prod_sf_cluster_config):
         sub_out = orc.read_table(storage.get_reader(sub_path)).to_pandas()
         original_out = orc.read_table(storage.get_reader(output_path)).to_pandas()
 
-        logging.warning(f"....... \nsub_out\n{sub_out}\n.,......")
+        logging.info(f"....... \nsub_out\n{sub_out}\n.,......")
 
         assert sub_out.equals(original_out)
 
-    # test raise error
-    logging.warning("test raise error")
-    param.attrs.pop()
-    param.attrs.append(Attribute(ss=["A"]))
 
-    with pytest.raises(Exception) as exc_info:
+@pytest.mark.mpc
+def test_cast_error(sf_production_setup_comp):
+    work_dir = "test_cast_error"
+    alice_input_path = f"{work_dir}/alice_input.csv"
+    bob_input_path = f"{work_dir}/bob_input.csv"
+    output_path = f"{work_dir}/output.csv"
+    output_rule = f"{work_dir}/output.rule"
+
+    storage_config, sf_cluster_config = sf_production_setup_comp
+    self_party = sf_cluster_config.private_config.self_party
+    storage = make_storage(storage_config)
+
+    alice_data = {"A": ["s1", "s2"], "B": [1, 2], "C": ["0.1", "0.2"]}
+    bob_data = {"D": [0.1, 1.2], "E": [True, False]}
+
+    if self_party == "alice":
+        pd.DataFrame(alice_data).to_csv(
+            storage.get_writer(alice_input_path),
+            index=False,
+        )
+    elif self_party == "bob":
+        pd.DataFrame(bob_data).to_csv(
+            storage.get_writer(bob_input_path),
+            index=False,
+        )
+
+    param = build_node_eval_param(
+        domain="preprocessing",
+        name="cast",
+        version="1.0.0",
+        attrs={
+            "astype": "float",
+            "input/input_ds/columns": ["A"],
+        },
+        inputs=[
+            VTable(
+                name="input_ds",
+                parties=[
+                    VTableParty.from_dict(
+                        uri=alice_input_path,
+                        party="alice",
+                        format="csv",
+                        features={"A": "str", "B": "int", "C": "str"},
+                    ),
+                    VTableParty.from_dict(
+                        uri=bob_input_path,
+                        party="bob",
+                        format="csv",
+                        features={"D": "float"},
+                        labels={"E": "bool"},
+                    ),
+                ],
+            )
+        ],
+        output_uris=[output_path, output_rule],
+    )
+    with pytest.raises(Exception):
         comp_eval(
             param=param,
             storage_config=storage_config,
             cluster_config=sf_cluster_config,
         )
-    time.sleep(4)
-    logging.warning(f"Caught expected Exception: {exc_info}")
 
 
 def test_cast_apply_table():
@@ -200,7 +249,7 @@ def test_cast_apply_table():
             df = pd.DataFrame({"A": item["data"]})
             table = sc.Table.from_pandas(df)
             Cast.apply(table, item["target"])
-        logging.warning(f"Caught expected Exception: {index},{exc_info}")
+        logging.info(f"Caught expected Exception: {index},{exc_info}")
 
     test_overflow = [
         {"data": [3.40e38], "target": "int"},
@@ -211,4 +260,4 @@ def test_cast_apply_table():
             df = pd.DataFrame({"A": item["data"]})
             table = sc.Table.from_pandas(df)
             Cast.apply(table, item["target"])
-        logging.warning(f"Caught expected Exception: {df},{exc_info}")
+        logging.info(f"Caught expected Exception: {df},{exc_info}")

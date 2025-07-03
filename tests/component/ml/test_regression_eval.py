@@ -16,20 +16,22 @@ import logging
 
 import numpy as np
 import pandas as pd
+import pytest
 from google.protobuf.json_format import MessageToJson
+from secretflow_spec.v1.report_pb2 import Report
 from sklearn.metrics import r2_score
 
 from secretflow.component.core import (
     VTable,
     VTableParty,
     build_node_eval_param,
+    comp_eval,
     make_storage,
 )
-from secretflow.component.entry import comp_eval
-from secretflow.spec.v1.report_pb2 import Report
 
 
-def test_regression_eval(comp_prod_sf_cluster_config):
+@pytest.mark.mpc
+def test_regression_eval(sf_production_setup_comp):
     np.random.seed(42)
     labels = np.round(np.random.random((800000,)))
     predictions = np.random.random((800000,))
@@ -42,7 +44,7 @@ def test_regression_eval(comp_prod_sf_cluster_config):
 
     alice_label_pred_path = "biclassification_eval/alice_label_pred.csv"
 
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
     self_party = sf_cluster_config.private_config.self_party
     storage = make_storage(storage_config)
 

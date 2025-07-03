@@ -22,10 +22,14 @@ import pytest
 from secretflow import reveal
 from secretflow.data import partition
 from secretflow.data.vertical import VDataFrame, read_csv
+from tests.sf_fixtures import mpc_fixture
 
 
-@pytest.fixture(scope="function")
-def prod_env_and_data(sf_production_setup_devices_ray):
+@mpc_fixture
+def prod_env_and_data(sf_production_setup_devices):
+    pyu_alice = sf_production_setup_devices.alice
+    pyu_bob = sf_production_setup_devices.bob
+
     df1 = pd.DataFrame(
         {
             "c1": ["K5", "K1", "K2", "K6", "K4", "K3"],
@@ -50,12 +54,9 @@ def prod_env_and_data(sf_production_setup_devices_ray):
     df1.to_csv(path1, index=False)
     df2.to_csv(path2, index=False)
 
-    filepath = {
-        sf_production_setup_devices_ray.alice: path1,
-        sf_production_setup_devices_ray.bob: path2,
-    }
+    filepath = {pyu_alice: path1, pyu_bob: path2}
 
-    yield sf_production_setup_devices_ray, filepath
+    yield sf_production_setup_devices, filepath
 
     for path in filepath.values():
         os.remove(path)
@@ -69,6 +70,7 @@ def cleartmp(paths):
             pass
 
 
+@pytest.mark.mpc
 def test_read_csv(prod_env_and_data):
     env, data = prod_env_and_data
     df = read_csv(data, spu=env.spu, keys="c1", drop_keys={env.alice: "c1"})
@@ -91,6 +93,7 @@ def test_read_csv(prod_env_and_data):
     pd.testing.assert_frame_equal(df_bob.reset_index(drop=True), expected_bob)
 
 
+@pytest.mark.mpc
 def test_read_csv_drop_keys(prod_env_and_data):
     env, data = prod_env_and_data
     df = read_csv(data, spu=env.spu, keys="c1", drop_keys="c1")
@@ -114,6 +117,7 @@ def test_read_csv_drop_keys(prod_env_and_data):
     )
 
 
+@pytest.mark.mpc
 def test_read_csv_with_dtypes(prod_env_and_data):
     env, data = prod_env_and_data
     dtypes = {
@@ -137,6 +141,7 @@ def test_read_csv_with_dtypes(prod_env_and_data):
     )
 
 
+@pytest.mark.mpc
 def test_read_csv_with_usecols(prod_env_and_data):
     env, data = prod_env_and_data
     usecols = {
@@ -185,6 +190,7 @@ def test_read_csv_with_usecols(prod_env_and_data):
 #     env.spu.reset()
 
 
+@pytest.mark.mpc
 def test_read_csv_duplicated_cols(prod_env_and_data):
     env, _ = prod_env_and_data
     df1 = pd.DataFrame(
@@ -217,6 +223,7 @@ def test_read_csv_duplicated_cols(prod_env_and_data):
         os.remove(path)
 
 
+@pytest.mark.mpc
 def test_read_csv_drop_keys_out_of_scope(prod_env_and_data):
     env, _ = prod_env_and_data
     df1 = pd.DataFrame(
@@ -256,6 +263,7 @@ def test_read_csv_drop_keys_out_of_scope(prod_env_and_data):
         os.remove(path)
 
 
+@pytest.mark.mpc
 def test_read_csv_without_psi(prod_env_and_data):
     env, _ = prod_env_and_data
     df1 = pd.DataFrame({"c2": ["A5", "A1", "A2", "A6"], "c3": [5, 1, 2, 6]})
@@ -285,6 +293,7 @@ def test_read_csv_without_psi(prod_env_and_data):
     cleartmp([path1, path2])
 
 
+@pytest.mark.mpc
 def test_read_csv_without_psi_mismatch_length(prod_env_and_data):
     env, _ = prod_env_and_data
     df1 = pd.DataFrame(
@@ -310,6 +319,7 @@ def test_read_csv_without_psi_mismatch_length(prod_env_and_data):
     cleartmp([path1, path2])
 
 
+@pytest.mark.mpc
 def test_to_csv_should_ok(prod_env_and_data):
     env, _ = prod_env_and_data
     # GIVEN
@@ -341,8 +351,11 @@ def test_to_csv_should_ok(prod_env_and_data):
     cleartmp([path1, path2])
 
 
-@pytest.fixture(scope="function")
-def prod_env_and_aligned_data(sf_production_setup_devices_ray):
+@mpc_fixture
+def prod_env_and_aligned_data(sf_production_setup_devices):
+    pyu_alice = sf_production_setup_devices.alice
+    pyu_bob = sf_production_setup_devices.bob
+
     df1 = pd.DataFrame(np.random.random((20, 2)), columns=["a1", "a2"])
 
     df2 = pd.DataFrame(np.random.random((20, 2)), columns=["b1", "b2"])
@@ -353,10 +366,7 @@ def prod_env_and_aligned_data(sf_production_setup_devices_ray):
     df1.to_csv(path1, index=False)
     df2.to_csv(path2, index=False)
 
-    header_file = {
-        sf_production_setup_devices_ray.alice: path1,
-        sf_production_setup_devices_ray.bob: path2,
-    }
+    header_file = {pyu_alice: path1, pyu_bob: path2}
 
     _, path1 = tempfile.mkstemp()
     _, path2 = tempfile.mkstemp()
@@ -364,12 +374,9 @@ def prod_env_and_aligned_data(sf_production_setup_devices_ray):
     df1.to_csv(path1, index=False, header=False)
     df2.to_csv(path2, index=False, header=False)
 
-    no_header_file = {
-        sf_production_setup_devices_ray.alice: path1,
-        sf_production_setup_devices_ray.bob: path2,
-    }
+    no_header_file = {pyu_alice: path1, pyu_bob: path2}
 
-    yield sf_production_setup_devices_ray, header_file, no_header_file
+    yield sf_production_setup_devices, header_file, no_header_file
 
     for path in header_file.values():
         os.remove(path)
@@ -378,6 +385,7 @@ def prod_env_and_aligned_data(sf_production_setup_devices_ray):
 
 
 @pytest.mark.parametrize("backend", ["pandas", "polars"])
+@pytest.mark.mpc
 def test_read_csv_nrow(prod_env_and_aligned_data, backend):
     _, header_file, no_header_file = prod_env_and_aligned_data
 
@@ -392,6 +400,7 @@ def test_read_csv_nrow(prod_env_and_aligned_data, backend):
 
 @pytest.mark.parametrize("skips", [(0, 11), (7, 11), (13, 7), (20, 0)])
 @pytest.mark.parametrize("backend", ["pandas", "polars"])
+@pytest.mark.mpc
 def test_read_csv_skip(prod_env_and_aligned_data, backend, skips):
     _, header_file, no_header_file = prod_env_and_aligned_data
 

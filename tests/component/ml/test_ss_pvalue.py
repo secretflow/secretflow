@@ -16,6 +16,7 @@ import logging
 
 import pandas as pd
 import pytest
+from secretflow_spec.v1.report_pb2 import Report
 from sklearn.datasets import load_breast_cancer
 from sklearn.preprocessing import StandardScaler
 
@@ -23,20 +24,20 @@ from secretflow.component.core import (
     VTable,
     VTableParty,
     build_node_eval_param,
+    comp_eval,
     make_storage,
 )
-from secretflow.component.entry import comp_eval
-from secretflow.spec.v1.report_pb2 import Report
 
 
 @pytest.mark.parametrize("reg_type", ["logistic", "linear"])
-def test_ss_pvalue(comp_prod_sf_cluster_config, reg_type):
+@pytest.mark.mpc
+def test_ss_pvalue(sf_production_setup_comp, reg_type):
     alice_input_path = f"test_ss_pvalue{reg_type}/alice.csv"
     bob_input_path = f"test_ss_pvalue{reg_type}/bob.csv"
     model_path = f"test_ss_pvalue{reg_type}/model.sf"
     report_path = f"test_ss_pvalue{reg_type}/model.report"
 
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
     self_party = sf_cluster_config.private_config.self_party
     storage = make_storage(storage_config)
 
@@ -129,13 +130,14 @@ def test_ss_pvalue(comp_prod_sf_cluster_config, reg_type):
     assert len(descriptions.items) == 15 + 1
 
 
-def test_ss_pvalue_glm(comp_prod_sf_cluster_config):
+@pytest.mark.mpc
+def test_ss_pvalue_glm(sf_production_setup_comp):
     alice_input_path = f"test_ss_pvalue_glm/alice.csv"
     bob_input_path = f"test_ss_pvalue_glm/bob.csv"
     model_path = f"test_ss_pvalue_glm/model.sf"
     report_path = f"test_ss_pvalue_glm/report.sf"
 
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
     self_party = sf_cluster_config.private_config.self_party
     storage = make_storage(storage_config)
 

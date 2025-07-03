@@ -14,24 +14,26 @@
 
 
 import pyarrow as pa
+import pytest
 from pyarrow import orc
 
 from secretflow.component.core import (
     VTable,
     VTableFieldKind,
     build_node_eval_param,
+    comp_eval,
     make_storage,
 )
 from secretflow.component.core.connector.mock import add_mock_table
-from secretflow.component.entry import comp_eval
 
 
-def test_data_source(comp_prod_sf_cluster_config):
+@pytest.mark.mpc
+def test_data_source(sf_production_setup_comp):
     work_path = f"test_data_source"
     alice_path = f"{work_path}/alice"
     output_path = f"{work_path}/output"
 
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
     self_party = sf_cluster_config.private_config.self_party
     storage = make_storage(storage_config)
 
@@ -56,7 +58,7 @@ def test_data_source(comp_prod_sf_cluster_config):
 
     if self_party == "alice":
         out_tbl = VTable.from_distdata(res.outputs[0])
-        assert out_tbl.party(0).kinds == {
+        assert out_tbl.get_party(0).kinds == {
             "ID": VTableFieldKind.ID,
             "A": VTableFieldKind.FEATURE,
             "B": VTableFieldKind.FEATURE,

@@ -16,18 +16,20 @@ import logging
 import math
 
 import pandas as pd
+import pytest
+from secretflow_spec.v1.report_pb2 import Report
 
 from secretflow.component.core import (
     VTable,
     VTableParty,
     build_node_eval_param,
+    comp_eval,
     make_storage,
 )
-from secretflow.component.entry import comp_eval
-from secretflow.spec.v1.report_pb2 import Report
 
 
-def test_prediction_bias_eval(comp_prod_sf_cluster_config):
+@pytest.mark.mpc
+def test_prediction_bias_eval(sf_production_setup_comp):
     labels = [1, 0, 0, 0, 0, 1, 1, 1]
     predictions = [0.9, 0.1, 0.2, 0.3, 0.4, 0.5, 0.7, 0.8]
     label_pred_df = pd.DataFrame(
@@ -39,7 +41,7 @@ def test_prediction_bias_eval(comp_prod_sf_cluster_config):
 
     alice_label_pred_path = "prediction_bias_eval/alice_label_predict.csv"
 
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
     self_party = sf_cluster_config.private_config.self_party
     storage = make_storage(storage_config)
 

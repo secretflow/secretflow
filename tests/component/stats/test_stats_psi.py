@@ -17,6 +17,8 @@ import logging
 import numpy as np
 import pandas as pd
 import pytest
+from secretflow_spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
+from secretflow_spec.v1.report_pb2 import Report
 from sklearn.datasets import load_breast_cancer
 from sklearn.model_selection import train_test_split
 
@@ -25,23 +27,19 @@ from secretflow.component.core import (
     VTable,
     VTableParty,
     build_node_eval_param,
+    comp_eval,
     make_storage,
 )
-from secretflow.component.entry import comp_eval
 from secretflow.component.stats.stats_psi import (
     calculate_stats_psi_one_feature,
     get_bin_counts_one_feature,
 )
-from secretflow.error_system.exceptions import DataFormatError
-from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
-from secretflow.spec.v1.report_pb2 import Report
 
 # good psi [0, 0.1], notably significant change: [0, 0.25], substantial variation: [0.25, ]
 good_psi_threshold = 0.1
 
 
-@pytest.fixture
-def vert_bin_rule(comp_prod_sf_cluster_config):
+def gen_vert_bin_rule(sf_production_setup_comp):
     alice_path = "test_vert_binning/x_alice.csv"
     bob_path = "test_vert_binning/x_bob.csv"
     alice_test_path = "test_vert_binning/x_alice_test.csv"
@@ -50,7 +48,7 @@ def vert_bin_rule(comp_prod_sf_cluster_config):
     rule_path = "test_vert_binning/bin_rule"
     report_path = "test_vert_binning/report"
 
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
     self_party = sf_cluster_config.private_config.self_party
     storage = make_storage(storage_config)
 
@@ -117,19 +115,20 @@ def vert_bin_rule(comp_prod_sf_cluster_config):
     assert len(bin_res.outputs) == 3
     comp_ret = Report()
     bin_res.outputs[1].meta.Unpack(comp_ret)
-    logging.info("bin_res.outputs[1]: %s", comp_ret)
     bin_rule = bin_res.outputs[1]
     return bin_rule
 
 
-def test_stats_psi_input_bin_rule(vert_bin_rule, comp_prod_sf_cluster_config):
+@pytest.mark.mpc
+def test_stats_psi_input_bin_rule(sf_production_setup_comp):
     # the params in the following must be the same in vert_bin_rule
     alice_path = "test_vert_binning/x_alice.csv"
     bob_path = "test_vert_binning/x_bob.csv"
     alice_test_path = "test_vert_binning/x_alice_test.csv"
     bob_test_path = "test_vert_binning/x_bob_test.csv"
     report_path = "test_vert_binning/report"
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    vert_bin_rule = gen_vert_bin_rule(sf_production_setup_comp)
+    storage_config, sf_cluster_config = sf_production_setup_comp
     meta = VerticalTable(
         schemas=[
             TableSchema(
@@ -190,15 +189,14 @@ def test_stats_psi_input_bin_rule(vert_bin_rule, comp_prod_sf_cluster_config):
     logging.info(comp_ret)
 
 
-@pytest.fixture
-def vert_woe_bin_rule(comp_prod_sf_cluster_config):
+def gen_vert_woe_bin_rule(sf_production_setup_comp):
     alice_path = "test_io/x_alice.csv"
     bob_path = "test_io/x_bob.csv"
     out_path = "test_io/out.csv"
     rule_path = "test_io/bin_rule"
     report_path = "test_io/report"
 
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
     self_party = sf_cluster_config.private_config.self_party
     storage = make_storage(storage_config)
 
@@ -256,12 +254,14 @@ def vert_woe_bin_rule(comp_prod_sf_cluster_config):
     return bin_rule
 
 
-def test_stats_psi_input_woe_bin_rule(vert_woe_bin_rule, comp_prod_sf_cluster_config):
+@pytest.mark.mpc
+def test_stats_psi_input_woe_bin_rule(sf_production_setup_comp):
     # the params in the following must be the same in vert_bin_rule
     alice_path = "test_io/x_alice.csv"
     bob_path = "test_io/x_bob.csv"
     report_path = "test_io/report"
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    vert_woe_bin_rule = gen_vert_woe_bin_rule(sf_production_setup_comp)
+    storage_config, sf_cluster_config = sf_production_setup_comp
     meta = VerticalTable(
         schemas=[
             TableSchema(
@@ -324,14 +324,14 @@ def test_stats_psi_input_woe_bin_rule(vert_woe_bin_rule, comp_prod_sf_cluster_co
     logging.info(comp_ret)
 
 
-def test_stats_psi_woe_one_party_selected(
-    vert_woe_bin_rule, comp_prod_sf_cluster_config
-):
+@pytest.mark.mpc
+def test_stats_psi_woe_one_party_selected(sf_production_setup_comp):
     # the params in the following must be the same in vert_bin_rule
     alice_path = "test_io/x_alice.csv"
     bob_path = "test_io/x_bob.csv"
     report_path = "test_io/report"
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    vert_woe_bin_rule = gen_vert_woe_bin_rule(sf_production_setup_comp)
+    storage_config, sf_cluster_config = sf_production_setup_comp
     meta = VerticalTable(
         schemas=[
             TableSchema(
@@ -477,8 +477,5 @@ def test_stats_psi_fail():
     ]
     test_bin_stats = [("label0", '0', '20'), ('label1', '1', '20')]
 
-    with pytest.raises(
-        DataFormatError,
-        match=f"base_bin_stat\: {len(base_bin_stats)} and test_bin_stat\: {len(test_bin_stats)} size not match.",
-    ):
+    with pytest.raises(Exception):
         calculate_stats_psi_one_feature(base_bin_stats, test_bin_stats)
