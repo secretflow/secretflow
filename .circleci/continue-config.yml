@@ -133,7 +133,7 @@ commands:
           command: |
             set +e
             conda init
-            pytest --testmon --env <<parameters.mode>>  -n 4 --junitxml=results.xml -v -x --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml  << parameters.target_folder >>
+            pytest --testmon --env <<parameters.mode>> -n 4 --junitxml=results.xml -v -x --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml  << parameters.target_folder >>
             ret=$?
             set -e
             if [ $ret -eq 0 ] || [ $ret -eq 5 ]; then
@@ -248,7 +248,7 @@ commands:
               - << pipeline.parameters.test_any >>
           steps:
             - pytest_wrapper:
-                target_folder: --ignore=tests/ml/ tests/
+                target_folder: --ignore=tests/ml/ --ignore=tests/fl/ tests/
                 testmon_prefix: other_sim
                 mode: "sim"
   run_component_test_wrapper:
