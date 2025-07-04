@@ -218,7 +218,7 @@ commands:
               - << pipeline.parameters.test_ml >>
           steps:
             - pytest_wrapper:
-                target_folder: --ignore=tests/fl/ml/nn/ tests/ml/
+                target_folder: tests/ml/
                 testmon_prefix: ml_sim
                 mode: "sim"
   run_ml_nn_test:
@@ -234,7 +234,7 @@ commands:
               - << pipeline.parameters.test_ml_nn >>
           steps:
             - pytest_wrapper:
-                target_folder: tests/ml/nn/
+                target_folder: tests/fl/ml/nn/
                 testmon_prefix: ml_nn_sim
                 mode: "sim"
   run_other_sim_test:
