@@ -33,20 +33,15 @@ import jax.numpy as jnp
 import numpy as np
 import pandas as pd
 import spu
-import spu.libspu.link as spu_link
-import spu.libspu.logging as spu_logging
 import spu.utils.frontend as spu_fe
-from google.protobuf import json_format
 from heu import phe
-from spu import psi, spu_pb2
-from spu.utils.distributed import dtype_spu_to_np, shape_spu_to_np
+from spu import psi
 
 import secretflow.distributed as sfd
 from secretflow.distributed import FED_OBJECT_TYPES
 from secretflow.distributed.ray_op import get_obj_ref
-from secretflow.error_system.exceptions import InternalError
 from secretflow.utils import secure_pickle as pickle
-from secretflow.utils.errors import InvalidArgumentError
+from secretflow.utils.errors import InvalidArgumentError, YACLError
 from secretflow.utils.ndarray_bigint import BigintNdArray
 from secretflow.utils.progress import ProgressData
 
@@ -68,13 +63,13 @@ _LINK_DESC_NAMES = [
 ]
 
 SPU_PROTOCOLS_MAP = {
-    spu.spu_pb2.SEMI2K: 'semi2k',
-    spu.spu_pb2.CHEETAH: 'cheetah',
-    spu.spu_pb2.ABY3: 'aby3',
+    spu.ProtocolKind.SEMI2K: 'semi2k',
+    spu.ProtocolKind.CHEETAH: 'cheetah',
+    spu.ProtocolKind.ABY3: 'aby3',
 }
 
 
-def _fill_link_ssl_opts(tls_opts: Dict, link_ssl_opts: spu_link.SSLOptions):
+def _fill_link_ssl_opts(tls_opts: Dict, link_ssl_opts: spu.link.SSLOptions):
     for name, value in tls_opts.items():
         assert (
             isinstance(name, str) and name
@@ -85,7 +80,7 @@ def _fill_link_ssl_opts(tls_opts: Dict, link_ssl_opts: spu_link.SSLOptions):
             setattr(link_ssl_opts.verify, name, value)
 
 
-def _fill_link_desc_attrs(link_desc: Dict, tls_opts: Dict, desc: spu_link.Desc):
+def _fill_link_desc_attrs(link_desc: Dict, tls_opts: Dict, desc: spu.link.Desc):
     if link_desc:
         for name, value in link_desc.items():
             assert (
@@ -127,6 +122,27 @@ def _plaintext_to_numpy(data: Any) -> np.ndarray:
     return np.asarray(jnp.asarray(data))
 
 
+def shape_spu_to_np(spu_shape: spu.Shape):
+    return tuple(list(spu_shape.dims))
+
+
+def dtype_spu_to_np(spu_dtype):
+    MAP = {
+        spu.DataType.DT_F32: np.float32,
+        spu.DataType.DT_F64: np.float64,
+        spu.DataType.DT_I1: np.bool_,
+        spu.DataType.DT_I8: np.int8,
+        spu.DataType.DT_U8: np.uint8,
+        spu.DataType.DT_I16: np.int16,
+        spu.DataType.DT_U16: np.uint16,
+        spu.DataType.DT_I32: np.int32,
+        spu.DataType.DT_U32: np.uint32,
+        spu.DataType.DT_I64: np.int64,
+        spu.DataType.DT_U64: np.uint64,
+    }
+    return MAP.get(spu_dtype)
+
+
 @dataclass
 class SPUValueMeta:
     """The metadata of an SPU value, which is a Numpy array or equivalent."""
@@ -138,8 +154,8 @@ class SPUValueMeta:
     vtype: spu.Visibility
 
     # the following meta ensures SPU object could be consumed by SPU device.
-    protocol: spu_pb2.ProtocolKind
-    field: spu_pb2.FieldType
+    protocol: spu.ProtocolKind
+    field: spu.FieldType
     fxp_fraction_bits: int
 
 
@@ -350,7 +366,7 @@ class SPURuntime:
         rank: int,
         cluster_def: Dict,
         link_desc: Dict = None,
-        log_options: spu_logging.LogOptions = spu_logging.LogOptions(),
+        log_options: spu.logging.LogOptions = spu.logging.LogOptions(),
         id: str = None,
     ):
         """wrapper of spu.Runtime.
@@ -361,12 +377,12 @@ class SPURuntime:
             link_desc (Dict, optional): link config. Defaults to None.
             log_options (spu_logging.LogOptions, optional): spu log options.
         """
-        spu_logging.setup_logging(log_options)
+        spu.logging.setup_logging(log_options)
 
         self.rank = rank
         self.cluster_def = cluster_def
 
-        desc = spu_link.Desc()
+        desc = spu.link.Desc()
         tls_opts = None
         for i, node in enumerate(cluster_def['nodes']):
             address = node['address']
@@ -377,10 +393,17 @@ class SPURuntime:
                     address = node['listen_address']
             desc.add_party(node['party'], address)
         _fill_link_desc_attrs(link_desc=link_desc, tls_opts=tls_opts, desc=desc)
-        self.link = spu_link.create_brpc(desc, rank)
-        self.conf = json_format.Parse(
-            json.dumps(cluster_def['runtime_config']), spu.RuntimeConfig()
-        )
+        try:
+            self.link = spu.link.create_brpc(desc, rank)
+        except Exception as e:
+            raise YACLError(f"Failed to create link: {e}")
+
+        # self.conf = json_format.Parse(
+        #     json.dumps(cluster_def['runtime_config']), spu.RuntimeConfig()
+        # )
+        conf = spu.RuntimeConfig()
+        conf.ParseFromJsonString(json.dumps(cluster_def['runtime_config']))
+        self.conf = conf
         self.runtime = spu.Runtime(self.link, self.conf)
         self.share_seq_id = 0
         self.id = id
@@ -495,13 +518,13 @@ class SPURuntime:
         self,
         num_returns_policy: SPUCompilerNumReturnsPolicy,
         out_shape,
-        executable: spu.spu_pb2.ExecutableProto,
+        executable: spu.Executable,
         *val,
     ):
         """run executable.
 
         Args:
-            executable (spu_pb2.ExecutableProto): the executable.
+            executable (spu.Executable): the executable.
 
             *inputs: input vars, need to follow the exec.input_names.
 
@@ -514,13 +537,13 @@ class SPURuntime:
         flatten_names, _ = jax.tree_util.tree_flatten(val)
         assert len(executable.input_names) == len(flatten_names)
 
-        executable.input_names[:] = flatten_names
+        executable.input_names = flatten_names
 
         output_names = []
         for _ in range(len(executable.output_names)):
             output_names.append(self.get_new_share_name())
 
-        executable.output_names[:] = output_names
+        executable.output_names = output_names
 
         logging.debug(f"SPU({id(self)}) running {executable.name} with {flatten_names}")
         self.runtime.run(executable)
@@ -575,12 +598,12 @@ class SPURuntime:
             np.ndarray: Array of `phe.Plaintext`.
         """
         assert isinstance(io_info, SPUIOInfo), "not support pytree for now"
-        spu_meta = spu_pb2.ValueMetaProto()
+        spu_meta = spu.ValueMeta()
         spu_meta.ParseFromString(io_info.meta)
         assert io_info.start_chunk_index == 0, "not support pytree for now"
         assert io_info.end_chunk_index == len(chunks), "not support pytree for now"
 
-        expect_st = f"semi2k.AShr<{spu.spu_pb2.FieldType.Name(self.conf.field)}>"
+        expect_st = f"semi2k.AShr<{self.conf.field.name}>"
         assert (
             spu_meta.storage_type == expect_st
         ), f"Unsupported storage type {spu_meta.storage_type}, expected {expect_st}"
@@ -593,8 +616,8 @@ class SPURuntime:
 
         size = spu_fxp_size(self.conf.field)
 
-        def _bytes_to_pb(chunk_idx: int) -> spu_pb2.ValueChunkProto:
-            ret = spu_pb2.ValueChunkProto()
+        def _bytes_to_pb(chunk_idx: int) -> spu.ValueChunk:
+            ret = spu.ValueChunk()
             ret.ParseFromString(chunks[chunk_idx])
             return ret
 
@@ -639,19 +662,14 @@ class SPURuntime:
         key: Union[str, List[str]],
         data: pd.DataFrame,
         receiver: str,
-        protocol='KKRT_PSI_2PC',
+        protocol='PROTOCOL_RR22',
         precheck_input=True,
         sort=True,
         broadcast_result=True,
         bucket_size=1 << 20,
         curve_type="CURVE_25519",
-        preprocess_path=None,
-        ecdh_secret_key_path=None,
         dppsi_bob_sub_sampling=0.9,
         dppsi_epsilon=3,
-        progress_callbacks: Callable[[str, ProgressData], None] = None,
-        callbacks_interval_ms: int = 5 * 1000,
-        ic_mode: bool = False,
     ):
         """Private set intersection with DataFrame.
 
@@ -665,18 +683,16 @@ class SPURuntime:
             broadcast_result (bool): Whether to broadcast joined data to all parties.
             bucket_size (int): Specified the hash bucket size used in psi. Larger values consume more memory.
             curve_type (str): curve for ecdh psi
-            preprocess_path (str): preprocess file path for unbalanced psi.
-            ecdh_secret_key_path (str): ecdh_oprf secretkey file path, binary format, 32B.
             dppsi_bob_sub_sampling (double): bob subsampling bernoulli_distribution
                 probability of dp psi
             dppsi_epsilon (double): epsilon of dp psi
-            progress_callbacks (Callable[[str, ProgressData], None]): Callbacks for update progress.
-            callbacks_interval_ms (int): The interval at which the callbacks is called
-            ic_mode (bool): Whether to run psi in interconnection mode
 
         Returns:
             pd.DataFrame or None: joined DataFrame.
         """
+        if isinstance(key, str):
+            key = [key]
+
         # save key dataframe to temp file for streaming psi
         with tempfile.TemporaryDirectory() as data_dir:
             input_path, output_path = (
@@ -685,24 +701,19 @@ class SPURuntime:
             )
             data.to_csv(input_path, index=False)
 
-            report = self.psi_csv(
-                key,
-                input_path,
-                output_path,
-                receiver,
-                protocol,
-                precheck_input,
-                sort,
-                broadcast_result,
-                bucket_size,
-                curve_type,
-                preprocess_path,
-                ecdh_secret_key_path,
-                dppsi_bob_sub_sampling,
-                dppsi_epsilon,
-                progress_callbacks,
-                callbacks_interval_ms,
-                ic_mode,
+            report = self.psi(
+                keys=key,
+                input_path=input_path,
+                output_path=output_path,
+                receiver=receiver,
+                protocol=protocol,
+                table_keys_duplicated=not precheck_input,
+                disable_alignment=not sort,
+                broadcast_result=broadcast_result,
+                bucket_size=bucket_size,
+                ecdh_curve=curve_type,
+                dppsi_bob_sub_sampling=dppsi_bob_sub_sampling,
+                dppsi_epsilon=dppsi_epsilon,
             )
 
             if report['intersection_count'] == -1:
@@ -711,497 +722,6 @@ class SPURuntime:
             else:
                 # load result dataframe from temp file
                 return pd.read_csv(output_path)
-
-    def psi_csv(
-        self,
-        key: Union[str, List[str]],
-        input_path: str,
-        output_path: str,
-        receiver: str,
-        protocol='KKRT_PSI_2PC',
-        precheck_input=True,
-        sort=True,
-        broadcast_result=True,
-        bucket_size=1 << 20,
-        curve_type="CURVE_25519",
-        preprocess_path=None,
-        ecdh_secret_key_path=None,
-        dppsi_bob_sub_sampling=0.9,
-        dppsi_epsilon=3,
-        progress_callbacks: Callable[[str, ProgressData], None] = None,
-        callbacks_interval_ms: int = 5 * 1000,
-        ic_mode: bool = False,
-    ):
-        """Private set intersection with csv file.
-
-        Examples:
-            >>> spu = sf.SPU(utils.cluster_def)
-            >>> alice = sf.PYU('alice'), sf.PYU('bob')
-            >>> input_path = {alice: '/path/to/alice.csv', bob: '/path/to/bob.csv'}
-            >>> output_path = {alice: '/path/to/alice_psi.csv', bob: '/path/to/bob_psi.csv'}
-            >>> spu.psi_csv(['c1', 'c2'], input_path, output_path, 'alice')
-
-        Args:
-            key (str, List[str]): Column(s) used to join.
-            input_path: CSV file to be joined, comma separated and contains header.
-                Use an absolute path.
-            output_path: Joined csv file, comma separated and contains header.
-                Use an absolute path.
-            receiver (str): Which party can get joined data.
-                Others won't generate output file and `intersection_count` get `-1`.
-                for unbalanced PSI, receiver is client(small dataset party)
-                unbalanced PSI offline phase, receiver(client) get preprocess_path data
-                unbalanced PSI online phase, receiver(client) get psi result
-                unbalanced PSI shuffle online phase, only receiver(large set party) get psi result
-            protocol (str): PSI protocol.
-            precheck_input (bool): Whether to check input data before join.
-                check input file whether have duplicated data and csv column ids.
-            sort (bool): Whether sort data by key after join.
-            broadcast_result (bool): Whether to broadcast joined data to all parties.
-            bucket_size (int): Specified the hash bucket size used in psi.
-                Larger values consume more memory.
-            curve_type (str): curve for ecdh psi
-            dppsi_bob_sub_sampling (double): bob subsampling bernoulli_distribution
-                probability of dp psi
-            dppsi_epsilon (double): epsilon of dp psi
-            progress_callbacks (Callable[[str, ProgressData], None]): Callbacks for update progress
-            callbacks_interval_ms (int): The interval at which the callbacks is called
-            ic_mode (bool): Whether to run psi in interconnection mode
-
-        Returns:
-            Dict: PSI report output by SPU.
-        """
-        if isinstance(key, str):
-            key = [key]
-
-        party = self.cluster_def['nodes'][self.rank]['party']
-
-        if (protocol == "ECDH_OPRF_UB_PSI_2PC_GEN_CACHE") and (party != receiver):
-            return {
-                'party': party,
-                'original_count': 0,
-                'intersection_count': -1,
-            }
-
-        receiver_rank = -1
-        for i, node in enumerate(self.cluster_def['nodes']):
-            if node['party'] == receiver:
-                receiver_rank = i
-                break
-        assert receiver_rank >= 0, f'invalid receiver {receiver}'
-
-        # define callbacks
-        callbacks_func = None
-
-        def psi_callbacks(p_data: psi.ProgressData):
-            if progress_callbacks:
-                progress_callbacks(
-                    party,
-                    ProgressData(
-                        p_data.total,
-                        p_data.finished,
-                        p_data.running,
-                        p_data.percentage,
-                        p_data.description,
-                    ),
-                )
-
-        if progress_callbacks:
-            callbacks_func = psi_callbacks
-
-        config = psi.BucketPsiConfig(
-            psi_type=psi.PsiType.Value(protocol),
-            broadcast_result=broadcast_result,
-            receiver_rank=receiver_rank,
-            input_params=psi.InputParams(
-                path=input_path, select_fields=key, precheck=precheck_input
-            ),
-            output_params=psi.OutputParams(path=output_path, need_sort=sort),
-            curve_type=curve_type,
-            bucket_size=bucket_size,
-        )
-
-        if protocol == "DP_PSI_2PC":
-            assert (
-                0 < dppsi_bob_sub_sampling < 1
-            ), f'invalid bob_sub_sampling({dppsi_bob_sub_sampling}) for dp-psi'
-            assert 0 < dppsi_epsilon, f'invalid epsilon({dppsi_epsilon}) for dp-psi'
-
-            config.dppsi_params = psi.DpPsiParams(
-                bob_sub_sampling=dppsi_bob_sub_sampling, epsilon=dppsi_epsilon
-            )
-        elif protocol == "ECDH_OPRF_UB_PSI_2PC_GEN_CACHE":
-            assert isinstance(
-                ecdh_secret_key_path, str
-            ), f'invalid ecdh_secret_key for {protocol}'
-            config.ecdh_secret_key_path = ecdh_secret_key_path
-        elif protocol == "ECDH_OPRF_UB_PSI_2PC_TRANSFER_CACHE":
-            assert isinstance(
-                preprocess_path, str
-            ), f'invalid preprocess_path for {protocol}'
-            if receiver_rank == self.link.rank:
-                config.preprocess_path = preprocess_path
-        elif protocol == "ECDH_OPRF_UB_PSI_2PC_SHUFFLE_ONLINE":
-            assert isinstance(
-                ecdh_secret_key_path, str
-            ), f'invalid ecdh_secret_key for {protocol}'
-            assert isinstance(
-                preprocess_path, str
-            ), f'invalid preprocess_path for {protocol}'
-
-            config.preprocess_path = preprocess_path
-            if receiver_rank == self.link.rank:
-                config.ecdh_secret_key_path = ecdh_secret_key_path
-        elif (
-            protocol == "ECDH_OPRF_UB_PSI_2PC_OFFLINE"
-            or protocol == "ECDH_OPRF_UB_PSI_2PC_ONLINE"
-        ):
-            assert (
-                self.link.world_size == 2
-            ), f'invalid world_size for {self.link.world_size}'
-
-            assert isinstance(
-                preprocess_path, str
-            ), f'invalid preprocess_path for {protocol}'
-
-            if receiver_rank != self.link.rank:
-                assert isinstance(
-                    ecdh_secret_key_path, str
-                ), f'invalid ecdh_secret_key for {protocol}'
-                config.ecdh_secret_key_path = ecdh_secret_key_path
-            else:
-                config.preprocess_path = preprocess_path
-
-        report = psi.bucket_psi(
-            self.link, config, callbacks_func, callbacks_interval_ms, ic_mode
-        )
-
-        return {
-            'party': party,
-            'original_count': report.original_count,
-            'intersection_count': report.intersection_count,
-        }
-
-    def psi_join_df(
-        self,
-        key: Union[str, List[str]],
-        data: pd.DataFrame,
-        receiver: str,
-        join_party: str,
-        protocol='KKRT_PSI_2PC',
-        bucket_size=1 << 20,
-        curve_type="CURVE_25519",
-        progress_callbacks: Callable[[str, ProgressData], None] = None,
-        callbacks_interval_ms: int = 5 * 1000,
-        ic_mode: bool = False,
-    ):
-        """Private set intersection with DataFrame.
-
-        Examples:
-            >>> spu = sf.SPU(utils.cluster_def)
-            >>> spu.psi_join_df(['c1', 'c2'], [df_alice, df_bob], 'alice', 'alice')
-
-        Args:
-            key (str, List[str]): Column(s) used to join.
-            data (pd.DataFrame): DataFrame to be joined.
-            receiver (str): Which party can get joined data, others will get None.
-            join_party (str): party joined data
-            protocol (str): PSI protocol, See spu.psi.PsiType.
-            bucket_size (int): Specified the hash bucket size used in psi. Larger values consume more memory.
-            curve_type (str): curve for ecdh psi
-            progress_callbacks (Callable[[str, ProgressData], None]): Callbacks for update progress
-            callbacks_interval_ms (int): The interval at which the callbacks is called
-            ic_mode (bool): Whether to run psi in interconnection mode
-
-        Returns:
-            pd.DataFrame or None: joined DataFrame.
-        """
-        # save key dataframe to temp file for streaming psi
-        with tempfile.TemporaryDirectory() as data_dir:
-            input_path, output_path = (
-                f'{data_dir}/psi-input.csv',
-                f'{data_dir}/psi-output.csv',
-            )
-            data.to_csv(input_path, index=False)
-
-            report = self.psi_join_csv(
-                key,
-                input_path,
-                output_path,
-                receiver,
-                join_party,
-                protocol,
-                bucket_size,
-                curve_type,
-                progress_callbacks,
-                callbacks_interval_ms,
-                ic_mode,
-            )
-
-            if report['intersection_count'] == -1:
-                # can not get result, return None
-                return None
-            else:
-                # load result dataframe from temp file
-                return pd.read_csv(output_path)
-
-    def psi_join_csv(
-        self,
-        key: Union[str, List[str]],
-        input_path: str,
-        output_path: str,
-        receiver: str,
-        join_party: str,
-        protocol='KKRT_PSI_2PC',
-        bucket_size=1 << 20,
-        curve_type="CURVE_25519",
-        progress_callbacks: Callable[[str, ProgressData], None] = None,
-        callbacks_interval_ms: int = 5 * 1000,
-        ic_mode: bool = False,
-    ):
-        """Private set intersection with csv file.
-
-        Examples:
-            >>> spu = sf.SPU(utils.cluster_def)
-            >>> alice = sf.PYU('alice'), sf.PYU('bob')
-            >>> input_path = {alice: '/path/to/alice.csv', bob: '/path/to/bob.csv'}
-            >>> output_path = {alice: '/path/to/alice_psi.csv', bob: '/path/to/bob_psi.csv'}
-            >>> spu.psi_join_csv(['c1', 'c2'], input_path, output_path, 'alice', 'alice')
-
-        Args:
-            key (str, List[str]): Column(s) used to join.
-            input_path: CSV file to be joined, comma separated and contains header.
-                Use an absolute path.
-            output_path: Joined csv file, comma separated and contains header.
-                Use an absolute path.
-            receiver (str): Which party can get joined data. Others won't generate output file and `intersection_count` get `-1`
-            join_party (str): party joined data
-            protocol (str): PSI protocol.
-            bucket_size (int): Specified the hash bucket size used in psi. Larger values consume more memory.
-            curve_type (str): curve for ecdh psi
-            progress_callbacks (Callable[[str, ProgressData], None]): Callbacks for update progress
-            callbacks_interval_ms (int): The interval at which the callbacks is called
-            ic_mode (bool): Whether to run psi in interconnection mode
-
-        Returns:
-            Dict: PSI report output by SPU.
-        """
-        assert (
-            (protocol == "ECDH_PSI_2PC")
-            or (protocol == "KKRT_PSI_2PC")
-            or (protocol == "BC22_PSI_2PC")
-        ), f"Unsupported protocol:{protocol}"
-
-        if isinstance(key, str):
-            key = [key]
-
-        receiver_rank = -1
-        for i, node in enumerate(self.cluster_def['nodes']):
-            if node['party'] == receiver:
-                receiver_rank = i
-                break
-        assert receiver_rank >= 0, f'invalid receiver {receiver}'
-
-        # save key dataframe to temp file for streaming psi
-        data_dir = tempfile.TemporaryDirectory()
-        input_path1, output_psi, output_peer, output_notsort = (
-            f'{data_dir.name}/psi-input.csv',
-            f'{data_dir.name}/psi-output-join.csv',
-            f'{data_dir.name}/psi-output-peer.csv',
-            f'{data_dir.name}/psi-output-nosort.csv',
-        )
-        origin_table = pd.read_csv(input_path, usecols=key)
-        table_nodup = origin_table.drop_duplicates(subset=key)
-
-        table_nodup[key].to_csv(input_path1, index=False)
-
-        logging.warning(
-            f"origin_table size:{origin_table.shape[0]},drop_duplicates size:{table_nodup.shape[0]}"
-        )
-
-        # free table_nodup dataframe
-        del table_nodup
-
-        # define callbacks
-        callbacks_func = None
-        party = self.cluster_def['nodes'][self.rank]['party']
-        total = 1
-
-        def psi_callbacks(psi_progress: psi.ProgressData):
-            # deal progress
-            nonlocal total
-            total = psi_progress.total + 1
-            p_data = ProgressData(
-                total,
-                psi_progress.finished,
-                psi_progress.running,
-                int(psi_progress.percentage * psi_progress.total / total),
-                psi_progress.description,
-            )
-            if progress_callbacks:
-                progress_callbacks(party, p_data)
-
-        if progress_callbacks:
-            callbacks_func = psi_callbacks
-
-        # psi join case, need sort and broadcast set True
-        config = psi.BucketPsiConfig(
-            psi_type=psi.PsiType.Value(protocol),
-            broadcast_result=True,
-            receiver_rank=receiver_rank,
-            input_params=psi.InputParams(
-                path=input_path1, select_fields=key, precheck=False
-            ),
-            output_params=psi.OutputParams(path=output_psi, need_sort=True),
-            curve_type=curve_type,
-            bucket_size=bucket_size,
-        )
-        report = psi.bucket_psi(
-            self.link, config, callbacks_func, callbacks_interval_ms, ic_mode
-        )
-
-        df_psi_out = pd.read_csv(output_psi)
-
-        join_rank = -1
-        for i, node in enumerate(self.cluster_def['nodes']):
-            if node['party'] == join_party:
-                join_rank = i
-                break
-        assert join_rank >= 0, f'invalid receiver {join_party}'
-
-        self_join = False
-        if join_rank == self.rank:
-            self_join = True
-
-        df_psi_join = origin_table.join(
-            df_psi_out.set_index(key), on=key, how='inner', sort="False"
-        )
-        df_psi_join[key].to_csv(output_psi, index=False)
-
-        in_file_stats = os.stat(output_psi)
-        in_file_bytes = in_file_stats.st_size
-
-        # TODO: better try RAII style
-        in_file = open(output_psi, "rb")
-        out_file = open(output_peer, "wb")
-
-        def send_proc():
-            max_read_bytes = 20480
-            read_bytes = 0
-            while read_bytes < in_file_bytes:
-                current_read_bytes = min(max_read_bytes, in_file_bytes - read_bytes)
-                current_read = in_file.read(current_read_bytes)
-                assert current_read_bytes == len(
-                    current_read
-                ), f'invalid recv msg {current_read_bytes}!={len(current_read)}'
-
-                packed_bytes = struct.pack(
-                    f'?i{len(current_read)}s', False, len(current_read), current_read
-                )
-
-                read_bytes += current_read_bytes
-
-                self.link.send(self.link.next_rank(), packed_bytes)
-                logging.warning(f"rank:{self.rank} send {len(packed_bytes)}")
-
-            # send last batch
-            packed_bytes = struct.pack('?is', True, 1, b'\x00')
-            self.link.send(self.link.next_rank(), packed_bytes)
-            logging.warning(f"rank:{self.rank} send last {len(packed_bytes)}")
-
-        def recv_proc():
-            batch_count = 0
-            while True:
-                recv_bytes = self.link.recv(self.link.next_rank())
-                batch_count += 1
-                logging.warning(f"rank:{self.rank} recv {len(recv_bytes)}")
-
-                r1, r2, r3 = struct.unpack(f'?i{len(recv_bytes)-8}s', recv_bytes)
-                assert r2 == len(r3), f'invalid recv msg {r2}!={len(r3)}'
-                # check if last batch
-                if r1:
-                    logging.warning(f"rank:{self.rank} recv last {len(recv_bytes)}")
-                    break
-                out_file.write(r3)
-
-        if self.rank == 1:
-            send_proc()
-            recv_proc()
-        else:
-            recv_proc()
-            send_proc()
-
-        in_file.close()
-        out_file.close()
-
-        out_file_stats = os.stat(output_peer)
-        out_file_bytes = out_file_stats.st_size
-
-        table_head = pd.read_csv(input_path, nrows=0)
-        table_head.to_csv(output_path, index=False)
-        table_head.to_csv(output_notsort, index=False)
-        table_columns = table_head.columns.str.replace(' ', '')
-
-        # check psi result file size
-        if out_file_bytes > 0:
-            peer_psi = pd.read_csv(output_peer)
-            peer_psi.columns = key
-
-            join_count = 0
-            chunk_size = 100000
-            reader = pd.read_csv(input_path, chunksize=chunk_size)
-            for chunk in reader:
-                if self_join:
-                    chunk_join = chunk.join(
-                        peer_psi.set_index(key), on=key, how='inner', sort="True"
-                    )
-                else:
-                    chunk_join = peer_psi.join(
-                        chunk.set_index(key), on=key, how='inner', sort="True"
-                    )
-                join_count = join_count + chunk_join.shape[0]
-                chunk_join.to_csv(
-                    output_notsort,
-                    mode="a",
-                    index=False,
-                    header=False,
-                    columns=table_columns,
-                )
-
-        logging.warning(
-            f"intersection_count:{report.intersection_count} join_count:{join_count}"
-        )
-
-        idlist = []
-        for ele in key:
-            pos_str = str(table_columns.get_loc(ele) + 1)
-            idlist.append(f"--key={pos_str},{pos_str}")
-        idstr = ' '.join(idlist)
-
-        with open(output_path, "a") as out_file:
-            tail = subprocess.Popen(
-                ("tail", "-n", "+2", output_notsort), stdout=subprocess.PIPE
-            )
-            sort_env = os.environ.copy()
-            sort_env["LC_ALL"] = "C"
-            sort_cmd = f"sort --buffer-size=2G --parallel=8 --temporary-directory=./ --stable --field-separator=, {idstr}".split()
-            subprocess.check_call(
-                sort_cmd, env=sort_env, stdin=tail.stdout, stdout=out_file
-            )
-            tail.wait()
-
-        # delete tmp data dir
-        data_dir.cleanup()
-
-        if progress_callbacks:
-            progress_callbacks(party, ProgressData(total, total, 0, 100, "Join, 100%"))
-
-        return {
-            'party': party,
-            'original_count': origin_table.shape[0],
-            'intersection_count': report.intersection_count,
-            'join_count': join_count,
-        }
 
     def ub_psi(
         self,
@@ -1244,30 +764,47 @@ class SPURuntime:
         Returns:
             Dict: PSI report output by SPU.
         """
-        config = spu.psi_v2_pb2.UbPsiConfig(
-            mode=spu.psi_v2_pb2.UbPsiConfig.Mode.Value(mode),
-            role=spu.psi_v2_pb2.Role.Value(role),
-            input_config=spu.psi_v2_pb2.IoConfig(
-                type=spu.psi_v2_pb2.IO_TYPE_FILE_CSV,
-                path=input_path,
-            ),
-            keys=keys,
-            server_secret_key_path=server_secret_key_path,
+
+        left_side_rank = -1
+        server_rank = -1
+        for i, node in enumerate(self.cluster_def['nodes']):
+            if node['party'] == left_side:
+                left_side_rank = i
+            if node['party'] == self.party and role == "ROLE_SERVER":
+                server_rank = i
+            else:
+                server_rank = len(self.cluster_def['nodes']) - i
+        if left_side_rank < 0 and left_side == "":
+            # default is server
+            left_side_rank = server_rank
+        assert left_side_rank >= 0, f'invalid `left_side` {left_side}'
+
+        config = spu.psi.UbPsiExecuteConfig(
+            mode=spu.psi.parse_ub_psi_mode(mode),
+            role=spu.psi.parse_ub_psi_role(role),
+            server_receive_result=server_get_result,
+            client_receive_result=client_get_result,
             cache_path=cache_path,
-            server_get_result=server_get_result,
-            client_get_result=client_get_result,
-            disable_alignment=disable_alignment,
-            output_config=spu.psi_v2_pb2.IoConfig(
-                type=spu.psi_v2_pb2.IO_TYPE_FILE_CSV,
+            input_params=spu.psi.InputParams(
+                type=spu.psi.SourceType.SOURCE_TYPE_FILE_CSV,
+                path=input_path,
+                selected_keys=keys,
+            ),
+            output_params=spu.psi.OutputParams(
+                type=spu.psi.SourceType.SOURCE_TYPE_FILE_CSV,
                 path=output_path,
+                disable_alignment=disable_alignment,
+                csv_null_rep=null_rep,
             ),
-            advanced_join_type=spu.psi_v2_pb2.PsiConfig.AdvancedJoinType.Value(
-                join_type
+            server_params=spu.psi.UbPsiServerParams(
+                secret_key_path=server_secret_key_path
             ),
-            left_side=spu.psi_v2_pb2.Role.Value(left_side),
-            output_attr=spu.psi_v2_pb2.OutputAttr(csv_null_rep=null_rep),
+            join_conf=spu.psi.ResultJoinConfig(
+                type=spu.psi.parse_join_type(join_type),
+                left_side_rank=left_side_rank,
+            ),
         )
-        report = spu.psi.ub_psi(config, self.link)
+        report = spu.psi.ub_psi_execute(config, self.link)
         return {
             'party': self.party,
             'original_count': report.original_count,
@@ -1281,54 +818,70 @@ class SPURuntime:
         output_path: str,
         receiver: str,
         table_keys_duplicated: bool,
-        output_csv_na_rep: str,
+        output_csv_na_rep: str = "NULL",
         broadcast_result: bool = True,
-        protocol: str = 'PROTOCOL_KKRT',
+        protocol: str = 'PROTOCOL_RR22',
         ecdh_curve: str = 'CURVE_FOURQ',
-        advanced_join_type: str = "ADVANCED_JOIN_TYPE_UNSPECIFIED",
-        left_side: str = "ROLE_RECEIVER",
-        skip_duplicates_check: bool = False,
+        join_type: str = "JOIN_TYPE_UNSPECIFIED",
+        left_side: str = "",
         disable_alignment: bool = False,
-        check_hash_digest: bool = False,
+        bucket_size=1 << 20,
+        dppsi_bob_sub_sampling=0.9,
+        dppsi_epsilon=3,
     ):
-        config = spu.psi_v2_pb2.PsiConfig(
-            protocol_config=spu.psi_v2_pb2.ProtocolConfig(
-                protocol=spu.psi_v2_pb2.Protocol.Value(protocol),
-                role=(
-                    spu.psi_v2_pb2.ROLE_RECEIVER
-                    if receiver == self.party
-                    else spu.psi_v2_pb2.ROLE_SENDER
-                ),
-                broadcast_result=broadcast_result,
-            ),
-            input_config=spu.psi_v2_pb2.IoConfig(
-                type=spu.psi_v2_pb2.IO_TYPE_FILE_CSV,
-                path=input_path,
-            ),
-            output_config=spu.psi_v2_pb2.IoConfig(
-                type=spu.psi_v2_pb2.IO_TYPE_FILE_CSV,
-                path=output_path,
-            ),
-            input_attr=spu.psi_v2_pb2.InputAttr(
-                keys_unique=not table_keys_duplicated,
-            ),
-            output_attr=spu.psi_v2_pb2.OutputAttr(csv_null_rep=output_csv_na_rep),
-            keys=keys,
-            advanced_join_type=spu.psi_v2_pb2.PsiConfig.AdvancedJoinType.Value(
-                advanced_join_type
-            ),
-            left_side=spu.psi_v2_pb2.Role.Value(left_side),
-            skip_duplicates_check=skip_duplicates_check,
-            disable_alignment=disable_alignment,
-            check_hash_digest=check_hash_digest,
-        )
+        if protocol == "PROTOCOL_DP":
+            assert (
+                0 < dppsi_bob_sub_sampling < 1
+            ), f'invalid bob_sub_sampling({dppsi_bob_sub_sampling}) for dp-psi'
+            assert 0 < dppsi_epsilon, f'invalid epsilon({dppsi_epsilon}) for dp-psi'
 
-        if protocol == 'PROTOCOL_ECDH':
-            config.protocol_config.ecdh_config.curve = spu.psi_pb2.CurveType.Value(
-                ecdh_curve
+            config.dppsi_params = psi.DpPsiParams(
+                bob_sub_sampling=dppsi_bob_sub_sampling, epsilon=dppsi_epsilon
             )
 
-        report = spu.psi.psi(config, self.link)
+        receiver_rank = -1
+        left_side_rank = -1
+        for i, node in enumerate(self.cluster_def['nodes']):
+            if node['party'] == receiver:
+                receiver_rank = i
+            if node['party'] == left_side:
+                left_side_rank = i
+        assert receiver_rank >= 0, f'invalid receiver {receiver}'
+
+        if left_side_rank < 0 and left_side == "":
+            # default left_side party is receiver party
+            left_side_rank = receiver_rank
+        assert left_side_rank >= 0, f'invalid receiver {left_side}'
+
+        config = spu.psi.PsiExecuteConfig(
+            protocol_conf=spu.psi.PsiProtocolConfig(
+                protocol=spu.psi.parse_protocol(protocol),
+                receiver_rank=receiver_rank,
+                bucket_size=bucket_size,
+                broadcast_result=broadcast_result,
+                ecdh_params=spu.psi.EcdhParams(
+                    curve=spu.psi.parse_curve_type(ecdh_curve),
+                ),
+            ),
+            input_params=spu.psi.InputParams(
+                type=spu.psi.SourceType.SOURCE_TYPE_FILE_CSV,
+                path=input_path,
+                selected_keys=keys,
+                keys_unique=not table_keys_duplicated,
+            ),
+            output_params=spu.psi.OutputParams(
+                type=spu.psi.SourceType.SOURCE_TYPE_FILE_CSV,
+                path=output_path,
+                disable_alignment=disable_alignment,
+                csv_null_rep=output_csv_na_rep,
+            ),
+            join_conf=spu.psi.ResultJoinConfig(
+                type=spu.psi.parse_join_type(join_type),
+                left_side_rank=left_side_rank,
+            ),
+        )
+
+        report = spu.psi.psi_execute(config, self.link)
 
         return {
             'party': self.party,
@@ -1397,7 +950,7 @@ def _spu_compile(fn, copts, fn_name, *meta_args, **meta_kwargs):
                 copts=copts,
             )
     except Exception as e:
-        raise InternalError.worker_crashed_error(f"{e}")
+        raise RuntimeError(f"{e}")
 
     executable.name = fn_name
     return executable, output_tree
@@ -1408,7 +961,7 @@ class SPU(Device):
         self,
         cluster_def: Dict,
         link_desc: Dict = None,
-        log_options: spu_logging.LogOptions = spu_logging.LogOptions(),
+        log_options: spu.logging.LogOptions = spu.logging.LogOptions(),
         id: str = None,
     ):
         """SPU device constructor.
@@ -1471,9 +1024,9 @@ class SPU(Device):
                             },
                         ],
                         'runtime_config': {
-                            'protocol': spu.spu_pb2.SEMI2K,
-                            'field': spu.spu_pb2.FM128,
-                            'sigmoid_mode': spu.spu_pb2.RuntimeConfig.SIGMOID_REAL,
+                            'protocol': spu.ProtocolKind.SEMI2K,
+                            'field': spu.FieldType.FM128,
+                            'sigmoid_mode': spu.RuntimeConfig.SigmoidMode.SIGMOID_REAL,
                         }
                     }
             link_desc: Optional. A dict specifies the link parameters.
@@ -1500,9 +1053,12 @@ class SPU(Device):
         self.cluster_def['nodes'].sort(key=lambda x: x['party'])
         self.link_desc = link_desc
         self.log_options = log_options
-        self.conf = json_format.Parse(
-            json.dumps(cluster_def['runtime_config']), spu.RuntimeConfig()
-        )
+        conf = spu.RuntimeConfig()
+        conf.ParseFromJsonString(json.dumps(cluster_def['runtime_config']))
+        # self.conf = json_format.Parse(
+        #     json.dumps(cluster_def['runtime_config']), spu.RuntimeConfig()
+        # )
+        self.conf = conf
         self.world_size = len(self.cluster_def['nodes'])
         self.actors = {}
         self._task_id = -1
@@ -1575,7 +1131,7 @@ class SPU(Device):
         static_argnames: Union[str, Iterable[str], None] = None,
         num_returns_policy: SPUCompilerNumReturnsPolicy = SPUCompilerNumReturnsPolicy.SINGLE,
         user_specified_num_returns: int = 1,
-        copts: spu_pb2.CompilerOptions = spu_pb2.CompilerOptions(),
+        copts: spu.CompilerOptions = spu.CompilerOptions(),
     ):
         def wrapper(*args, **kwargs):
             # handle static_argnames of func
@@ -1706,18 +1262,14 @@ class SPU(Device):
         key: Union[str, List[str], Dict[Device, List[str]]],
         dfs: List[PYUObject],
         receiver: str,
-        protocol='KKRT_PSI_2PC',
+        protocol='PROTOCOL_RR22',
         precheck_input=True,
         sort=True,
         broadcast_result=True,
         bucket_size=1 << 20,
         curve_type="CURVE_25519",
-        preprocess_path=None,
-        ecdh_secret_key_path=None,
         dppsi_bob_sub_sampling=0.9,
         dppsi_epsilon=3,
-        progress_callbacks: Callable[[str, ProgressData], None] = None,
-        callbacks_interval_ms: int = 5 * 1000,
     ):
         """Private set intersection with DataFrame.
 
@@ -1756,174 +1308,8 @@ class SPU(Device):
             broadcast_result,
             bucket_size,
             curve_type,
-            preprocess_path,
-            ecdh_secret_key_path,
             dppsi_bob_sub_sampling,
             dppsi_epsilon,
-            progress_callbacks,
-            callbacks_interval_ms,
-        )
-
-    def psi_csv(
-        self,
-        key: Union[str, List[str], Dict[Device, List[str]]],
-        input_path: Union[str, Dict[Device, str]],
-        output_path: Union[str, Dict[Device, str]],
-        receiver: str,
-        protocol='KKRT_PSI_2PC',
-        precheck_input=True,
-        sort=True,
-        broadcast_result=True,
-        bucket_size=1 << 20,
-        curve_type="CURVE_25519",
-        preprocess_path=None,
-        ecdh_secret_key_path=None,
-        dppsi_bob_sub_sampling=0.9,
-        dppsi_epsilon=3,
-        progress_callbacks: Callable[[str, ProgressData], None] = None,
-        callbacks_interval_ms: int = 5 * 1000,
-    ):
-        """Private set intersection with csv file.
-
-        Args:
-            key (str, List[str], Dict[Device, List[str]]): Column(s) used to join.
-            input_path: CSV files to be joined, comma separated and contains header.
-                Use an absolute path.
-            output_path: Joined csv files, comma separated and contains header.
-                Use an absolute path.
-            receiver (str): Which party can get joined data.
-            Others won't generate output file and `intersection_count` get `-1`.
-            protocol (str): PSI protocol.
-            precheck_input (bool): Whether check input data before joining,
-            for now, it will check if key duplicate.
-            sort (bool): Whether sort data by key after joining.
-            broadcast_result (bool): Whether broadcast joined data to all parties.
-            bucket_size (int): Specified the hash bucket size used in psi.
-            Larger values consume more memory.
-            curve_type (str): curve for ecdh psi.
-            preprocess_path (str): preprocess file path for unbalanced psi.
-            ecdh_secret_key_path (str): ecdh_oprf secretkey file path, binary format, 32B.
-            dppsi_bob_sub_sampling (double): bob subsampling bernoulli_distribution
-                probability of dp psi
-            dppsi_epsilon (double): epsilon of dp psi
-            progress_callbacks (Callable[[str, ProgressData], None]): Callbacks for update progress
-            callbacks_interval_ms (int): The interval at which the callbacks is called
-
-        Returns:
-            List[Dict]: PSI reports output by SPU with order reserved.
-        """
-
-        return dispatch(
-            'psi_csv',
-            self,
-            key,
-            input_path,
-            output_path,
-            receiver,
-            protocol,
-            precheck_input,
-            sort,
-            broadcast_result,
-            bucket_size,
-            curve_type,
-            preprocess_path,
-            ecdh_secret_key_path,
-            dppsi_bob_sub_sampling,
-            dppsi_epsilon,
-            progress_callbacks,
-            callbacks_interval_ms,
-        )
-
-    def psi_join_df(
-        self,
-        key: Union[str, List[str], Dict[Device, List[str]]],
-        dfs: List[PYUObject],
-        receiver: str,
-        join_party: str,
-        protocol='KKRT_PSI_2PC',
-        bucket_size=1 << 20,
-        curve_type="CURVE_25519",
-        progress_callbacks: Callable[[str, ProgressData], None] = None,
-        callbacks_interval_ms: int = 5 * 1000,
-    ):
-        """Private set intersection with DataFrame.
-
-        Args:
-            key (str, List[str], Dict[Device, List[str]]): Column(s) used to join.
-            dfs (List[PYUObject]): DataFrames to be joined, which should be colocated with SPU runtimes.
-            receiver (str): Which party can get joined data. Others won't generate output file and `intersection_count` get `-1`
-            join_party (str): party can get joined data
-            protocol (str): PSI protocol.
-            bucket_size (int): Specified the hash bucket size used in psi. Larger values consume more memory.
-            curve_type (str): curve for ecdh psi
-            progress_callbacks (Callable[[str, ProgressData], None]): Callbacks for update progress
-            callbacks_interval_ms (int): The interval at which the callbacks is called
-
-        Returns:
-            List[PYUObject]: Joined DataFrames with order reserved.
-        """
-
-        return dispatch(
-            'psi_join_df',
-            self,
-            key,
-            dfs,
-            receiver,
-            join_party,
-            protocol,
-            bucket_size,
-            curve_type,
-            progress_callbacks,
-            callbacks_interval_ms,
-        )
-
-    def psi_join_csv(
-        self,
-        key: Union[str, List[str], Dict[Device, List[str]]],
-        input_path: Union[str, Dict[Device, str]],
-        output_path: Union[str, Dict[Device, str]],
-        receiver: str,
-        join_party: str,
-        protocol='KKRT_PSI_2PC',
-        bucket_size=1 << 20,
-        curve_type="CURVE_25519",
-        progress_callbacks: Callable[[str, ProgressData], None] = None,
-        callbacks_interval_ms: int = 5 * 1000,
-    ):
-        """Private set intersection with csv file.
-
-        Args:
-            key (str, List[str], Dict[Device, List[str]]): Column(s) used to join.
-            input_path: CSV files to be joined, comma separated and contains header.
-                Use an absolute path.
-            output_path: Joined csv files, comma separated and contains header.
-                Use an absolute path.
-            receiver (str): Which party can get joined data. Others won't generate output file and `intersection_count` get `-1`
-            join_party (str): party can get joined data
-            protocol (str): PSI protocol.
-            precheck_input (bool): Whether check input data before joining, for now, it will check if key duplicate.
-            bucket_size (int): Specified the hash bucket size used in psi. Larger values consume more memory.
-            curve_type (str): curve for ecdh psi
-            progress_callbacks (Callable[[str, ProgressData], None]): Callbacks for update progress
-            callbacks_interval_ms (int): The interval at which the callbacks is called
-
-        Returns:
-            List[Dict]: PSI reports output by SPU with order reserved.
-        """
-
-        return dispatch(
-            'psi_join_csv',
-            self,
-            key,
-            input_path,
-            output_path,
-            receiver,
-            join_party,
-            protocol,
-            bucket_size,
-            curve_type,
-            progress_callbacks,
-            callbacks_interval_ms,
         )
 
     def psi(
@@ -1932,17 +1318,19 @@ class SPU(Device):
         input_path: Dict[str, str],
         output_path: Dict[str, str],
         receiver: str,
-        table_keys_duplicated: Dict[str, bool],
+        table_keys_duplicated: Dict[str, bool] = None,
         output_csv_na_rep: str = "NULL",
         broadcast_result: bool = True,
-        protocol: str = 'PROTOCOL_KKRT',
+        protocol: str = 'PROTOCOL_RR22',
         ecdh_curve: str = 'CURVE_FOURQ',
-        advanced_join_type: str = "ADVANCED_JOIN_TYPE_INNER_JOIN",
-        left_side: str = "ROLE_RECEIVER",
+        advanced_join_type: str = "JOIN_TYPE_INNER_JOIN",
+        left_side: str = "",
         disable_alignment: bool = False,
-        check_hash_digest: bool = False,
+        bucket_size=1 << 20,
+        dppsi_bob_sub_sampling=0.9,
+        dppsi_epsilon=3,
     ):
-        """Private set intersection V2 API.
+        """Private set intersection API.
         Please check https://www.secretflow.org.cn/docs/psi/latest/en-US/reference/psi_v2_config for details.
 
         Args:
@@ -1950,43 +1338,18 @@ class SPU(Device):
             input_path (Dict[str, str]): Input paths from both parties.
             output_path (Dict[str, str]): Output paths from both parties.
             receiver (str): Name of receiver party.
-            table_keys_duplicated (str): Whether keys columns catain duplicated rows.
+            table_keys_duplicated (str): Whether keys columns catain duplicated rows. Defaults to False.
             output_csv_na_rep (str): null repsentation in output csv.
             broadcast_result (bool, optional): Whether to reveal result to sender. Defaults to True.
-            protocol (str, optional): PSI protocol. Defaults to 'PROTOCOL_KKRT'. Allowed values: 'PROTOCOL_ECDH', 'PROTOCOL_KKRT', 'PROTOCOL_RR22'
+            protocol (str, optional): PSI protocol. Defaults to 'PROTOCOL_RR22'. Allowed values: 'PROTOCOL_ECDH', 'PROTOCOL_KKRT', 'PROTOCOL_RR22', 'PROTOCOL_ECDH_3PC', 'PROTOCOL_ECDH_NPC', 'PROTOCOL_KKRT_NPC', 'PROTOCOL_DP'
             ecdh_curve (str, optional): Curve for ECDH protocol. Only valid if ECDH is selected. Defaults to 'CURVE_FOURQ'. Allowed values: 'CURVE_25519', 'CURVE_FOURQ', 'CURVE_SM2', 'CURVE_SECP256K1'
-            advanced_join_type (str, optional): Advanced Join allow duplicate keys. Defaults to "ADVANCED_JOIN_TYPE_UNSPECIFIED". Allowed values: 'ADVANCED_JOIN_TYPE_UNSPECIFIED', 'ADVANCED_JOIN_TYPE_INNER_JOIN', 'ADVANCED_JOIN_TYPE_LEFT_JOIN', 'ADVANCED_JOIN_TYPE_RIGHT_JOIN', 'ADVANCED_JOIN_TYPE_FULL_JOIN', 'ADVANCED_JOIN_TYPE_DIFFERENCE'
-            left_side (str, optional): Required if advanced_join_type is selected. Defaults to "ROLE_RECEIVER". Allowed values: 'ROLE_RECEIVER', 'ROLE_SENDER'
-            skip_duplicates_check (bool, optional): If true, the check of duplicated items will be skiped. Defaults to False.
+            advanced_join_type (str, optional): Only valid if `protocol` is 'PROTOCOL_ECDH', 'PROTOCOL_KKRT' or 'PROTOCOL_RR22', Advanced Join allow duplicate keys. Defaults to "JOIN_TYPE_UNSPECIFIED". Allowed values: 'JOIN_TYPE_UNSPECIFIED', 'JOIN_TYPE_INNER_JOIN', 'JOIN_TYPE_LEFT_JOIN', 'JOIN_TYPE_RIGHT_JOIN', 'JOIN_TYPE_FULL_JOIN', 'JOIN_TYPE_DIFFERENCE'
+            left_side (str, optional): Name of left join party. Required if advanced_join_type is selected. Default empty means same as receiver.
             disable_alignment (bool, optional): If true, output is not promised to be aligned. Defaults to False.
-            check_hash_digest (bool, optional): Check if hash digest of keys from parties are equal to determine whether to early-stop. Defaults to False.
 
         Returns:
             Dict: PSI report.
         """
-
-        assert protocol in [
-            'PROTOCOL_ECDH',
-            'PROTOCOL_KKRT',
-            'PROTOCOL_RR22',
-        ], f"invalid protocol: {protocol}"
-
-        if protocol == 'PROTOCOL_ECDH':
-            assert ecdh_curve in [
-                'CURVE_25519',
-                'CURVE_FOURQ',
-                'CURVE_SM2',
-                'CURVE_SECP256K1',
-            ]
-        assert advanced_join_type in [
-            'ADVANCED_JOIN_TYPE_UNSPECIFIED',
-            'ADVANCED_JOIN_TYPE_INNER_JOIN',
-            'ADVANCED_JOIN_TYPE_LEFT_JOIN',
-            'ADVANCED_JOIN_TYPE_RIGHT_JOIN',
-            'ADVANCED_JOIN_TYPE_FULL_JOIN',
-            'ADVANCED_JOIN_TYPE_DIFFERENCE',
-        ]
-        assert left_side in ['ROLE_RECEIVER', 'ROLE_SENDER']
 
         return dispatch(
             'psi',
@@ -2002,9 +1365,10 @@ class SPU(Device):
             ecdh_curve,
             advanced_join_type,
             left_side,
-            True,  # skip_duplicates_check
             disable_alignment,
-            check_hash_digest,
+            bucket_size,
+            dppsi_bob_sub_sampling,
+            dppsi_epsilon,
         )
 
     def ub_psi(
@@ -2019,31 +1383,42 @@ class SPU(Device):
         client_get_result: bool = False,
         disable_alignment: bool = False,
         output_path: Dict[str, str] = {},
-        join_type: str = "ADVANCED_JOIN_TYPE_INNER_JOIN",
-        left_side: str = "ROLE_SERVER",
+        join_type: str = "JOIN_TYPE_INNER_JOIN",
+        left_side: str = "",
         null_rep: str = "NULL",
     ):
-        assert mode in [
-            'MODE_OFFLINE_GEN_CACHE',
-            'MODE_OFFLINE_TRANSFER_CACHE',
-            'MODE_OFFLINE',
-            'MODE_ONLINE',
-            'MODE_FULL',
-        ]
-        assert join_type in [
-            'ADVANCED_JOIN_TYPE_INNER_JOIN',
-            'ADVANCED_JOIN_TYPE_LEFT_JOIN',
-            'ADVANCED_JOIN_TYPE_RIGHT_JOIN',
-            'ADVANCED_JOIN_TYPE_FULL_JOIN',
-            'ADVANCED_JOIN_TYPE_DIFFERENCE',
-        ]
+        """Unbalanced PSI.
+        Args:
+            mode (str): Mode of psi. One of [
+                MODE_UNSPECIFIED,
+                MODE_OFFLINE_GEN_CACHE,
+                MODE_OFFLINE_TRANSFER_CACHE,
+                MODE_OFFLINE,
+                MODE_ONLINE,
+                MODE_FULL
+            ]
+            role (str): Role of psi. one of [
+                ROLE_SERVER,
+                ROLE_CLIENT,
+            ]
+            input_path (str): Input path of psi.
+            keys (List[str]): Keys of psi.
+            server_secret_key_path (str): Server secret key path of psi.
+            cache_path (str): Cache path of psi.
+            server_get_result (bool): Server get result of psi.
+            client_get_result (bool): Client get result of psi.
+            disable_alignment (bool): Disable alignment of psi.
+            output_path (str): Output path of psi.
+            advanced_join_type (str, optional): Advanced Join allow duplicate keys. Defaults to "JOIN_TYPE_UNSPECIFIED". Allowed values: 'JOIN_TYPE_UNSPECIFIED', 'JOIN_TYPE_INNER_JOIN', 'JOIN_TYPE_LEFT_JOIN', 'JOIN_TYPE_RIGHT_JOIN', 'JOIN_TYPE_FULL_JOIN', 'JOIN_TYPE_DIFFERENCE'
+            left_side (str, optional): Name of left join party. Required if advanced_join_type is selected. Default empty means same as receiver.
+        Returns:
+            Dict: PSI report output by SPU.
+        """
+
         roles = set()
         for r in role.values():
             roles.add(r)
-        assert roles == {
-            'ROLE_SERVER',
-            'ROLE_CLIENT',
-        }, 'role must be ROLE_SERVER or ROLE_CLIENT'
+
         return dispatch(
             'ub_psi',
             self,

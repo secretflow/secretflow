@@ -165,6 +165,9 @@ class PlPartDataFrame(PartDataFrameBase):
     def count(self, *args, **kwargs) -> pd.Series:
         raise NotImplementedError()
 
+    def nunique(self, *args, **kwargs):
+        raise NotImplementedError()
+
     def sum(self, *args, **kwargs) -> pd.Series:
         self._collect()
         axis = kwargs.get('axis', 0)

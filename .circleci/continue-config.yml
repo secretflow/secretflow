@@ -131,8 +131,15 @@ commands:
       - run:
           name: "Run tests"
           command: |
+            set +e
             conda init
-            pytest --suppress-no-test-exit-code --testmon --env <<parameters.mode>>  -n auto --junitxml=results.xml -v -x --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml  << parameters.target_folder >>
+            pytest --testmon --env <<parameters.mode>> -n 4 --junitxml=results.xml -v -x --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml  << parameters.target_folder >>
+            ret=$?
+            set -e
+            if [ $ret -eq 0 ] || [ $ret -eq 5 ]; then
+              exit 0
+            fi
+            exit $ret
       - store_test_results:
           path: ./results.xml
       - save_cache:
@@ -168,7 +175,7 @@ commands:
               - << pipeline.parameters.test_preprocessing >>
           steps:
             - pytest_wrapper:
-                target_folder: tests/preprocessing/ 
+                target_folder: tests/preprocessing/
                 testmon_prefix: preprocessing
   run_stats_test:
     steps:
@@ -183,7 +190,7 @@ commands:
               - << pipeline.parameters.test_stats >>
           steps:
             - pytest_wrapper:
-                target_folder: tests/stats/ 
+                target_folder: tests/stats/
                 testmon_prefix: stats
   run_infra_test:
     steps:
@@ -241,7 +248,7 @@ commands:
               - << pipeline.parameters.test_any >>
           steps:
             - pytest_wrapper:
-                target_folder: --ignore=tests/ml/ tests/
+                target_folder: --ignore=tests/ml/ --ignore=tests/fl/ tests/
                 testmon_prefix: other_sim
                 mode: "sim"
   run_component_test_wrapper:
@@ -296,7 +303,7 @@ jobs:
             pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
       - persist_to_workspace:
           root: .
-          paths: 
+          paths:
             - artifacts
       - save_cache:
           key: *pip-cache
@@ -309,8 +316,8 @@ jobs:
       - run:
           name: "Install homebrew dependencies"
           command: |
-            brew install bazelisk cmake ninja libomp wget protobuf@3
-            echo 'export PATH="/opt/homebrew/opt/protobuf@3/bin:$PATH"' >> /Users/distiller/.bash_profile
+            brew install bazelisk cmake ninja libomp wget protobuf
+            echo 'export PATH="/opt/homebrew/opt/protobuf/bin:$PATH"' >> /Users/distiller/.bash_profile
       - run:
           name: "Install Miniconda"
           command: |

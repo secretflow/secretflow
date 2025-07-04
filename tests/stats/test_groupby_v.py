@@ -22,10 +22,14 @@ from secretflow.stats.groupby_v import (
     ordinal_encoded_groupby_agg,
     ordinal_encoded_groupby_aggs,
 )
+from tests.sf_fixtures import mpc_fixture
 
 
-@pytest.fixture(scope='function')
+@mpc_fixture
 def prod_env_and_data(sf_production_setup_devices):
+    pyu_alice = sf_production_setup_devices.alice
+    pyu_bob = sf_production_setup_devices.bob
+
     df_alice = pd.DataFrame(
         {
             'a1': ['K5', 'K1', None, 'K6'],
@@ -44,12 +48,8 @@ def prod_env_and_data(sf_production_setup_devices):
 
     df = VDataFrame(
         {
-            sf_production_setup_devices.alice: partition(
-                data=sf_production_setup_devices.alice(lambda: df_alice)()
-            ),
-            sf_production_setup_devices.bob: partition(
-                data=sf_production_setup_devices.bob(lambda: df_bob)()
-            ),
+            pyu_alice: partition(data=pyu_alice(lambda: df_alice)()),
+            pyu_bob: partition(data=pyu_bob(lambda: df_bob)()),
         }
     )
 
@@ -64,7 +64,7 @@ def prod_env_and_data(sf_production_setup_devices):
         }
     )
 
-    yield sf_production_setup_devices, {
+    return sf_production_setup_devices, {
         "df_alice": df_alice,
         "df_bob": df_bob,
         "df": df,
@@ -87,6 +87,7 @@ def prod_env_and_data(sf_production_setup_devices):
     "agg_name",
     ["min", "count", "var"],
 )
+@pytest.mark.mpc
 def test_groupby_agg(prod_env_and_data, by, values, agg_name):
     assert len(set(by).intersection(set(values))) == 0, "no intersection allowed"
     env, data = prod_env_and_data
@@ -129,6 +130,7 @@ def test_groupby_agg(prod_env_and_data, by, values, agg_name):
     "aggs",
     [["min", "sum"], ["count", "max", "var"]],
 )
+@pytest.mark.mpc
 def test_groupby_aggs(prod_env_and_data, by, values, aggs):
     assert len(set(by).intersection(set(values))) == 0, "no intersection allowed"
     env, data = prod_env_and_data

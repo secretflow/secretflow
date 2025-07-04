@@ -17,17 +17,21 @@ from enum import Enum
 
 import pandas as pd
 import pytest
-from sklearn.datasets import load_breast_cancer
-
-from secretflow.component.core import DistDataType, build_node_eval_param, make_storage
-from secretflow.component.entry import comp_eval
-from secretflow.spec.v1.data_pb2 import (
+from secretflow_spec.v1.data_pb2 import (
     DistData,
     IndividualTable,
     TableSchema,
     VerticalTable,
 )
-from secretflow.spec.v1.report_pb2 import Report
+from secretflow_spec.v1.report_pb2 import Report
+from sklearn.datasets import load_breast_cancer
+
+from secretflow.component.core import (
+    DistDataType,
+    build_node_eval_param,
+    comp_eval,
+    make_storage,
+)
 
 
 class TableFormat(Enum):
@@ -39,11 +43,12 @@ class TableFormat(Enum):
     "table_format",
     [TableFormat.INDIVIDUAL_TABLE, TableFormat.VERTICAL_TABLE],
 )
-def test_ss_vif(comp_prod_sf_cluster_config, table_format: TableFormat):
+@pytest.mark.mpc
+def test_ss_vif(sf_production_setup_comp, table_format: TableFormat):
     alice_input_path = "test_ss_vif/alice.csv"
     bob_input_path = "test_ss_vif/bob.csv"
 
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
     self_party = sf_cluster_config.private_config.self_party
     storage = make_storage(storage_config)
 

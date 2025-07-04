@@ -15,6 +15,7 @@
 import logging
 import time
 
+import pytest
 from sklearn.metrics import roc_auc_score
 from sklearn.preprocessing import StandardScaler
 
@@ -22,6 +23,7 @@ from secretflow.data import FedNdarray, PartitionWay
 from secretflow.device.driver import reveal, wait
 from secretflow.ml.linear import SSRegression
 from secretflow.utils.simulation.datasets import load_linear
+from tests.sf_fixtures import SFProdParams
 
 
 def _transform(data):
@@ -95,8 +97,11 @@ def _run_test(devices, test_name, v_data, label_data, y, batch_size):
     logging.info(f"{test_name} auc: {roc_auc_score(y, yhat)}")
 
 
-def test_breast_cancer(sf_production_setup_devices_aby3):
+@pytest.mark.mpc(parties=3, params=SFProdParams.ABY3)
+def test_breast_cancer(sf_production_setup_devices):
     from sklearn.datasets import load_breast_cancer
+
+    devices = sf_production_setup_devices
 
     start = time.time()
     ds = load_breast_cancer()
@@ -104,47 +109,35 @@ def test_breast_cancer(sf_production_setup_devices_aby3):
 
     v_data = FedNdarray(
         partitions={
-            sf_production_setup_devices_aby3.alice: sf_production_setup_devices_aby3.alice(
-                lambda: x[:, :15]
-            )(),
-            sf_production_setup_devices_aby3.bob: sf_production_setup_devices_aby3.bob(
-                lambda: x[:, 15:]
-            )(),
+            devices.alice: devices.alice(lambda: x[:, :15])(),
+            devices.bob: devices.bob(lambda: x[:, 15:])(),
         },
         partition_way=PartitionWay.VERTICAL,
     )
     label_data = FedNdarray(
-        partitions={
-            sf_production_setup_devices_aby3.alice: sf_production_setup_devices_aby3.alice(
-                lambda: y
-            )()
-        },
+        partitions={devices.alice: devices.alice(lambda: y)()},
         partition_way=PartitionWay.VERTICAL,
     )
 
     _wait_io([v_data, label_data])
     logging.info(f"IO times: {time.time() - start}s")
 
-    _run_test(
-        sf_production_setup_devices_aby3, "breast_cancer", v_data, label_data, y, 128
-    )
+    _run_test(devices, "breast_cancer", v_data, label_data, y, 128)
 
 
-def test_linear(sf_production_setup_devices_aby3):
+@pytest.mark.mpc(parties=3, params=SFProdParams.ABY3)
+def test_linear(sf_production_setup_devices):
+    devices = sf_production_setup_devices
+
     start = time.time()
-    vdf = load_linear(
-        parts={
-            sf_production_setup_devices_aby3.alice: (1, 11),
-            sf_production_setup_devices_aby3.bob: (11, 22),
-        }
-    )
+    vdf = load_linear(parts={devices.alice: (1, 11), devices.bob: (11, 22)})
     label_data = vdf["y"]
     v_data = vdf.drop(columns="y")
-    y = reveal(label_data.partitions[sf_production_setup_devices_aby3.bob].data)
+    y = reveal(label_data.partitions[devices.bob].data)
     _wait_io([v_data.values, label_data.values])
     logging.info(f"IO times: {time.time() - start}s")
 
-    _run_test(sf_production_setup_devices_aby3, "linear", v_data, label_data, y, 1024)
+    _run_test(devices, "linear", v_data, label_data, y, 1024)
 
 
 # TODO(fengjun.feng): move the following to a seperate integration test.

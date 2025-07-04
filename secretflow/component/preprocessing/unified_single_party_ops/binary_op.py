@@ -20,13 +20,15 @@ from secretflow.component.core import (
     DistDataType,
     Field,
     Input,
+    IServingExporter,
     Output,
     ServingBuilder,
     VTable,
-    VTableField,
     VTableFieldKind,
+    VTableUtils,
     register,
 )
+from secretflow.utils.errors import InvalidArgumentError
 
 from ..preprocessing import PreprocessingMixin
 
@@ -39,7 +41,7 @@ OP_MAP = {
 
 
 @register(domain="preprocessing", version="1.0.0")
-class BinaryOp(PreprocessingMixin, Component):
+class BinaryOp(PreprocessingMixin, Component, IServingExporter):
     '''
     Perform binary operation binary_op(f1, f2) and assign the result to f3, f3 can be new or old. Currently f1, f2 and f3 all belong to a single party.
     '''
@@ -50,10 +52,10 @@ class BinaryOp(PreprocessingMixin, Component):
         choices=["+", "-", "*", "/"],
     )
     new_feature_name: str = Field.attr(
-        desc="Name of the newly generated feature.",
+        desc="Name of the newly generated feature. If this feature already exists, it will be overwritten.",
     )
     as_label: bool = Field.attr(
-        desc="If True, the generated feature will be marked as label in schema.",
+        desc="If True, the generated feature will be marked as label in schema, otherwise it will be treated as Feature.",
         default=False,
     )
     f1: str = Field.table_column_attr(
@@ -100,16 +102,22 @@ class BinaryOp(PreprocessingMixin, Component):
                     new_col,
                 )
             else:
-                kind = VTableFieldKind.LABEL if self.as_label else VTableFieldKind.ID
-                field = VTableField.pa_field(self.new_feature_name, new_col.dtype, kind)
+                kind = (
+                    VTableFieldKind.LABEL if self.as_label else VTableFieldKind.FEATURE
+                )
+                field = VTableUtils.pa_field(self.new_feature_name, new_col.dtype, kind)
                 df = df.append_column(field, new_col)
 
             return df
 
         trans_tbl = in_tbl.select(load_columns)
         if len(trans_tbl.parties) != 1:
-            raise ValueError(
-                f'{load_columns} must belong to a single party, but got {trans_tbl.parties.keys()}'
+            raise InvalidArgumentError(
+                "features must belong to one party",
+                detail={
+                    "features": load_columns,
+                    "parties": list(trans_tbl.parties.keys()),
+                },
             )
         rule = self.fit(ctx, self.output_rule, trans_tbl, _fit)
         self.transform(ctx, self.output_ds, in_tbl, rule)

@@ -210,7 +210,7 @@ class FlLogisticRegressionVertical:
         devices: List[PYU],
         aggregator: Aggregator,
         heu: HEU,
-        fxp_bits: Optional[int] = spu_fxp_precision(spu.spu_pb2.FM64),
+        fxp_bits: Optional[int] = spu_fxp_precision(spu.FieldType.FM64),
         audit_log_dir: Dict[PYU, str] = None,
     ):
         """Init VanillaVerLogisticRegression.
@@ -220,7 +220,7 @@ class FlLogisticRegressionVertical:
             aggregator: the aggregator instance.
             heu : the heu device instance.
             fxp_bits: the fraction bit length for encoding before send to
-                heu device. Defaults to spu_fxp_precision(spu.spu_pb2.FM64).
+                heu device. Defaults to spu_fxp_precision(spu.FieldType.FM64).
             audit_log_dir: a dict specifying the audit log directory for each
                 device. No audit log if is None. Default to None.
                 Please leave it None unless you are very sure what the audit

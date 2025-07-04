@@ -17,7 +17,7 @@ from typing import Any, Callable, Dict, List, Union
 import numpy as np
 import pandas as pd
 
-from secretflow.device import PYUObject, proxy
+from secretflow.device import proxy, PYUObject
 
 from .base import AgentIndex, PartDataFrameBase, PartitionAgentBase
 from .pandas import PdPartDataFrame
@@ -130,6 +130,11 @@ class PartitionAgent(PartitionAgentBase):
         """Count non-NA cells for each column."""
         working_object = self.working_objects[idx]
         return working_object.count(*args, **kwargs)
+
+    def nunique(self, idx: AgentIndex, *args, **kwargs) -> pd.Series:
+        """Count unique cells for each column."""
+        working_object = self.working_objects[idx]
+        return working_object.nunique(*args, **kwargs)
 
     def sum(self, idx: AgentIndex, *args, **kwargs) -> pd.Series:
         """Returns the sum of the values over the requested axis."""

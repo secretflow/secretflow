@@ -20,22 +20,22 @@ import numpy as np
 import pandas as pd
 import pytest
 from pyarrow import csv
+from secretflow_spec.v1.data_pb2 import (
+    DistData,
+    IndividualTable,
+    TableSchema,
+    VerticalTable,
+)
 
 from secretflow.component.core import (
     DistDataType,
     VTable,
     build_node_eval_param,
+    comp_eval,
     make_storage,
 )
-from secretflow.component.entry import comp_eval
 from secretflow.component.serving_model_inferencer.serving_model_inferencer import (
     get_output_pred_path,
-)
-from secretflow.spec.v1.data_pb2 import (
-    DistData,
-    IndividualTable,
-    TableSchema,
-    VerticalTable,
 )
 
 
@@ -50,7 +50,8 @@ def save_tar_to_buffer(src_tar_path, buffer):
 
 @pytest.mark.parametrize("save_label", [True, False])
 @pytest.mark.parametrize("save_features", [True, False])
-def test_inferencer(comp_prod_sf_cluster_config, save_label, save_features):
+@pytest.mark.mpc
+def test_inferencer(sf_production_setup_comp, save_label, save_features):
     alice_input_path = "serving_model_inferencer/alice.csv"
     bob_input_path = "serving_model_inferencer/bob.orc"
     pred_path = "serving_model_inferencer/pred.csv"
@@ -59,7 +60,7 @@ def test_inferencer(comp_prod_sf_cluster_config, save_label, save_features):
         "tests/component/infra/serving_model_inferencer/bob/bin_onehot_glm_model.tar.gz"
     )
 
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
     self_party = sf_cluster_config.private_config.self_party
     storage = make_storage(storage_config)
 
@@ -245,13 +246,14 @@ def test_inferencer(comp_prod_sf_cluster_config, save_label, save_features):
         assert np.allclose(ds_alice["id_tttest"], 1)
 
 
-def test_inferencer_individual(comp_prod_sf_cluster_config):
+@pytest.mark.mpc
+def test_inferencer_individual(sf_production_setup_comp):
     bob_input_path = "serving_model_inferencer/bob.orc"
     pred_path = "serving_model_inferencer/pred.csv"
     alice_input_tar_path = "tests/component/infra/serving_model_inferencer/alice/features_in_one_party_glm_model.tar.gz"
     bob_input_tar_path = "tests/component/infra/serving_model_inferencer/bob/features_in_one_party_glm_model.tar.gz"
 
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
     self_party = sf_cluster_config.private_config.self_party
     storage = make_storage(storage_config)
 

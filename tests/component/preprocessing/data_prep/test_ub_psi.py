@@ -16,24 +16,25 @@ import logging
 import tarfile
 
 import pandas as pd
+import pytest
 from pyarrow import orc
 
 from secretflow.component.core import (
     VTable,
     VTableParty,
     build_node_eval_param,
+    comp_eval,
     make_storage,
 )
-from secretflow.component.entry import comp_eval
-from secretflow.spec.extend.data_pb2 import DeviceObjectCollection
 
 
-def test_ub_psi(comp_prod_sf_cluster_config):
+@pytest.mark.mpc
+def test_ub_psi(sf_production_setup_comp):
     server_csv_uri = "test_ub_psi/input1.csv"
     client_csv_uri = "test_ub_psi/input2.csv"
     cache_uri = "test_ub_psi/ub_cache_uri"
 
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
     self_party = sf_cluster_config.private_config.self_party
     storage = make_storage(storage_config)
 
@@ -130,12 +131,13 @@ def test_ub_psi(comp_prod_sf_cluster_config):
             logging.info(f"{self_party} table: {table}")
 
 
-def test_ub_psi_left(comp_prod_sf_cluster_config):
+@pytest.mark.mpc
+def test_ub_psi_left(sf_production_setup_comp):
     server_csv_uri = "test_ub_psi/input1.csv"
     client_csv_uri = "test_ub_psi/input2.csv"
     cache_uri = "test_ub_psi/ub_cache_uri"
 
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
     self_party = sf_cluster_config.private_config.self_party
     storage = make_storage(storage_config)
 

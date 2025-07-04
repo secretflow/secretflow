@@ -14,20 +14,21 @@
 
 
 import io
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import IntEnum, auto
 
 import pyarrow as pa
 from google.protobuf import json_format
 from secretflow_serving_lib import GraphBuilder, build_serving_tar, compute_trace_pb2
+from secretflow_spec import Storage, StrEnum
 
 from secretflow.device import HEU, PYU, PYUObject, proxy, wait
 
-from .common.types import BaseEnum
-from .storage import Storage
+from .context import Context
 
 
-class ServingOp(BaseEnum):
+class ServingOp(StrEnum):
     ARROW_PROCESSING = "arrow_processing"
     DOT_PRODUCT = "dot_product"
     MERGE_Y = "merge_y"
@@ -38,6 +39,10 @@ class ServingOp(BaseEnum):
     PHE_2P_REDUCE = "phe_2p_reduce"
     PHE_2P_DECRYPT_PEER_Y = "phe_2p_decrypt_peer_y"
     PHE_2P_MERGE_Y = "phe_2p_merge_y"
+    PHE_2P_TREE_SELECT = "phe_2p_tree_select"
+    PHE_2P_TREE_MERGE = "phe_2p_tree_merge"
+    PHE_2P_TREE_ENSEMBLE_PREDICT = "phe_2p_tree_ensemble_predict"
+    PHE_2P_TREE_ENSEMBLE_MERGE = "phe_2p_tree_ensemble_merge"
 
 
 class ServingPhase(IntEnum):
@@ -103,7 +108,7 @@ class ServingNode:
         }
 
 
-class DispatchType(BaseEnum):
+class DispatchType(StrEnum):
     DP_ALL = "DP_ALL"
     DP_ANYONE = "DP_ANYONE"
     DP_SPECIFIED = "DP_SPECIFIED"
@@ -237,3 +242,8 @@ class ServingBuilder:
                 waits.append(res)
             wait(waits)
         return graph_builders
+
+
+class IServingExporter(ABC):
+    @abstractmethod
+    def export(self, ctx: Context, builder: ServingBuilder, **kwargs) -> None: ...

@@ -13,14 +13,15 @@
 # limitations under the License.
 
 
-from secretflow.component.core import get_translation, translate
-from secretflow.component.core.i18n import gettext
-from secretflow.spec.v1.component_pb2 import (
+from secretflow_spec.v1.component_pb2 import (
     AttributeDef,
     CompListDef,
     ComponentDef,
     IoDef,
 )
+
+from secretflow.component.core import get_translation, translate
+from secretflow.component.core.i18n import gettext
 
 
 def test_translate():

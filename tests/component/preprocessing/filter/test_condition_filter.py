@@ -13,8 +13,6 @@
 # limitations under the License.
 
 
-import time
-
 import pandas as pd
 import pytest
 from pyarrow import orc
@@ -23,19 +21,21 @@ from secretflow.component.core import (
     VTable,
     VTableParty,
     build_node_eval_param,
+    comp_eval,
     make_storage,
 )
-from secretflow.component.entry import comp_eval
+from secretflow.component.preprocessing.filter.condition_filter import ConditionFilter
 
 
-def test_condition_filter(comp_prod_sf_cluster_config):
+@pytest.mark.mpc
+def test_condition_filter(sf_production_setup_comp):
     work_dir = "test_condition_filter"
     alice_input_path = "test_condition_filter/alice.csv"
     bob_input_path = "test_condition_filter/bob.csv"
     hit_output_path = "test_condition_filter/hit.csv"
     else_output_path = "test_condition_filter/else.csv"
 
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
     self_party = sf_cluster_config.private_config.self_party
     storage = make_storage(storage_config)
 
@@ -131,56 +131,23 @@ def test_condition_filter(comp_prod_sf_cluster_config):
             else_ds_info = VTable.from_distdata(res.outputs[1], columns=[id_name])
 
             hit_ds = orc.read_table(
-                storage.get_reader(hit_ds_info.party(self_party).uri)
+                storage.get_reader(hit_ds_info.get_party(self_party).uri)
             ).to_pandas()
             else_ds = orc.read_table(
-                storage.get_reader(else_ds_info.party(self_party).uri)
+                storage.get_reader(else_ds_info.get_party(self_party).uri)
             ).to_pandas()
             expected = tc["expected"]
             assert list(hit_ds[id_name]) == expected[0]
             assert list(else_ds[id_name]) == expected[1]
 
 
-def test_condition_filter_label(comp_prod_sf_cluster_config):
-    work_dir = "test_condition_filter"
-    alice_input_path = "test_condition_filter/alice.csv"
-    bob_input_path = "test_condition_filter/bob.csv"
-    hit_output_path = "test_condition_filter/hit.csv"
-    else_output_path = "test_condition_filter/else.csv"
-
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
-    self_party = sf_cluster_config.private_config.self_party
-    storage = make_storage(storage_config)
-
-    input_datasets = {
-        "alice": pd.DataFrame(
-            {
-                "id1": ["1", "2", "3", "4"],
-                "a1": ["K5", "K1", None, "K6"],
-                "a2": ["A5", "A1", "A2", "A6"],
-                "a3": [5, 1, 2, 6],
-                "y": [0, 1, 1, 0],
-            }
-        ),
-        "bob": pd.DataFrame(
-            {
-                "id2": ["1", "2", "3", "4"],
-                "b4": [10.2, 20.5, None, -0.4],
-                "b5": ["B3", None, "B9", "B4"],
-                "b6": [3, 1, 9, 4],
-            }
-        ),
-    }
-    if self_party in input_datasets:
-        path = f"{work_dir}/{self_party}.csv"
-        df = input_datasets[self_party]
-        df.to_csv(storage.get_writer(path), index=False)
-
-    tbl_info = VTable(
+def test_condition_filter_error():
+    # test kind mismatch
+    input_tbl = VTable(
         name="input_data",
         parties=[
             VTableParty.from_dict(
-                uri=alice_input_path,
+                uri="alice_input_path.csv",
                 party="alice",
                 format="csv",
                 null_strs=[""],
@@ -189,7 +156,7 @@ def test_condition_filter_label(comp_prod_sf_cluster_config):
                 labels={"y": "float32"},
             ),
             VTableParty.from_dict(
-                uri=bob_input_path,
+                uri="bob_input_path.csv",
                 party="bob",
                 format="csv",
                 null_strs=[""],
@@ -199,36 +166,12 @@ def test_condition_filter_label(comp_prod_sf_cluster_config):
         ],
     )
 
-    test_cases = [
-        {
-            "attrs": {
-                'feature': ["y"],
-                'comparator': "<",
-                'bound_value': "11",
-                'float_epsilon': 0.01,
-            },
-            "expected": [["1", "4"], ["2", "3"]],
-            "desc": "test filter",
-        }
-    ]
-
-    for tc in test_cases:
-        param = build_node_eval_param(
-            domain="data_filter",
-            name="condition_filter",
-            version="1.0.0",
-            attrs=tc["attrs"],
-            inputs=[tbl_info],
-            output_uris=[
-                hit_output_path,
-                else_output_path,
-            ],
-        )
-
-        with pytest.raises(ValueError, match=r"kind of .* mismatch, expected .*"):
-            comp_eval(
-                param=param,
-                storage_config=storage_config,
-                cluster_config=sf_cluster_config,
-            )
-        time.sleep(4)
+    comp = ConditionFilter(
+        feature="y",
+        comparator="<",
+        bound_value="11",
+        float_epsilon=0.01,
+        input_ds=input_tbl.to_distdata(),
+    )
+    with pytest.raises(ValueError, match=r"kind of .* mismatch, expected .*"):
+        comp.evaluate(None)

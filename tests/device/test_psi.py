@@ -12,14 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
 import tempfile
 
 import pandas as pd
 import pytest
-import spu
 
 import secretflow as sf
+from tests.sf_fixtures import mpc_fixture
 
 
 def set_up(devices):
@@ -105,18 +104,23 @@ def set_up(devices):
     data["db"] = sf.to(devices.bob, db)
     data["db2"] = sf.to(devices.bob, db2)
     data["db3"] = sf.to(devices.bob, db3)
-    data["dc"] = sf.to(devices.carol, db)
     data["db4"] = sf.to(devices.bob, db4)
     data["da_new"] = sf.to(devices.alice, da_new)
     data["db_new"] = sf.to(devices.bob, db_new)
-    data["da_aby3"] = sf.to(devices.alice, da_aby3)
-    data["db_aby3"] = sf.to(devices.bob, db_aby3)
-    data["dc_aby3"] = sf.to(devices.carol, dc_aby3)
+
+    if devices.carol is not None:
+        data["da_aby3"] = sf.to(devices.alice, da_aby3)
+        data["db_aby3"] = sf.to(devices.bob, db_aby3)
+        data["dc_aby3"] = sf.to(devices.carol, dc_aby3)
+
+    # only for test error
+    carol = sf.PYU("carol")
+    data["dc"] = sf.to(carol, db)
 
     return data
 
 
-@pytest.fixture(scope="function")
+@mpc_fixture
 def prod_env_and_model(sf_production_setup_devices):
     data = set_up(sf_production_setup_devices)
     yield sf_production_setup_devices, data
@@ -128,17 +132,8 @@ def sim_env_and_model(sf_simulation_setup_devices):
     yield sf_simulation_setup_devices, data
 
 
-def _progress_callbacks(party: str, data: sf.utils.progress.ProgressData):
-    assert party == "alice" or party == "bob"
-    logging.info(
-        f"{party} progress callback ---- percentage: {data.percentage}, total: {data.total}, finished: {data.finished}, description: {data.description}"
-    )
-
-
 def _test_single_col(devices, data):
-    da, db = devices.spu.psi_df(
-        "c1", [data["da"], data["db"]], "alice", progress_callbacks=_progress_callbacks
-    )
+    da, db = devices.spu.psi_df("c1", [data["da"], data["db"]], "alice")
 
     expected = pd.DataFrame(
         {"c1": ["K1", "K3", "K4"], "c2": ["A1", "A3", "A4"], "c3": [1, 3, 4]}
@@ -151,6 +146,7 @@ def _test_single_col(devices, data):
     pd.testing.assert_frame_equal(sf.reveal(db).reset_index(drop=True), expected)
 
 
+@pytest.mark.mpc
 def test_single_col_prod(prod_env_and_model):
     devices, data = prod_env_and_model
     _test_single_col(devices, data)
@@ -162,18 +158,14 @@ def test_single_col_sim(sim_env_and_model):
 
 
 def _test_multiple_col(devices, data):
-    da, db = devices.spu.psi_df(
-        ["c1", "c2"],
-        [data["da"], data["db"]],
-        "alice",
-        progress_callbacks=_progress_callbacks,
-    )
+    da, db = devices.spu.psi_df(["c1", "c2"], [data["da"], data["db"]], "alice")
 
     expected = pd.DataFrame({"c1": ["K1", "K4"], "c2": ["A1", "A4"], "c3": [1, 4]})
     pd.testing.assert_frame_equal(sf.reveal(da).reset_index(drop=True), expected)
     pd.testing.assert_frame_equal(sf.reveal(db).reset_index(drop=True), expected)
 
 
+@pytest.mark.mpc
 def test_multiple_col_prod(prod_env_and_model):
     devices, data = prod_env_and_model
     _test_multiple_col(devices, data)
@@ -197,6 +189,7 @@ def _test_different_cols(devices, data):
     pd.testing.assert_frame_equal(sf.reveal(db).reset_index(drop=True), expected_b)
 
 
+@pytest.mark.mpc
 def test_different_cols_prod(prod_env_and_model):
     devices, data = prod_env_and_model
     _test_different_cols(devices, data)
@@ -213,6 +206,7 @@ def _test_invalid_device(devices, data):
         sf.reveal([da, dc])
 
 
+@pytest.mark.mpc
 def test_invalid_device_prod(prod_env_and_model):
     devices, data = prod_env_and_model
     _test_invalid_device(devices, data)
@@ -223,26 +217,6 @@ def test_invalid_device_sim(sim_env_and_model):
     _test_invalid_device(devices, data)
 
 
-# @unittest.skip('spu reset not works now FIXME @raofei')
-# def duplicate_col(self):
-#     with self.assertRaisesRegex(RuntimeError, 'found duplicated keys'):
-#         da, db = self.spu.psi_df('c1', [self.da, self.db2], 'alice')
-#         sf.reveal([da, db])
-
-#     # reset spu to clear corrupted state
-#     self.spu.reset()
-
-
-# @unittest.skip('spu reset not works now FIXME @raofei')
-# def missing_col(self):
-#     with self.assertRaisesRegex(RuntimeError, "can't find feature names 'c4'"):
-#         da, db = self.spu.psi_df(['c1', 'c4'], [self.da, self.db2], 'alice')
-#         sf.reveal([da, db])
-
-#     # reset spu to clear corrupted state
-#     self.spu.reset()
-
-
 def _test_no_intersection(devices, data):
     da, db = devices.spu.psi_df("c1", [data["da"], data["db3"]], "alice")
     expected = pd.DataFrame({"c1": [], "c2": [], "c3": []}).astype("object")
@@ -250,6 +224,7 @@ def _test_no_intersection(devices, data):
     pd.testing.assert_frame_equal(sf.reveal(db).reset_index(drop=True), expected)
 
 
+@pytest.mark.mpc
 def test_no_intersection_prod(prod_env_and_model):
     devices, data = prod_env_and_model
     _test_no_intersection(devices, data)
@@ -263,7 +238,7 @@ def test_no_intersection_sim(sim_env_and_model):
 def _test_no_broadcast(devices, data):
     # only alice can get result
     da, db = devices.spu.psi_df(
-        "c1", [data["da"], data["db"]], "alice", "KKRT_PSI_2PC", False, True, False
+        "c1", [data["da"], data["db"]], "alice", "PROTOCOL_KKRT", False, True, False
     )
     expected = pd.DataFrame(
         {"c1": ["K1", "K3", "K4"], "c2": ["A1", "A3", "A4"], "c3": [1, 3, 4]}
@@ -273,6 +248,7 @@ def _test_no_broadcast(devices, data):
     assert sf.reveal(db) is None
 
 
+@pytest.mark.mpc
 def test_no_broadcast_prod(prod_env_and_model):
     devices, data = prod_env_and_model
     _test_no_broadcast(devices, data)
@@ -281,56 +257,6 @@ def test_no_broadcast_prod(prod_env_and_model):
 def test_no_broadcast_sim(sim_env_and_model):
     devices, data = sim_env_and_model
     _test_no_broadcast(devices, data)
-
-
-def _test_psi_csv(devices, data):
-    with tempfile.TemporaryDirectory() as data_dir:
-        input_path = {
-            devices.alice: f"{data_dir}/alice.csv",
-            devices.bob: f"{data_dir}/bob.csv",
-        }
-        output_path = {
-            devices.alice: f"{data_dir}/alice_psi.csv",
-            devices.bob: f"{data_dir}/bob_psi.csv",
-        }
-
-        sf.reveal(
-            devices.alice(lambda df, save_path: df.to_csv(save_path, index=False))(
-                data["da"], input_path[devices.alice]
-            )
-        )
-        sf.reveal(
-            devices.bob(lambda df, save_path: df.to_csv(save_path, index=False))(
-                data["db"], input_path[devices.bob]
-            )
-        )
-
-        devices.spu.psi_csv(
-            ["c1", "c2"],
-            input_path,
-            output_path,
-            "alice",
-            progress_callbacks=_progress_callbacks,
-        )
-
-        expected = pd.DataFrame({"c1": ["K1", "K4"], "c2": ["A1", "A4"], "c3": [1, 4]})
-
-        pd.testing.assert_frame_equal(
-            sf.reveal(devices.alice(pd.read_csv)(output_path[devices.alice])), expected
-        )
-        pd.testing.assert_frame_equal(
-            sf.reveal(devices.bob(pd.read_csv)(output_path[devices.bob])), expected
-        )
-
-
-def test_psi_csv_prod(prod_env_and_model):
-    devices, data = prod_env_and_model
-    _test_psi_csv(devices, data)
-
-
-def test_psi_csv_sim(sim_env_and_model):
-    devices, data = sim_env_and_model
-    _test_psi_csv(devices, data)
 
 
 def _test_psi_v2(devices, data):
@@ -376,6 +302,7 @@ def _test_psi_v2(devices, data):
         )
 
 
+@pytest.mark.mpc
 def test_psi_v2_prod(prod_env_and_model):
     devices, data = prod_env_and_model
     _test_psi_v2(devices, data)
@@ -386,13 +313,14 @@ def test_psi_v2_sim(sim_env_and_model):
     _test_psi_v2(devices, data)
 
 
+@pytest.mark.mpc(parties=3)
 def test_single_col(prod_env_and_model):
     devices, data = prod_env_and_model
-    da, db, dc = devices.spu2.psi_df(
+    da, db, dc = devices.spu.psi_df(
         "c1",
         [data["da_aby3"], data["db_aby3"], data["dc_aby3"]],
         "alice",
-        protocol="ECDH_PSI_3PC",
+        protocol="PROTOCOL_ECDH_3PC",
     )
 
     expected = pd.DataFrame(
@@ -411,118 +339,16 @@ def test_single_col(prod_env_and_model):
     pd.testing.assert_frame_equal(sf.reveal(dc).reset_index(drop=True), expected)
 
 
+@pytest.mark.mpc(parties=3)
 def test_multiple_col(prod_env_and_model):
     devices, data = prod_env_and_model
-    da, db, dc = devices.spu2.psi_df(
+    da, db, dc = devices.spu.psi_df(
         ["c1", "c2"],
         [data["da_aby3"], data["db_aby3"], data["dc_aby3"]],
-        protocol="ECDH_PSI_3PC",
+        protocol="PROTOCOL_ECDH_3PC",
         receiver="alice",
     )
     expected = pd.DataFrame({"c1": ["K1"], "c2": ["A1"], "c3": [1]})
     pd.testing.assert_frame_equal(sf.reveal(da).reset_index(drop=True), expected)
     pd.testing.assert_frame_equal(sf.reveal(db).reset_index(drop=True), expected)
     pd.testing.assert_frame_equal(sf.reveal(dc).reset_index(drop=True), expected)
-
-
-def test_psi_join_df(prod_env_and_model):
-    devices, data = prod_env_and_model
-    select_keys = {
-        devices.alice: ["id1"],
-        devices.bob: ["id2"],
-    }
-
-    da, db = devices.spu.psi_join_df(
-        select_keys,
-        [data["da_new"], data["db_new"]],
-        "bob",
-        "bob",
-        progress_callbacks=_progress_callbacks,
-    )
-
-    result_a = pd.DataFrame(
-        {
-            "id1": ["K200", "K200", "K300", "K400", "K400", "K500"],
-            "item": ["B", "C", "D", "E", "F", "G"],
-            "feature1": ["BBB", "CCC", "DDD", "EEE", "FFF", "GGG"],
-        }
-    )
-
-    result_b = pd.DataFrame(
-        {
-            "id2": ["K200", "K200", "K300", "K400", "K400", "K500"],
-            "feature2": ["AA", "AA", "BB", "CC", "CC", "DD"],
-        }
-    )
-
-    pd.testing.assert_frame_equal(sf.reveal(da).reset_index(drop=True), result_a)
-    pd.testing.assert_frame_equal(sf.reveal(db).reset_index(drop=True), result_b)
-
-
-def test_psi_join_csv(prod_env_and_model):
-    devices, data = prod_env_and_model
-    with tempfile.TemporaryDirectory() as data_dir:
-        input_path = {
-            devices.alice: f"{data_dir}/alice.csv",
-            devices.bob: f"{data_dir}/bob.csv",
-        }
-        output_path = {
-            devices.alice: f"{data_dir}/alice_psi.csv",
-            devices.bob: f"{data_dir}/bob_psi.csv",
-        }
-
-        sf.reveal(
-            devices.alice(lambda df, save_path: df.to_csv(save_path, index=False))(
-                data["da_new"], input_path[devices.alice]
-            )
-        )
-        sf.reveal(
-            devices.bob(lambda df, save_path: df.to_csv(save_path, index=False))(
-                data["db_new"], input_path[devices.bob]
-            )
-        )
-
-        select_keys = {
-            devices.alice: ["id1"],
-            devices.bob: ["id2"],
-        }
-
-        devices.spu.psi_join_csv(
-            select_keys,
-            input_path,
-            output_path,
-            "alice",
-            "alice",
-            progress_callbacks=_progress_callbacks,
-        )
-
-        result_a = pd.DataFrame(
-            {
-                "id1": ["K200", "K200", "K300", "K400", "K400", "K500"],
-                "item": ["B", "C", "D", "E", "F", "G"],
-                "feature1": ["BBB", "CCC", "DDD", "EEE", "FFF", "GGG"],
-            }
-        )
-
-        result_b = pd.DataFrame(
-            {
-                "id2": ["K200", "K200", "K300", "K400", "K400", "K500"],
-                "feature2": ["AA", "AA", "BB", "CC", "CC", "DD"],
-            }
-        )
-
-        def check_df(filename, expect):
-            df = pd.read_csv(filename)
-            try:
-                pd.testing.assert_frame_equal(df, expect)
-                return True
-            except AssertionError as e:
-                print(e)
-                return False
-
-        pd.testing.assert_frame_equal(
-            sf.reveal(devices.alice(pd.read_csv)(output_path[devices.alice])), result_a
-        )
-        pd.testing.assert_frame_equal(
-            sf.reveal(devices.bob(pd.read_csv)(output_path[devices.bob])), result_b
-        )

@@ -25,21 +25,20 @@ from secretflow.component.core import (
     VTable,
     VTableParty,
     build_node_eval_param,
+    comp_eval,
     make_storage,
 )
-from secretflow.component.entry import comp_eval
 from secretflow.spec.extend.bin_data_pb2 import Bins
 
 
-@pytest.fixture
-def vert_bin_rule(comp_prod_sf_cluster_config):
+def gen_vert_bin_rule(sf_production_setup_comp):
     alice_path = "test_io/x_alice.csv"
     bob_path = "test_io/x_bob.csv"
     out_data_path = "test_io/out_data"
     rule_path = "test_io/bin_rule"
     report_path = "test_io/report"
 
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
     self_party = sf_cluster_config.private_config.self_party
     storage = make_storage(storage_config)
 
@@ -97,10 +96,9 @@ def vert_bin_rule(comp_prod_sf_cluster_config):
     return bin_rule
 
 
-@pytest.fixture
-def write_data(vert_bin_rule, comp_prod_sf_cluster_config):
+def gen_write_data(sf_production_setup_comp, vert_bin_rule):
     pb_path = "test_io/rule_pb"
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
 
     read_param = build_node_eval_param(
         domain="io",
@@ -121,10 +119,14 @@ def write_data(vert_bin_rule, comp_prod_sf_cluster_config):
     return write_data
 
 
-def test_no_change_correct(vert_bin_rule, write_data, comp_prod_sf_cluster_config):
+@pytest.mark.mpc
+def test_no_change_correct(sf_production_setup_comp):
     new_rule_path = "test_io/new_bin_rule"
     pb_path = "test_io/rule_pb_unchanged"
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+
+    vert_bin_rule = gen_vert_bin_rule(sf_production_setup_comp)
+    write_data = gen_write_data(sf_production_setup_comp, vert_bin_rule)
+    storage_config, sf_cluster_config = sf_production_setup_comp
     write_param = build_node_eval_param(
         domain="io",
         name="write_data",
@@ -172,10 +174,14 @@ def test_no_change_correct(vert_bin_rule, write_data, comp_prod_sf_cluster_confi
     ), f"No ops, they should be the same {write_data}, {write_data_unchanged}"
 
 
-def test_merge_one_bin_correct(vert_bin_rule, write_data, comp_prod_sf_cluster_config):
+@pytest.mark.mpc
+def test_merge_one_bin_correct(sf_production_setup_comp):
     new_rule_path = "test_io/new_bin_rule"
     pb_path = "test_io/rule_pb_unchanged"
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+
+    vert_bin_rule = gen_vert_bin_rule(sf_production_setup_comp)
+    write_data = gen_write_data(sf_production_setup_comp, vert_bin_rule)
+    storage_config, sf_cluster_config = sf_production_setup_comp
 
     read_bin_pb = Bins()
     Parse(write_data, read_bin_pb)

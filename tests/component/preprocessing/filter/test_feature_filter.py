@@ -13,20 +13,26 @@
 # limitations under the License.
 
 import pandas as pd
+import pytest
 from pyarrow import orc
+from secretflow_spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 from sklearn.datasets import load_breast_cancer
 
-from secretflow.component.core import DistDataType, build_node_eval_param, make_storage
-from secretflow.component.entry import comp_eval
-from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
+from secretflow.component.core import (
+    DistDataType,
+    build_node_eval_param,
+    comp_eval,
+    make_storage,
+)
 
 
-def test_feature_filter(comp_prod_sf_cluster_config):
+@pytest.mark.mpc
+def test_feature_filter(sf_production_setup_comp):
     alice_input_path = "test_feature_filter/alice.csv"
     bob_input_path = "test_feature_filter/bob.csv"
     output_path = "test_feature_filter/out.csv"
 
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
     self_party = sf_cluster_config.private_config.self_party
     storage = make_storage(storage_config)
 

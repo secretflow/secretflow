@@ -13,11 +13,12 @@
 # limitations under the License.
 
 import numpy as np
+import pytest
 
 from secretflow import reveal
+from secretflow.utils.simulation.data import SPLIT_METHOD
 from secretflow.utils.simulation.data.ndarray import create_ndarray
 from secretflow.utils.simulation.datasets import dataset
-from secretflow.utils.simulation.data import SPLIT_METHOD
 
 
 def get_ndarray():
@@ -27,9 +28,8 @@ def get_ndarray():
     return x_test, y_test
 
 
-def test_create_horizontal_fedndarray_should_ok(
-    sf_production_setup_devices,
-):
+@pytest.mark.mpc(parties=3)
+def test_create_horizontal_fedndarray_should_ok(sf_production_setup_devices):
     # WHEN
     x_test, y_test = get_ndarray()
     fed_data = create_ndarray(
@@ -60,6 +60,7 @@ def test_create_horizontal_fedndarray_should_ok(
     assert alice_label.shape == (3333,)
 
 
+@pytest.mark.mpc(parties=3)
 def test_create_vertical_fedndarray_should_ok(sf_production_setup_devices):
     # WHEN
     x_test, y_test = get_ndarray()
@@ -91,9 +92,8 @@ def test_create_vertical_fedndarray_should_ok(sf_production_setup_devices):
     assert alice_label.shape == (10000,)
 
 
-def test_create_horizontal_fedndarray_dirichlet_should_ok(
-    sf_production_setup_devices,
-):
+@pytest.mark.mpc(parties=3)
+def test_create_horizontal_fedndarray_dirichlet_should_ok(sf_production_setup_devices):
     # WHEN
     x_test, y_test = get_ndarray()
     fed_data = create_ndarray(
@@ -135,9 +135,8 @@ def test_create_horizontal_fedndarray_dirichlet_should_ok(
     assert alice_label.shape == (3333,)
 
 
-def test_create_horizontal_fedndarray_label_skew_should_ok(
-    sf_production_setup_devices,
-):
+@pytest.mark.mpc(parties=3)
+def test_create_horizontal_fedndarray_label_skew_should_ok(sf_production_setup_devices):
     # WHEN
     x_test, y_test = get_ndarray()
     max_class_nums = 5

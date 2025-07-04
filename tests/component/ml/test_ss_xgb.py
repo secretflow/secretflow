@@ -15,6 +15,7 @@
 import pandas as pd
 import pytest
 from pyarrow import orc
+from secretflow_spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 from sklearn.datasets import load_breast_cancer
 from sklearn.metrics import roc_auc_score
 from sklearn.preprocessing import StandardScaler
@@ -23,16 +24,16 @@ from secretflow.component.core import (
     VTable,
     VTableParty,
     build_node_eval_param,
+    comp_eval,
     make_storage,
 )
-from secretflow.component.entry import comp_eval
-from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 
 NUM_BOOST_ROUND = 3
 
 
 @pytest.mark.parametrize("with_checkpoint", [True, False])
-def test_ss_xgb(comp_prod_sf_cluster_config, with_checkpoint):
+@pytest.mark.mpc
+def test_ss_xgb(sf_production_setup_comp, with_checkpoint):
     work_path = f"ut_test_ss_xgb_{with_checkpoint}"
     alice_path = f"{work_path}/x_alice.csv"
     bob_path = f"{work_path}/x_bob.csv"
@@ -40,7 +41,7 @@ def test_ss_xgb(comp_prod_sf_cluster_config, with_checkpoint):
     predict_path = f"{work_path}/predict.csv"
     checkpoint_path = f"{work_path}/checkpoint"
 
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
     self_party = sf_cluster_config.private_config.self_party
     storage = make_storage(storage_config)
 

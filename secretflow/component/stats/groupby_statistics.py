@@ -11,7 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 
+from google.protobuf.json_format import MessageToJson
 
 from secretflow.component.core import (
     Component,
@@ -21,18 +23,18 @@ from secretflow.component.core import (
     Input,
     Interval,
     Output,
+    register,
     Reporter,
     VTable,
     VTableFieldKind,
-    register,
 )
-from secretflow.error_system.exceptions import DataFormatError
 from secretflow.spec.extend.groupby_aggregation_config_pb2 import (
     ColumnQuery,
     GroupbyAggregationConfig,
 )
 from secretflow.stats.groupby_v import ordinal_encoded_groupby_value_agg_pairs
 from secretflow.utils.consistent_ops import unique_list
+from secretflow.utils.errors import InvalidArgumentError
 
 ENUM_TO_STR = {
     ColumnQuery.AggregationFunction.COUNT: "count",
@@ -72,7 +74,7 @@ class GroupbyStatistics(Component):
     )
     by: list[str] = Field.table_column_attr(
         "input_ds",
-        desc="by what columns should we group the values",
+        desc="by what columns should we group the values, encode values into int or str before groupby or else numeric errors may occur",
         limit=Interval.closed(1, 4),
     )
     input_ds: Input = Field.input(
@@ -90,12 +92,13 @@ class GroupbyStatistics(Component):
             for col_config in self.aggregation_config.column_queries
         ]
         for col_config in self.aggregation_config.column_queries:
-            assert (
-                col_config.function != ColumnQuery.AggregationFunction.INVAL
-            ), "aggregation function must be valid"
+            if col_config.function == ColumnQuery.AggregationFunction.INVAL:
+                raise InvalidArgumentError("aggregation function must be valid")
+
         if set(self.by).intersection(value_columns):
-            raise DataFormatError.by_columns_intersection_with_key_columns(
-                "by columns and key columns should have no intersection"
+            raise InvalidArgumentError(
+                "by columns and key columns should have no intersection",
+                detail={"by": self.by, "value_columns": value_columns},
             )
 
         # FIXME: avoid to_pandas, use pa.Table
@@ -139,3 +142,4 @@ class GroupbyStatistics(Component):
             )
             r.add_tab(r_table, name=agg)
         self.report.data = r.to_distdata()
+        logging.info(f'\n--\n*report* \n\n{MessageToJson(r.report())}\n--\n')

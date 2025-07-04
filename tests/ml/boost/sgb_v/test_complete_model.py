@@ -30,12 +30,12 @@ from secretflow.ml.boost.sgb_v.core.distributed_tree.distributed_tree import (
     DistributedTree,
 )
 from secretflow.ml.boost.sgb_v.model import load_model
+from tests.sf_fixtures import SFProdParams
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 
-@pytest.fixture
-def sgb_model_complete_model_and_x(sf_production_setup_devices_aby3):
+def _gen_sgb_model_complete_model_and_x(devices):
     from sklearn.datasets import load_breast_cancer
 
     ds = load_breast_cancer()
@@ -43,26 +43,18 @@ def sgb_model_complete_model_and_x(sf_production_setup_devices_aby3):
 
     v_data = FedNdarray(
         {
-            sf_production_setup_devices_aby3.alice: (
-                sf_production_setup_devices_aby3.alice(lambda: x[:, :15])()
-            ),
-            sf_production_setup_devices_aby3.bob: (
-                sf_production_setup_devices_aby3.bob(lambda: x[:, 15:])()
-            ),
+            devices.alice: (devices.alice(lambda: x[:, :15])()),
+            devices.bob: (devices.bob(lambda: x[:, 15:])()),
         },
         partition_way=PartitionWay.VERTICAL,
     )
     label_data = FedNdarray(
-        {
-            sf_production_setup_devices_aby3.alice: (
-                sf_production_setup_devices_aby3.alice(lambda: y)()
-            )
-        },
+        {devices.alice: (devices.alice(lambda: y)())},
         partition_way=PartitionWay.VERTICAL,
     )
 
     model = _run_sgb(
-        sf_production_setup_devices_aby3,
+        devices,
         "breast_cancer",
         v_data,
         label_data,
@@ -71,9 +63,7 @@ def sgb_model_complete_model_and_x(sf_production_setup_devices_aby3):
         1,
         0.9,
     )
-    complete_model_object = from_sgb_model(
-        model, sf_production_setup_devices_aby3.alice
-    )
+    complete_model_object = from_sgb_model(model, devices.alice)
     return model, complete_model_object, x
 
 
@@ -173,20 +163,15 @@ def _run_sgb(
 
 
 @pytest.mark.parametrize("tree_idx", [0, 1, 2])
-def test_split_tree(
-    sf_production_setup_devices_aby3, sgb_model_complete_model_and_x, tree_idx
-):
+@pytest.mark.mpc(parties=3, params=SFProdParams.ABY3)
+def test_split_tree(sf_production_setup_devices, tree_idx):
     logging.info("start testing split tree")
-    env = sf_production_setup_devices_aby3
-    model, _, x = sgb_model_complete_model_and_x
+    devices = sf_production_setup_devices
+    model, _, x = _gen_sgb_model_complete_model_and_x(devices)
     v_data = FedNdarray(
         {
-            sf_production_setup_devices_aby3.alice: (
-                sf_production_setup_devices_aby3.alice(lambda: x[:, :15])()
-            ),
-            sf_production_setup_devices_aby3.bob: (
-                sf_production_setup_devices_aby3.bob(lambda: x[:, 15:])()
-            ),
+            devices.alice: (devices.alice(lambda: x[:, :15])()),
+            devices.bob: (devices.bob(lambda: x[:, 15:])()),
         },
         partition_way=PartitionWay.VERTICAL,
     )
@@ -195,29 +180,24 @@ def test_split_tree(
     x_fed, _ = prepare_dataset(v_data)
     x_fed = v_data.partitions
 
-    complete_tree_object = from_distributed_tree(env.bob, tree)
+    complete_tree_object = from_distributed_tree(devices.bob, tree)
 
     complete_tree_predict = reveal(
-        env.bob(lambda tree, x: tree.predict(x))(complete_tree_object, x)
+        devices.bob(lambda tree, x: tree.predict(x))(complete_tree_object, x)
     )
     true_predict = reveal(tree.predict(x_fed))
     np.testing.assert_array_almost_equal(true_predict, complete_tree_predict, decimal=3)
 
 
-def test_complete_model(
-    sf_production_setup_devices_aby3, sgb_model_complete_model_and_x
-):
+@pytest.mark.mpc(parties=3, params=SFProdParams.ABY3)
+def test_complete_model(sf_production_setup_devices):
     logging.info("start testing complete model")
-    env = sf_production_setup_devices_aby3
-    model, complete_model_object, x = sgb_model_complete_model_and_x
+    devices = sf_production_setup_devices
+    model, complete_model_object, x = _gen_sgb_model_complete_model_and_x(devices)
     v_data = FedNdarray(
         {
-            sf_production_setup_devices_aby3.alice: (
-                sf_production_setup_devices_aby3.alice(lambda: x[:, :15])()
-            ),
-            sf_production_setup_devices_aby3.bob: (
-                sf_production_setup_devices_aby3.bob(lambda: x[:, 15:])()
-            ),
+            devices.alice: (devices.alice(lambda: x[:, :15])()),
+            devices.bob: (devices.bob(lambda: x[:, 15:])()),
         },
         partition_way=PartitionWay.VERTICAL,
     )
@@ -225,34 +205,33 @@ def test_complete_model(
     true_predict = reveal(model.predict(v_data))
 
     assert model.base == reveal(
-        env.alice(lambda model: model.base)(complete_model_object)
+        devices.alice(lambda model: model.base)(complete_model_object)
     )
 
     complete_model_predict = reveal(
-        env.alice(lambda model, x: model.predict(x))(complete_model_object, x)
+        devices.alice(lambda model, x: model.predict(x))(complete_model_object, x)
     )
     np.testing.assert_array_almost_equal(
         true_predict, complete_model_predict, decimal=3
     )
 
 
-def test_complete_model_serde(
-    sf_production_setup_devices_aby3, sgb_model_complete_model_and_x
-):
+@pytest.mark.mpc(parties=3, params=SFProdParams.ABY3)
+def test_complete_model_serde(sf_production_setup_devices):
     logging.info("start testing complete model serde test")
-    env = sf_production_setup_devices_aby3
-    _, complete_model_object, x = sgb_model_complete_model_and_x
+    devices = sf_production_setup_devices
+    _, complete_model_object, x = _gen_sgb_model_complete_model_and_x(devices)
 
     complete_model_predict = reveal(
-        env.alice(lambda model, x: model.predict(x))(complete_model_object, x)
+        devices.alice(lambda model, x: model.predict(x))(complete_model_object, x)
     )
 
-    loaded_obj = env.alice(lambda x: from_dict(json.loads(json.dumps(x.to_dict()))))(
-        complete_model_object
-    )
+    loaded_obj = devices.alice(
+        lambda x: from_dict(json.loads(json.dumps(x.to_dict())))
+    )(complete_model_object)
 
     loaded_complete_model_predict = reveal(
-        env.alice(lambda model, x: model.predict(x))(loaded_obj, x)
+        devices.alice(lambda model, x: model.predict(x))(loaded_obj, x)
     )
     np.testing.assert_array_almost_equal(
         loaded_complete_model_predict, complete_model_predict, decimal=8

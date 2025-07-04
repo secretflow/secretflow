@@ -22,17 +22,13 @@ from secretflow.device import SPUObject
 from secretflow.device.device.pyu import PYU
 from secretflow.device.device.spu import SPU
 from secretflow.device.driver import reveal
-from secretflow.error_system.exceptions import (
-    CompEvalError,
-    DataFormatError,
-    SFModelError,
-)
 from secretflow.spec.extend.linear_model_pb2 import (
     FeatureWeight,
     GeneralizedLinearModel,
     LinearModel,
     PublicInfo,
 )
+from secretflow.utils.errors import InvalidArgumentError
 
 
 def ss_glm_to_linear_model_pb(
@@ -55,7 +51,7 @@ def ss_glm_to_linear_model_pb(
     feature_number = len(feature_names)
 
     if (feature_number + 1) != w.size:
-        raise DataFormatError.feature_not_matched(
+        raise InvalidArgumentError(
             f"feature number {feature_number} + 1 is not equal to ss_glm_model shape's size {w.size}"
         )
 
@@ -65,7 +61,7 @@ def ss_glm_to_linear_model_pb(
         party_belongings.extend([party] * length)
 
     if feature_number != len(party_belongings):
-        raise DataFormatError.feature_not_matched(
+        raise InvalidArgumentError(
             f"feature number {feature_number} is not equal to party_belongings length {len(party_belongings)}"
         )
 
@@ -157,7 +153,7 @@ def ss_glm_from_pb_and_old_model(
 def check_pb_match_old_model(original_public_info: str, linear_model_pb: LinearModel):
     info_dict = json.loads(original_public_info)
     if info_dict.get("model_hash", "") != linear_model_pb.model_hash:
-        raise SFModelError.model_hash_mismatch(
+        raise InvalidArgumentError(
             f"model hash mismatch {info_dict['model_hash']}, {linear_model_pb.model_hash}"
         )
     feature_names = info_dict["feature_names"]
@@ -170,7 +166,7 @@ def check_pb_match_old_model(original_public_info: str, linear_model_pb: LinearM
 
     # check feature number equal
     if feature_number != len(linear_model_pb.feature_weights):
-        raise DataFormatError.feature_not_matched(
+        raise InvalidArgumentError(
             f"feature number mismatch, original feature number is {feature_number},"
             f"linear_model_pb feature number is {len(linear_model_pb.feature_weights)},"
             "make sure the linear model pb is matched to original model."
@@ -178,14 +174,14 @@ def check_pb_match_old_model(original_public_info: str, linear_model_pb: LinearM
     for i in range(feature_number):
         # check feature order and name equal
         if feature_names[i] != linear_model_pb.feature_weights[i].feature_name:
-            raise DataFormatError.feature_not_matched(
+            raise InvalidArgumentError(
                 f"feature name mismatch, original feature name is {feature_names[i]},"
                 f"linear_model_pb feature name is {linear_model_pb.feature_weights[i].feature_name},"
                 "make sure the linear model pb is matched to original model."
             )
         # check feature belongings equal
         if party_belongings[i] != linear_model_pb.feature_weights[i].party:
-            raise DataFormatError.feature_not_matched(
+            raise InvalidArgumentError(
                 f"feature party mismatch, original feature party is {party_belongings[i]},"
                 f"linear_model_pb feature party is {linear_model_pb.feature_weights[i].party},"
                 "make sure the linear model pb is matched to original model."
@@ -238,7 +234,9 @@ def ss_glm_from_pb(
     non_secure_feature_count = 1
     for party, count in party_features_length.items():
         if count == non_secure_feature_count:
-            raise CompEvalError(f"party {party} has 1 feature, which will leak data!!!")
+            raise InvalidArgumentError(
+                f"party {party} has 1 feature, which will leak data!!!"
+            )
     public_info["feature_names"] = feature_names
     public_info["party_features_length"] = party_features_length
 

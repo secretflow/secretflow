@@ -17,6 +17,7 @@ import os
 import time
 
 import numpy as np
+import pytest
 from sklearn.metrics import mean_squared_error, roc_auc_score
 
 from secretflow.data import FedNdarray, PartitionWay
@@ -24,6 +25,7 @@ from secretflow.device.driver import reveal
 from secretflow.ml.boost.sgb_v import Sgb
 from secretflow.ml.boost.sgb_v.model import load_model
 from secretflow.utils.simulation.datasets import load_dermatology, load_linear
+from tests.sf_fixtures import SFProdParams
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
@@ -184,76 +186,67 @@ def _run_npc_linear(env, test_name, parts, label_device, auc=0.87):
     )
 
 
-def test_2pc_linear(sf_production_setup_devices_aby3):
+@pytest.mark.mpc(parties=3, params=SFProdParams.ABY3)
+def test_2pc_linear(sf_production_setup_devices):
+    devices = sf_production_setup_devices
+
     parts = {
-        sf_production_setup_devices_aby3.bob: (1, 11),
-        sf_production_setup_devices_aby3.alice: (11, 22),
+        devices.bob: (1, 11),
+        devices.alice: (11, 22),
     }
-    _run_npc_linear(
-        sf_production_setup_devices_aby3,
-        "2pc_linear",
-        parts,
-        sf_production_setup_devices_aby3.alice,
-    )
+    _run_npc_linear(devices, "2pc_linear", parts, devices.alice)
 
 
-def test_4pc_linear(sf_production_setup_devices_aby3):
+@pytest.mark.mpc(parties=4, params=SFProdParams.ABY3)
+def test_4pc_linear(sf_production_setup_devices):
+    devices = sf_production_setup_devices
+
     parts = {
-        sf_production_setup_devices_aby3.davy: (1, 6),
-        sf_production_setup_devices_aby3.bob: (6, 12),
-        sf_production_setup_devices_aby3.carol: (12, 18),
-        sf_production_setup_devices_aby3.alice: (18, 22),
+        devices.davy: (1, 6),
+        devices.bob: (6, 12),
+        devices.carol: (12, 18),
+        devices.alice: (18, 22),
     }
-    _run_npc_linear(
-        sf_production_setup_devices_aby3,
-        "4pc_linear",
-        parts,
-        sf_production_setup_devices_aby3.alice,
-    )
+    _run_npc_linear(sf_production_setup_devices, "4pc_linear", parts, devices.alice)
 
 
-def test_2pc_linear_minimal(sf_production_setup_devices_aby3):
-    parts = {
-        sf_production_setup_devices_aby3.davy: (1, 2),
-        sf_production_setup_devices_aby3.alice: (21, 22),
-    }
+@pytest.mark.mpc(parties=4, params=SFProdParams.ABY3)
+def test_2pc_linear_minimal(sf_production_setup_devices):
+    devices = sf_production_setup_devices
+
+    parts = {devices.davy: (1, 2), devices.alice: (21, 22)}
     _run_npc_linear(
-        sf_production_setup_devices_aby3,
+        devices,
         "2pc_linear_minimal",
         parts,
-        sf_production_setup_devices_aby3.alice,
+        devices.alice,
         auc=0.52,
     )
 
 
-def test_breast_cancer(sf_production_setup_devices_aby3):
+@pytest.mark.mpc(parties=3, params=SFProdParams.ABY3)
+def test_breast_cancer(sf_production_setup_devices):
     from sklearn.datasets import load_breast_cancer
+
+    devices = sf_production_setup_devices
 
     ds = load_breast_cancer()
     x, y = ds['data'], ds['target']
 
     v_data = FedNdarray(
         {
-            sf_production_setup_devices_aby3.alice: (
-                sf_production_setup_devices_aby3.alice(lambda: x[:, :15])()
-            ),
-            sf_production_setup_devices_aby3.bob: (
-                sf_production_setup_devices_aby3.bob(lambda: x[:, 15:])()
-            ),
+            devices.alice: (devices.alice(lambda: x[:, :15])()),
+            devices.bob: (devices.bob(lambda: x[:, 15:])()),
         },
         partition_way=PartitionWay.VERTICAL,
     )
     label_data = FedNdarray(
-        {
-            sf_production_setup_devices_aby3.alice: (
-                sf_production_setup_devices_aby3.alice(lambda: y)()
-            )
-        },
+        {devices.alice: (devices.alice(lambda: y)())},
         partition_way=PartitionWay.VERTICAL,
     )
 
     _run_sgb(
-        sf_production_setup_devices_aby3,
+        sf_production_setup_devices,
         "breast_cancer",
         v_data,
         label_data,
@@ -266,7 +259,7 @@ def test_breast_cancer(sf_production_setup_devices_aby3):
     )
 
     _run_sgb(
-        sf_production_setup_devices_aby3,
+        sf_production_setup_devices,
         "breast_cancer",
         v_data,
         label_data,
@@ -278,7 +271,7 @@ def test_breast_cancer(sf_production_setup_devices_aby3):
 
     # test with leaf wise growth
     _run_sgb(
-        sf_production_setup_devices_aby3,
+        devices,
         "breast_cancer_early_stop",
         v_data,
         label_data,
@@ -295,31 +288,29 @@ def test_breast_cancer(sf_production_setup_devices_aby3):
     )
 
 
-def test_dermatology(sf_production_setup_devices_aby3):
+@pytest.mark.mpc(parties=3, params=SFProdParams.ABY3)
+def test_dermatology(sf_production_setup_devices):
+    devices = sf_production_setup_devices
+
     vdf = (
         load_dermatology(
-            parts={
-                sf_production_setup_devices_aby3.bob: (0, 17),
-                sf_production_setup_devices_aby3.alice: (17, 35),
-            },
+            parts={devices.bob: (0, 17), devices.alice: (17, 35)},
             axis=1,
         )
         .fillna(0)
         .replace({None: 0})
     )
     label_data = vdf['class']
-    y = reveal(
-        label_data.partitions[sf_production_setup_devices_aby3.alice].data
-    ).values
+    y = reveal(label_data.partitions[devices.alice].data).values
     v_data = vdf.drop(columns="class").values
     label_data = label_data.values
 
     audit_dict = {
-        sf_production_setup_devices_aby3.alice.party: "./audit_alice",
-        sf_production_setup_devices_aby3.bob.party: "./audit_bob",
+        devices.alice.party: "./audit_alice",
+        devices.bob.party: "./audit_bob",
     }
     _run_sgb(
-        sf_production_setup_devices_aby3,
+        devices,
         "dermatology",
         v_data,
         label_data,
@@ -331,7 +322,7 @@ def test_dermatology(sf_production_setup_devices_aby3):
     )
 
     _run_sgb(
-        sf_production_setup_devices_aby3,
+        devices,
         "dermatology",
         v_data,
         label_data,

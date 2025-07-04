@@ -15,19 +15,21 @@
 import os
 import time
 
+import pytest
 from sklearn.metrics import mean_squared_error, roc_auc_score
 
 from secretflow.data import FedNdarray, PartitionWay
 from secretflow.device.driver import reveal, wait
 from secretflow.ml.boost.ss_xgb_v import Xgb
 from secretflow.utils.simulation.datasets import load_dermatology, load_linear
+from tests.sf_fixtures import SFProdParams
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 
 def _run_xgb(env, test_name, v_data, label_data, y, logistic, subsample, colsample):
     xgb = Xgb(env.spu)
-    xgb02 = Xgb([env.spu, env.spu2])
+    xgb02 = Xgb([env.spu, env.spu])
     start = time.time()
     params = {
         'num_boost_round': 2,
@@ -81,61 +83,52 @@ def _run_npc_linear(env, test_name, parts, label_device):
     _run_xgb(env, test_name, v_data, label_data, y, True, 0.9, 1)
 
 
-def test_2pc_linear(sf_production_setup_devices_aby3):
+@pytest.mark.mpc(parties=3, params=SFProdParams.ABY3)
+def test_2pc_linear(sf_production_setup_devices):
+    devices = sf_production_setup_devices
+
     parts = {
-        sf_production_setup_devices_aby3.alice: (1, 11),
-        sf_production_setup_devices_aby3.bob: (11, 22),
+        devices.alice: (1, 11),
+        devices.bob: (11, 22),
     }
-    _run_npc_linear(
-        sf_production_setup_devices_aby3,
-        "2pc_linear",
-        parts,
-        sf_production_setup_devices_aby3.bob,
-    )
+    _run_npc_linear(devices, "2pc_linear", parts, devices.bob)
 
 
-def test_3pc_linear(sf_production_setup_devices_aby3):
+@pytest.mark.mpc(parties=3, params=SFProdParams.ABY3)
+def test_3pc_linear(sf_production_setup_devices):
+    devices = sf_production_setup_devices
+
     parts = {
-        sf_production_setup_devices_aby3.alice: (1, 8),
-        sf_production_setup_devices_aby3.bob: (8, 16),
-        sf_production_setup_devices_aby3.carol: (16, 22),
+        devices.alice: (1, 8),
+        devices.bob: (8, 16),
+        devices.carol: (16, 22),
     }
-    _run_npc_linear(
-        sf_production_setup_devices_aby3,
-        "3pc_linear",
-        parts,
-        sf_production_setup_devices_aby3.carol,
-    )
+    _run_npc_linear(devices, "3pc_linear", parts, devices.carol)
 
 
-def test_breast_cancer(sf_production_setup_devices_aby3):
+@pytest.mark.mpc(parties=3, params=SFProdParams.ABY3)
+def test_breast_cancer(sf_production_setup_devices):
     from sklearn.datasets import load_breast_cancer
+
+    devices = sf_production_setup_devices
 
     ds = load_breast_cancer()
     x, y = ds['data'], ds['target']
 
     v_data = FedNdarray(
         {
-            sf_production_setup_devices_aby3.alice: (
-                sf_production_setup_devices_aby3.alice(lambda: x[:, :15])()
-            ),
-            sf_production_setup_devices_aby3.bob: (
-                sf_production_setup_devices_aby3.bob(lambda: x[:, 15:])()
-            ),
+            devices.alice: (devices.alice(lambda: x[:, :15])()),
+            devices.bob: (devices.bob(lambda: x[:, 15:])()),
         },
         partition_way=PartitionWay.VERTICAL,
     )
     label_data = FedNdarray(
-        {
-            sf_production_setup_devices_aby3.alice: (
-                sf_production_setup_devices_aby3.alice(lambda: y)()
-            )
-        },
+        {devices.alice: (devices.alice(lambda: y)())},
         partition_way=PartitionWay.VERTICAL,
     )
 
     _run_xgb(
-        sf_production_setup_devices_aby3,
+        devices,
         "breast_cancer",
         v_data,
         label_data,
@@ -146,22 +139,25 @@ def test_breast_cancer(sf_production_setup_devices_aby3):
     )
 
 
-def test_dermatology(sf_production_setup_devices_aby3):
+@pytest.mark.mpc(parties=3, params=SFProdParams.ABY3)
+def test_dermatology(sf_production_setup_devices):
+    devices = sf_production_setup_devices
+
     vdf = load_dermatology(
         parts={
-            sf_production_setup_devices_aby3.alice: (0, 17),
-            sf_production_setup_devices_aby3.bob: (17, 35),
+            devices.alice: (0, 17),
+            devices.bob: (17, 35),
         },
         axis=1,
     ).fillna(0)
 
     label_data = vdf['class']
-    y = reveal(label_data.partitions[sf_production_setup_devices_aby3.bob].data).values
+    y = reveal(label_data.partitions[devices.bob].data).values
     v_data = vdf.drop(columns="class").values
     label_data = label_data.values
 
     _run_xgb(
-        sf_production_setup_devices_aby3,
+        devices,
         "dermatology",
         v_data,
         label_data,

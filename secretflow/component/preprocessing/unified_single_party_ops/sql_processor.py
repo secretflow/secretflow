@@ -42,15 +42,17 @@ from secretflow.component.core import (
     DistDataType,
     Field,
     Input,
+    IServingExporter,
     Output,
     ServingBuilder,
     VTable,
-    VTableField,
     VTableFieldKind,
     VTableSchema,
+    VTableUtils,
     register,
 )
 from secretflow.utils.consistent_ops import unique_list
+from secretflow.utils.errors import InvalidArgumentError
 
 from ..preprocessing import PreprocessingMixin
 
@@ -72,7 +74,7 @@ RULES = (
 
 
 @register(domain='preprocessing', version='1.0.0', name="sql_processor")
-class SQLProcessor(PreprocessingMixin, Component):
+class SQLProcessor(PreprocessingMixin, Component, IServingExporter):
     '''
     sql processor
     '''
@@ -107,25 +109,33 @@ class SQLProcessor(PreprocessingMixin, Component):
     def parse_sql(sql: str, schema: VTableSchema) -> sqlglot_expr.Expression:
         sql = sql.rstrip('; \t\n\r')
         if sql.endswith(','):
-            raise ValueError(f"sql<{sql}> has extra commas.")
+            raise InvalidArgumentError(
+                "the sql cannot have commas.", detail={"sql": sql}
+            )
         expressions = sqlglot.parse(sql, dialect="duckdb")
         if len(expressions) != 1:
-            raise ValueError(
-                f"Only one sql<{sql}> expression is supported, but got {len(expressions)}."
+            raise InvalidArgumentError(
+                "the sql can only have one expression.",
+                detail={"sql": sql, "expression_size": len(expressions)},
             )
         sql_ast = expressions[0]
         if not isinstance(sql_ast, sqlglot_expr.Select):
-            raise ValueError(f"invalid sql {sql}")
+            raise InvalidArgumentError(
+                "the sql must be a select expression.", detail={"sql": sql}
+            )
 
         table_names = [t.name for t in sql_ast.find_all(sqlglot_expr.Table)]
         if len(table_names) > 1:
-            raise ValueError(f"there can only be one table. sql={sql}")
+            raise InvalidArgumentError(
+                "the sql can only have one table.",
+                detail={"sql": sql, "table_names": table_names},
+            )
 
         table_name = table_names[0] if len(table_names) == 1 else "*"
 
         fields = {}
         for f in schema.fields.values():
-            fields[f.name] = f.ftype.to_duckdb_dtype()
+            fields[f.name] = VTableUtils.to_duckdb_dtype(f.type)
         sql_schema = {"*": {table_name: fields}}
 
         sql_ast = sqlglot.optimizer.optimize(
@@ -140,7 +150,10 @@ class SQLProcessor(PreprocessingMixin, Component):
             if isinstance(clause, list) and len(clause) == 0:
                 continue
             if key not in ["expressions", "from"]:
-                raise ValueError(f"unsupported clause, {key}, {sql}, {clause}")
+                raise InvalidArgumentError(
+                    "the sql only support simple select clause.",
+                    detail={"sql": sql, "key": key, "clause": clause},
+                )
         return sql_ast
 
     @staticmethod
@@ -155,9 +168,9 @@ class SQLProcessor(PreprocessingMixin, Component):
         for index, expr in enumerate(sql_ast.expressions):
             if isinstance(expr, sqlglot_expr.Star):
                 if index != 0:
-                    raise ValueError(f"star expr must be the first")
+                    raise InvalidArgumentError("star expr must be the first")
                 if is_all:
-                    raise ValueError(f"duplicate star expr")
+                    raise InvalidArgumentError("duplicate star expr")
                 is_all = True
                 for party in input_tbl.parties.keys():
                     expressions[party].append(expr)
@@ -166,7 +179,7 @@ class SQLProcessor(PreprocessingMixin, Component):
             columns = unique_list(find_columns(expr))
 
             if len(columns) == 0:
-                raise ValueError(f"cannot find columns from expr<{expr}>")
+                raise InvalidArgumentError(f"cannot find columns from expr<{expr}>")
 
             # check col_name and kind
             if isinstance(expr, sqlglot_expr.Alias):
@@ -174,27 +187,37 @@ class SQLProcessor(PreprocessingMixin, Component):
                 if col_name in column_names and col_name not in columns:
                     columns.append(col_name)
             elif len(columns) != 1:
-                raise ValueError(f"unable to infer column name, {columns}")
+                raise InvalidArgumentError(
+                    "the expr use too many columns, please use alias to specify the name",
+                    detail={"columns": columns, "expr": expr},
+                )
             else:
                 col_name = columns[0]
 
             if col_name in column_results:
-                raise ValueError(f"duplicate column name, {col_name}, {column_results}")
+                raise InvalidArgumentError(
+                    "duplicate column name",
+                    detail={"column_name": col_name, "results": column_results},
+                )
             else:
                 column_results.add(col_name)
 
             # check party
             tbl = input_tbl.select(columns)
             if len(tbl.parties) != 1:
-                raise ValueError(
-                    f"The columns<{columns}> of expr<{expr}> must appears in one party"
+                raise InvalidArgumentError(
+                    "The columns of expr must appears in one party",
+                    detail={"columns": columns, "expr": expr},
                 )
 
-            kinds = set(tbl.party(0).schema.kinds.values())
+            kinds = set(tbl.get_party(0).schema.kinds.values())
             if len(kinds) > 1:
-                raise ValueError(f"all columns should be same kind<{kinds}>")
+                raise InvalidArgumentError(
+                    "all columns should be same kind",
+                    detail={"columns": columns, "kinds": kinds},
+                )
 
-            party_name = tbl.party(0).party
+            party_name = tbl.get_party(0).party
             expressions[party_name].append(expr)
             all_columns.extend(columns)
 
@@ -223,9 +246,9 @@ class SQLProcessor(PreprocessingMixin, Component):
                 col = convert(tbl, expr.this)
                 if not first.metadata:
                     kind = VTableFieldKind.FEATURE
-                    field = VTableField.pa_field(expr.alias, col.dtype, kind)
+                    field = VTableUtils.pa_field(expr.alias, col.dtype, kind)
                 else:
-                    field = VTableField.pa_field_from(expr.alias, col.dtype, first)
+                    field = VTableUtils.pa_field_from(expr.alias, col.dtype, first)
             else:
                 col = convert(tbl, expr)
                 field = first

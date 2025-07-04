@@ -12,32 +12,34 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
 import time
 
 import pandas as pd
 import pyarrow as pa
 import pytest
 from pyarrow import orc
+from secretflow_spec.v1.data_pb2 import IndividualTable, VerticalTable
+from secretflow_spec.v1.report_pb2 import Report
 
 from secretflow.component.core import (
     VTable,
     VTableParty,
+    assert_almost_equal,
     build_node_eval_param,
+    comp_eval,
     make_storage,
 )
-from secretflow.component.entry import comp_eval
-from secretflow.error_system.exceptions import CompEvalError
-from secretflow.spec.v1.data_pb2 import IndividualTable, VerticalTable
-from secretflow.spec.v1.report_pb2 import Report
 
 
-def test_psi_orc(comp_prod_sf_cluster_config):
+@pytest.mark.mpc
+def test_psi_orc(sf_production_setup_comp):
     receiver_input_path = "test_psi/input_ds1.orc"
     sender_input_path = "test_psi/input_ds2.csv"
     output_path = "test_psi/psi_output.csv"
     output_report_path = "test_psi/psi_output"
 
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
     self_party = sf_cluster_config.private_config.self_party
     storage = make_storage(storage_config)
 
@@ -122,19 +124,24 @@ def test_psi_orc(comp_prod_sf_cluster_config):
     )
 
     if "alice" == sf_cluster_config.private_config.self_party:
-        pd.testing.assert_frame_equal(
+        assert_almost_equal(
             expected_result_a,
-            orc.read_table(storage.get_reader(output_path)).to_pandas(),
+            orc.read_table(storage.get_reader(output_path)),
+            ignore_order=True,
             check_dtype=False,
         )
-        storage.remove(output_path)
+        # storage.remove(output_path)
     if "bob" == sf_cluster_config.private_config.self_party:
-        csv_b = orc.read_table(storage.get_reader(output_path)).to_pandas()
+        csv_b = orc.read_table(storage.get_reader(output_path))
 
-        pd.testing.assert_frame_equal(
-            expected_result_b, csv_b, check_like=True, check_dtype=False
+        assert_almost_equal(
+            expected_result_b,
+            csv_b,
+            ignore_order=True,
+            check_like=True,
+            check_dtype=False,
         )
-        storage.remove(output_path)
+        # storage.remove(output_path)
 
     output_vt = VerticalTable()
 
@@ -148,13 +155,14 @@ def test_psi_orc(comp_prod_sf_cluster_config):
     assert output_vt.schemas[1].features == ["feature2"]
 
 
-def test_psi(comp_prod_sf_cluster_config):
+@pytest.mark.mpc
+def test_psi(sf_production_setup_comp):
     receiver_input_path = "test_psi/input_ds1.csv"
     sender_input_path = "test_psi/input_ds2.csv"
     output_path = "test_psi/psi_output.csv"
     output_report_path = "test_psi/psi_output"
 
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
     self_party = sf_cluster_config.private_config.self_party
     storage = make_storage(storage_config)
 
@@ -242,20 +250,31 @@ def test_psi(comp_prod_sf_cluster_config):
 
     assert len(res.outputs) == 2
 
+    logging.info(f"========output_path:{output_path}=====")
+
     if "alice" == sf_cluster_config.private_config.self_party:
-        pd.testing.assert_frame_equal(
+        csv_a = orc.read_table(storage.get_reader(output_path)).to_pandas()
+        logging.info(f"========csv_a:{csv_a}=====")
+
+        assert_almost_equal(
             expected_result_a,
-            orc.read_table(storage.get_reader(output_path)).to_pandas(),
+            orc.read_table(storage.get_reader(output_path)),
+            ignore_order=True,
             check_dtype=False,
         )
-        storage.remove(output_path)
+        # storage.remove(output_path)
     if "bob" == sf_cluster_config.private_config.self_party:
         csv_b = orc.read_table(storage.get_reader(output_path)).to_pandas()
+        logging.info(f"========csv_b:{csv_b}=====")
 
-        pd.testing.assert_frame_equal(
-            expected_result_b, csv_b, check_like=True, check_dtype=False
+        assert_almost_equal(
+            expected_result_b,
+            csv_b,
+            ignore_order=True,
+            check_like=True,
+            check_dtype=False,
         )
-        storage.remove(output_path)
+        # storage.remove(output_path)
 
     output_vt = VerticalTable()
 
@@ -272,13 +291,14 @@ def test_psi(comp_prod_sf_cluster_config):
     assert res.outputs[1].meta.Unpack(report)
 
 
-def test_psi_left(comp_prod_sf_cluster_config):
+@pytest.mark.mpc
+def test_psi_left(sf_production_setup_comp):
     receiver_input_path = "test_psi/input_ds1.csv"
     sender_input_path = "test_psi/input_ds2.csv"
     output_path = "test_psi/psi_output.csv"
     output_report_path = "test_psi/psi_output"
 
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
     self_party = sf_cluster_config.private_config.self_party
     storage = make_storage(storage_config)
 
@@ -367,18 +387,19 @@ def test_psi_left(comp_prod_sf_cluster_config):
     )
 
     if "alice" == sf_cluster_config.private_config.self_party:
-        pd.testing.assert_frame_equal(
+        assert_almost_equal(
             expected_result_a,
-            orc.read_table(storage.get_reader(output_path)).to_pandas(),
+            orc.read_table(storage.get_reader(output_path)),
+            ignore_order=True,
             check_dtype=False,
         )
-        storage.remove(output_path)
+        # storage.remove(output_path)
 
     if "bob" == sf_cluster_config.private_config.self_party:
         csv_b = orc.read_table(storage.get_reader(output_path))
 
         csv_b.equals(pa.Table.from_pandas(expected_result_b))
-        storage.remove(output_path)
+        # storage.remove(output_path)
 
     output_vt = VerticalTable()
 
@@ -392,13 +413,14 @@ def test_psi_left(comp_prod_sf_cluster_config):
     assert output_vt.schemas[1].features == ["feature2", "feature3"]
 
 
-def test_psi_one_receiver(comp_prod_sf_cluster_config):
+@pytest.mark.mpc
+def test_psi_one_receiver(sf_production_setup_comp):
     receiver_input_path = "test_psi/input_ds1.csv"
     sender_input_path = "test_psi/input_ds2.csv"
     output_path = "test_psi/psi_output.csv"
     output_report_path = "test_psi/psi_output"
 
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
     self_party = sf_cluster_config.private_config.self_party
     storage = make_storage(storage_config)
 
@@ -479,13 +501,14 @@ def test_psi_one_receiver(comp_prod_sf_cluster_config):
     )
 
     if "alice" == sf_cluster_config.private_config.self_party:
-        pd.testing.assert_frame_equal(
+        assert_almost_equal(
             expected_result_a,
-            orc.read_table(storage.get_reader(output_path)).to_pandas(),
+            orc.read_table(storage.get_reader(output_path)),
+            ignore_order=True,
             check_dtype=False,
             check_like=True,
         )
-        storage.remove(output_path)
+        # storage.remove(output_path)
 
     if "bob" == sf_cluster_config.private_config.self_party:
         assert not storage.exists(output_path)
@@ -499,13 +522,14 @@ def test_psi_one_receiver(comp_prod_sf_cluster_config):
     assert set(output_vt.schema.features) == set(["item", "feature1"])
 
 
-def test_psi_left_long_output_path(comp_prod_sf_cluster_config):
+@pytest.mark.mpc
+def test_psi_left_long_output_path(sf_production_setup_comp):
     receiver_input_path = "test_psi/input_ds1.csv"
     sender_input_path = "test_psi/input_ds2.csv"
     output_path = "test_psi/xxx/uuu/ccc/psi_output.csv"
     output_report_path = "test_psi/psi_output"
 
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
     self_party = sf_cluster_config.private_config.self_party
     storage = make_storage(storage_config)
 
@@ -594,12 +618,13 @@ def test_psi_left_long_output_path(comp_prod_sf_cluster_config):
     )
 
     if "alice" == sf_cluster_config.private_config.self_party:
-        pd.testing.assert_frame_equal(
+        assert_almost_equal(
             expected_result_a,
-            orc.read_table(storage.get_reader(output_path)).to_pandas(),
+            orc.read_table(storage.get_reader(output_path)),
+            ignore_order=True,
             check_dtype=False,
         )
-        storage.remove(output_path)
+        # storage.remove(output_path)
 
     if "bob" == sf_cluster_config.private_config.self_party:
         csv_b = orc.read_table(
@@ -607,7 +632,7 @@ def test_psi_left_long_output_path(comp_prod_sf_cluster_config):
         )
 
         csv_b.equals(pa.Table.from_pandas(expected_result_b))
-        storage.remove(output_path)
+        # storage.remove(output_path)
 
     output_vt = VerticalTable()
 
@@ -621,13 +646,14 @@ def test_psi_left_long_output_path(comp_prod_sf_cluster_config):
     assert output_vt.schemas[1].features == ["feature2", "feature3"]
 
 
-def test_psi_orc_empty_intersect(comp_prod_sf_cluster_config):
+@pytest.mark.mpc
+def test_psi_orc_empty_intersect(sf_production_setup_comp):
     receiver_input_path = "test_psi/input_ds1.orc"
     sender_input_path = "test_psi/input_ds2.csv"
     output_path = "test_psi/psi_output.csv"
     output_report_path = "test_psi/psi_output"
 
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
     self_party = sf_cluster_config.private_config.self_party
     storage = make_storage(storage_config)
 
@@ -715,20 +741,21 @@ def test_psi_orc_empty_intersect(comp_prod_sf_cluster_config):
     if "alice" == sf_cluster_config.private_config.self_party:
         shape = orc.read_table(storage.get_reader(output_path)).to_pandas().shape
         assert shape[0] == 0
-        storage.remove(output_path)
+        # storage.remove(output_path)
     if "bob" == sf_cluster_config.private_config.self_party:
         shape = orc.read_table(storage.get_reader(output_path)).to_pandas().shape
         assert shape[0] == 0
-        storage.remove(output_path)
+        # storage.remove(output_path)
 
 
-def test_psi_orc_empty_intersect_error(comp_prod_sf_cluster_config):
+@pytest.mark.mpc
+def test_psi_orc_empty_intersect_error(sf_production_setup_comp):
     receiver_input_path = "test_psi/input_ds1.orc"
     sender_input_path = "test_psi/input_ds2.csv"
     output_path = "test_psi/psi_output.csv"
     output_report_path = "test_psi/psi_output"
 
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
     self_party = sf_cluster_config.private_config.self_party
     storage = make_storage(storage_config)
 
@@ -796,7 +823,7 @@ def test_psi_orc_empty_intersect_error(comp_prod_sf_cluster_config):
     )
 
     with pytest.raises(
-        CompEvalError,
+        Exception,
         match="Empty result is not allowed, please check your input data or set allow_empty_result to true.",
     ):
         comp_eval(
@@ -804,4 +831,3 @@ def test_psi_orc_empty_intersect_error(comp_prod_sf_cluster_config):
             storage_config=storage_config,
             cluster_config=sf_cluster_config,
         )
-    time.sleep(4)

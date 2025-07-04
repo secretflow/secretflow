@@ -21,6 +21,7 @@ from typing import Any, Callable, Tuple
 import pyarrow as pa
 from google.protobuf import json_format
 from secretflow_serving_lib import compute_trace_pb2
+from secretflow_spec.v1.data_pb2 import DistData, SystemInfo
 
 import secretflow.compute as sc
 from secretflow.component.core import (
@@ -42,25 +43,23 @@ from secretflow.component.core import (
     ServingPhase,
     Version,
     VTable,
-    VTableField,
     VTableFieldKind,
-    VTableSchema,
+    VTableUtils,
     uuid4,
 )
 from secretflow.device import PYU, PYUObject, reveal
-from secretflow.spec.v1.data_pb2 import DistData, SystemInfo
 
 RULE_TYPE_NAME = "rule_type"
 RULE_HASH_NAME = "model_hash"
 
 
 class IRunner(abc.ABC):
-    '''
+    """
     IRunner is used to unify the preprocessing model replay and model export functions, with an interface similar to sc.TraceRunner.
     The ArrowRunner class is implemented by default, which is used for saving in the sc.TraceRunner format.
     For specific requirements, you can inherit from IRunner to create a custom implementation.
     For example, if binning requires modifications to the model, you can implement a custom BinningRunner.
-    '''
+    """
 
     @abc.abstractmethod
     def get_input_features(self) -> list[str]:
@@ -68,25 +67,25 @@ class IRunner(abc.ABC):
 
     @abc.abstractmethod
     def run(self, pt: pa.Table) -> pa.Table:
-        '''
+        """
         run is used to replay model
-        '''
+        """
         pass
 
     @abc.abstractmethod
     def column_changes(self, input_schema: pa.Schema) -> tuple[list, list, list]:
-        '''
+        """
         Only for compatibility with model_export
-        '''
+        """
         pass
 
     @abc.abstractmethod
     def dump_serving_pb(
         self, name: str, input_schema: pa.Schema
     ) -> tuple[compute_trace_pb2.ComputeTrace, pa.Schema, pa.Schema]:
-        '''
+        """
         dump_serving_pb is used to export the model for serving
-        '''
+        """
         pass
 
 
@@ -98,13 +97,13 @@ def build_schema(
     for f in new_tbl.schema:
         if f.name in old_column_names:
             old = old_tbl.field(f.name)
-            f = VTableField.pa_field_from(f.name, f.type, old)
+            f = VTableUtils.pa_field_from(f.name, f.type, old)
             fields.append(f)
         else:
             kind = VTableFieldKind.FEATURE
             if f.name in add_kinds:
                 kind = add_kinds[f.name]
-            f = VTableField.pa_field(f.name, f.type, kind)
+            f = VTableUtils.pa_field(f.name, f.type, kind)
             fields.append(f)
     return pa.table(new_tbl.columns, schema=pa.schema(fields))
 
@@ -115,9 +114,9 @@ class ArrowRunner(IRunner):
     kinds: dict[str, VTableFieldKind]
 
     @staticmethod
-    def from_table(tbl: sc.Table, input_columns: list[str]) -> 'ArrowRunner':
+    def from_table(tbl: sc.Table, input_columns: list[str]) -> "ArrowRunner":
         trace_runner = tbl.dump_runner()
-        out_schema = VTableSchema.from_arrow(tbl.to_table().schema)
+        out_schema = VTableUtils.from_arrow_schema(tbl.to_table().schema)
         add_kinds = {
             n: k for n, k in out_schema.kinds.items() if n not in set(input_columns)
         }
@@ -176,7 +175,7 @@ class PreprocessingMixin:
             version=model_version,
             objs=objs,
             public_info=public_info,
-            metadata={RULE_HASH_NAME: uuid},
+            attributes={RULE_HASH_NAME: uuid},
             system_info=system_info,
         )
 
@@ -204,11 +203,11 @@ class PreprocessingMixin:
         ),
         extras: dict[str, PYUObject | Any] = None,
     ) -> Model:
-        '''
+        """
         build a rule by a funtion and input schema
 
         NOTE: the function SHOULD not rely on the input data,table statistical info can be passed through 'extras'.
-        '''
+        """
         signature = inspect.signature(fn)
         is_one_param = len(signature.parameters) == 1
 
@@ -229,9 +228,9 @@ class PreprocessingMixin:
 
         tbl = input if isinstance(input, VTable) else VTable.from_distdata(input)
         runner_objs = []
-
         for p in tbl.parties.values():
-            in_tbl = sc.Table.from_schema(p.schema.to_arrow())
+            pa_schema = VTableUtils.to_arrow_schema(p.schema)
+            in_tbl = sc.Table.from_schema(pa_schema)
             extra = extras.get(p.party) if extras else None
             out_runner = PYU(p.party)(_fit)(in_tbl, extra)
             runner_objs.append(out_runner)
@@ -257,10 +256,10 @@ class PreprocessingMixin:
         rule: Model,
         streaming: bool = True,
     ):
-        def _transform(data: pa.Table, runner: IRunner) -> Tuple[pa.Table, Exception]:
+        def _transform(data: pa.Table, runner: IRunner) -> pa.Table:
             trans_columns = list(runner.get_input_features())
             if len(trans_columns) == 0:
-                return data, None
+                return data
 
             assert set(trans_columns).issubset(
                 set(data.column_names)
@@ -268,14 +267,9 @@ class PreprocessingMixin:
 
             trans_data = data.select(trans_columns)
             remain_data = data.drop(trans_columns)
-            try:
-                out_data = runner.run(trans_data)
-            except Exception as e:
-                traceback.print_exc()
-                return None, e
-
+            out_data = runner.run(trans_data)
             new_data = _merge(remain_data, out_data, data.column_names)
-            return new_data, None
+            return new_data
 
         rule_objs = {}
         for obj in rule.objs:
@@ -286,10 +280,7 @@ class PreprocessingMixin:
             out_df = CompVDataFrame({}, input.system_info)
             for pyu, p in df.partitions.items():
                 if pyu.party in rule_objs:
-                    out_data, out_err = pyu(_transform)(p.data, rule_objs[pyu.party])
-                    err = reveal(out_err)
-                    if err is not None:
-                        raise err
+                    out_data = pyu(_transform)(p.data, rule_objs[pyu.party])
                 else:
                     out_data = p.obj
                 out_df.set_data(out_data)
@@ -320,9 +311,9 @@ class PreprocessingMixin:
         trans_tbl: VTable,
         fn: Callable[[sc.Table], sc.Table],
     ) -> None:
-        '''
+        """
         Only for compatibility with legacy code, the new implementation recommends using the fit+transform combination.
-        '''
+        """
 
         def _fit_transform(
             data: pa.Table, columns: list[str]
@@ -427,7 +418,7 @@ class PreprocessingMixin:
         for pyu in builder.pyus:
             if pyu not in runner_objs:
                 continue
-            schema = input_vtbl.parties[pyu.party].schema.to_arrow()
+            schema = VTableUtils.to_arrow_schema(input_vtbl.parties[pyu.party].schema)
             runner = runner_objs[pyu]
             dag, in_schema, out_schema, in_schema_bytes, out_schema_bytes = pyu(
                 _dump_runner

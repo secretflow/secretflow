@@ -14,9 +14,9 @@
 
 import numpy as np
 import pytest
+from heu import phe
 
 import secretflow.device as ft
-from heu import phe
 from secretflow import reveal
 from secretflow.device.device.heu import HEUMoveConfig
 
@@ -44,6 +44,7 @@ def _test_device(devices):
     np.testing.assert_almost_equal(reveal(x), reveal(y), decimal=4)
 
 
+@pytest.mark.mpc
 def test_device_prod(sf_production_setup_devices):
     _test_device(sf_production_setup_devices)
 
@@ -102,6 +103,7 @@ def _test_math_ops(devices):
     np.testing.assert_almost_equal((x @ z_int)[[0, 1, 2], 1::2], matmul, decimal=4)
 
 
+@pytest.mark.mpc
 def test_math_ops_prod(sf_production_setup_devices):
     _test_math_ops(sf_production_setup_devices)
 
@@ -134,6 +136,7 @@ def _test_sum(devices):
     )
 
 
+@pytest.mark.mpc
 def test_sum_prod(sf_production_setup_devices):
     _test_sum(sf_production_setup_devices)
 

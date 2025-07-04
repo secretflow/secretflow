@@ -15,11 +15,17 @@
 
 import logging
 
-from secretflow.component.core import Component, Context, ServingBuilder, register
+from secretflow.component.core import (
+    Component,
+    Context,
+    IServingExporter,
+    ServingBuilder,
+    register,
+)
 
 
 @register(domain="preprocessing", version="1.0.0", name="my_component", desc="xx")
-class MyComponent(Component):
+class MyComponent(Component, IServingExporter):
     def evaluate(self, ctx: Context) -> None:
         logging.info(f"evaluate my_component")
 

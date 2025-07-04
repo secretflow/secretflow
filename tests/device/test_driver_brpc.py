@@ -18,53 +18,9 @@ import time
 import numpy as np
 import pytest
 
-import secretflow as sf
-import secretflow.distributed as sfd
 from secretflow.device.device.spu import SPUObject
 from secretflow.device.driver import reveal, to, wait
-from secretflow.distributed.const import DISTRIBUTION_MODE
-from tests.cluster import cluster, set_self_party
-from tests.conftest import DeviceInventory, semi2k_cluster
-
-
-@pytest.fixture(scope="module")
-def production_setup_devices_ray(request, sf_party_for_4pc):
-    devices = DeviceInventory()
-    sfd.set_distribution_mode(mode=DISTRIBUTION_MODE.PRODUCTION)
-    set_self_party(sf_party_for_4pc)
-    sf.init(
-        address='local',
-        num_cpus=8,
-        log_to_driver=True,
-        cluster_config=cluster(),
-        cross_silo_comm_backend='brpc_link',
-        cross_silo_comm_options={
-            'exit_on_sending_failure': True,
-            'http_max_payload_size': 5 * 1024 * 1024,
-            'recv_timeout_ms': 1800 * 1000,
-        },
-        enable_waiting_for_other_parties_ready=False,
-    )
-
-    devices.alice = sf.PYU('alice')
-    devices.bob = sf.PYU('bob')
-    devices.carol = sf.PYU('carol')
-    devices.davy = sf.PYU('davy')
-
-    cluster_def = sf.reveal(devices.alice(semi2k_cluster)())
-
-    devices.spu = sf.SPU(
-        cluster_def,
-        link_desc={
-            "connect_retry_times": 60,
-            "connect_retry_interval_ms": 1000,
-        },
-        id='spu1',
-    )
-
-    yield devices
-    del devices
-    sf.shutdown()
+from tests.sf_fixtures import SFProdParams
 
 
 def _test_wait_should_ok(devices):
@@ -91,8 +47,12 @@ def _test_wait_should_ok(devices):
     assert reveal(devices.alice(check)(file_path))
 
 
-def test_wait_should_ok_prod_brpc(production_setup_devices_ray):
-    _test_wait_should_ok(production_setup_devices_ray)
+_MPC_PARAMS_BRPC_RAY = {"cross_silo_comm_backend": "brpc_link", "ray_mode": True}
+
+
+@pytest.mark.mpc(params=_MPC_PARAMS_BRPC_RAY)
+def test_wait_should_ok_prod_brpc(sf_production_setup_devices):
+    _test_wait_should_ok(sf_production_setup_devices)
 
 
 def _test_spu_reveal(devices):
@@ -107,8 +67,9 @@ def _test_spu_reveal(devices):
     assert x_ == 32
 
 
-def test_spu_reveal_prod_brpc(production_setup_devices_ray):
-    _test_spu_reveal(production_setup_devices_ray)
+@pytest.mark.mpc(params=_MPC_PARAMS_BRPC_RAY)
+def test_spu_reveal_prod_brpc(sf_production_setup_devices):
+    _test_spu_reveal(sf_production_setup_devices)
 
 
 def _test_spu_reveal_empty_list(devices):
@@ -119,5 +80,6 @@ def _test_spu_reveal_empty_list(devices):
     assert x_ == []
 
 
-def test_spu_reveal_empty_list_prod_brpc(production_setup_devices_ray):
-    _test_spu_reveal_empty_list(production_setup_devices_ray)
+@pytest.mark.mpc(params=_MPC_PARAMS_BRPC_RAY)
+def test_spu_reveal_empty_list_prod_brpc(sf_production_setup_devices):
+    _test_spu_reveal_empty_list(sf_production_setup_devices)
