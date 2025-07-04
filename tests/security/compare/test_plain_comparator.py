@@ -16,11 +16,15 @@ import pytest
 
 from secretflow.security.compare.plain_comparator import PlainComparator
 from tests.security.compare.test_comparator_base import ComparatorBase
+from tests.sf_fixtures import mpc_fixture
 
 
-class TestPlainComparator(ComparatorBase):
-    @pytest.fixture()
-    def env_and_comparator(self, sf_production_setup_devices):
-        yield sf_production_setup_devices, PlainComparator(
-            sf_production_setup_devices.alice
-        )
+@mpc_fixture(alias="env_and_comparator")
+def plain_env_and_comparator(sf_production_setup_devices):
+    return sf_production_setup_devices, PlainComparator(
+        sf_production_setup_devices.alice
+    )
+
+
+@pytest.mark.mpc(fixtures=["plain_env_and_comparator"])
+class TestPlainComparator(ComparatorBase): ...

@@ -16,6 +16,7 @@ import os
 import tempfile
 
 import pandas as pd
+import pytest
 
 from secretflow import reveal
 from secretflow.data import partition
@@ -30,14 +31,14 @@ def cleartmp(paths):
             pass
 
 
-def test_read_csv_and_to_csv_should_ok(sf_production_setup_devices_ray):
+@pytest.mark.mpc
+def test_read_csv_and_to_csv_should_ok(sf_production_setup_devices):
+    pyu_alice = sf_production_setup_devices.alice
+    pyu_bob = sf_production_setup_devices.bob
     # GIVEN
     _, path1 = tempfile.mkstemp()
     _, path2 = tempfile.mkstemp()
-    file_uris = {
-        sf_production_setup_devices_ray.alice: path1,
-        sf_production_setup_devices_ray.bob: path2,
-    }
+    file_uris = {pyu_alice: path1, pyu_bob: path2}
     df1 = pd.DataFrame(
         {"c1": ["A5", "A1", "A2", "A6", "A7", "A9"], "c2": [5, 1, 2, 6, 2, 4]}
     )
@@ -46,12 +47,8 @@ def test_read_csv_and_to_csv_should_ok(sf_production_setup_devices_ray):
 
     df = HDataFrame(
         {
-            sf_production_setup_devices_ray.alice: partition(
-                sf_production_setup_devices_ray.alice(lambda df: df)(df1)
-            ),
-            sf_production_setup_devices_ray.bob: partition(
-                sf_production_setup_devices_ray.bob(lambda df: df)(df2)
-            ),
+            pyu_alice: partition(pyu_alice(lambda df: df)(df1)),
+            pyu_bob: partition(pyu_bob(lambda df: df)(df2)),
         }
     )
 
@@ -64,10 +61,6 @@ def test_read_csv_and_to_csv_should_ok(sf_production_setup_devices_ray):
 
     time.sleep(5)
     actual_df = read_csv(file_uris)
-    pd.testing.assert_frame_equal(
-        reveal(actual_df.partitions[sf_production_setup_devices_ray.alice].data), df1
-    )
-    pd.testing.assert_frame_equal(
-        reveal(actual_df.partitions[sf_production_setup_devices_ray.bob].data), df2
-    )
+    pd.testing.assert_frame_equal(reveal(actual_df.partitions[pyu_alice].data), df1)
+    pd.testing.assert_frame_equal(reveal(actual_df.partitions[pyu_bob].data), df2)
     cleartmp([path1, path2])

@@ -12,22 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import numpy as np
 import pandas as pd
 import pytest
-import numpy as np
 
 from secretflow import reveal
 from secretflow.utils.errors import InvalidArgumentError
+from secretflow.utils.simulation.data import SPLIT_METHOD
 from secretflow.utils.simulation.data.dataframe import create_df
 from secretflow.utils.simulation.datasets import dataset
-from secretflow.utils.simulation.data import SPLIT_METHOD
+from tests.sf_fixtures import mpc_fixture
 
 
-@pytest.fixture(scope='module')
+@mpc_fixture
 def df():
     yield pd.read_csv(dataset('iris'))
 
 
+@pytest.mark.mpc(parties=3)
 def test_create_hdataframe_should_ok_when_input_dataframe(
     sf_production_setup_devices, df
 ):
@@ -49,6 +51,7 @@ def test_create_hdataframe_should_ok_when_input_dataframe(
     )
 
 
+@pytest.mark.mpc(parties=3)
 def test_create_hdataframe_dirichlet_sample_method_should_ok_when_input_dataframe(
     sf_production_setup_devices, df
 ):
@@ -92,9 +95,9 @@ def test_create_hdataframe_dirichlet_sample_method_should_ok_when_input_datafram
     assert len(hdf.partitions) == 3
 
 
+@pytest.mark.mpc(parties=3)
 def test_create_hdataframe_label_skew_sample_method_should_ok_when_input_dataframe(
-    sf_production_setup_devices,
-    df,
+    sf_production_setup_devices, df
 ):
     from sklearn.preprocessing import LabelEncoder
 
@@ -127,6 +130,7 @@ def test_create_hdataframe_label_skew_sample_method_should_ok_when_input_datafra
     assert len(num_classes) == max_class_nums
 
 
+@pytest.mark.mpc(parties=3)
 def test_create_hdataframe_should_ok_when_input_file(df, sf_production_setup_devices):
     # WHEN
     hdf = create_df(
@@ -146,8 +150,9 @@ def test_create_hdataframe_should_ok_when_input_file(df, sf_production_setup_dev
     )
 
 
+@pytest.mark.mpc
 def test_create_hdataframe_should_ok_when_specify_indexes(
-    df, sf_production_setup_devices
+    sf_production_setup_devices, df
 ):
     # WHEN
     hdf = create_df(
@@ -166,9 +171,9 @@ def test_create_hdataframe_should_ok_when_specify_indexes(
     )
 
 
+@pytest.mark.mpc
 def test_create_hdataframe_should_ok_when_specify_percentage(
-    df,
-    sf_production_setup_devices,
+    sf_production_setup_devices, df
 ):
     # WHEN
     hdf = create_df(
@@ -194,6 +199,7 @@ def test_create_hdataframe_should_ok_when_specify_percentage(
     )
 
 
+@pytest.mark.mpc(parties=3)
 def test_create_vdataframe_should_ok(df, sf_production_setup_devices):
     # WHEN
     vdf = create_df(
@@ -214,6 +220,7 @@ def test_create_vdataframe_should_ok(df, sf_production_setup_devices):
     )
 
 
+@pytest.mark.mpc(parties=3)
 def test_create_vdataframe_should_ok_when_input_callable(
     df, sf_production_setup_devices
 ):
@@ -236,6 +243,7 @@ def test_create_vdataframe_should_ok_when_input_callable(
     )
 
 
+@pytest.mark.mpc
 def test_create_vdataframe_should_error_when_illegal_source(
     sf_production_setup_devices,
 ):
@@ -254,6 +262,7 @@ def test_create_vdataframe_should_error_when_illegal_source(
         )
 
 
+@pytest.mark.mpc
 def test_create_vdataframe_should_error_when_illegal_parts(
     df, sf_production_setup_devices
 ):

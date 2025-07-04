@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import argparse
+import atexit
 import os
 import platform
 import posixpath
@@ -44,10 +45,11 @@ def get_commit_id() -> str:
     return commit_id
 
 
-def complete_version_file(custom_feature, *filepath):
+def update_version_file(custom_feature, filepath):
+    # Proceed with file modifications
     today = date.today()
     dstr = today.strftime("%Y%m%d")
-    with open(os.path.join(".", *filepath), "r") as fp:
+    with open(filepath, "r") as fp:
         content = fp.read()
 
     content = content.replace("$$DATE$$", dstr)
@@ -62,10 +64,38 @@ def complete_version_file(custom_feature, *filepath):
             "$$DOCKER_VERSION$$", os.environ["SF_BUILD_DOCKER_NAME"]
         )
     if custom_feature != "lite":
-        content = content.replace('"lite"', '"full"')
+        content = content.replace('__mode__ = "lite"', '__mode__ = "full"')
 
-    with open(os.path.join(".", *filepath), "w+") as fp:
+    with open(filepath, "w+") as fp:
         fp.write(content)
+
+
+def complete_version_file(custom_feature, *filepath):
+    file_path = os.path.join(".", *filepath)
+    backup_path = file_path + ".bak"
+
+    # Create backup if it doesn't exist
+    if not os.path.exists(backup_path):
+        # Read original content and create backup
+        with open(file_path, "r") as fp:
+            original_content = fp.read()
+        with open(backup_path, "w") as fp:
+            fp.write(original_content)
+
+        # Register restore function to run at exit
+        def restore_original():
+            if os.path.exists(backup_path):
+                # Restore original content from backup
+                with open(backup_path, "r") as fp:
+                    backup_content = fp.read()
+                with open(file_path, "w") as fp:
+                    fp.write(backup_content)
+                # Clean up backup file
+                os.remove(backup_path)
+
+        atexit.register(restore_original)
+
+    update_version_file(custom_feature, file_path)
 
 
 def find_version(custom_feature, *filepath):

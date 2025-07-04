@@ -107,7 +107,7 @@ class _Masker:
 
 
 class SecureAggregator(Aggregator):
-    """The secure aggregation implementation of `Masking with One-Time Pads`.
+    r"""The secure aggregation implementation of `Masking with One-Time Pads`.
 
     `Masking with One-Time Pads` negotiates a secret for every two participants,
     then uses the secret to hide its input `x`, and each participant outputs.

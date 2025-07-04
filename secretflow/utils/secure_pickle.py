@@ -13,13 +13,12 @@
 # limitations under the License.
 
 
-from enum import Enum, unique
 import io
 import pickle
 import types
+from enum import Enum, unique
 
 import cloudpickle
-
 
 # white list of allowed classes for unpickling
 # NOTE: use types.MappingProxyType to prevent modification
@@ -160,7 +159,7 @@ class SecureUnpickler(pickle.Unpickler):
             return super().find_class(module, name)
 
         # filter by whitelist
-        if module.startswith("secretflow."):
+        if module.startswith(("secretflow.", "secretflow_spec")):
             # allow classes from secretflow
             return super().find_class(module, name)
 

@@ -274,6 +274,3 @@ msgid ""
 "perform vertical data splitting first, and then follow the process "
 "outlined in this tutorial."
 msgstr "接下来，你可能想尝试不同的数据集，您需要先将数据集进行垂直切分，然后按照本教程的流程进行。"
-
-
-

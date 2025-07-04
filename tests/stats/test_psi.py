@@ -22,23 +22,22 @@ from secretflow.data import FedNdarray, PartitionWay, partition
 from secretflow.data.vertical import VDataFrame
 from secretflow.stats import psi_eval
 from secretflow.stats.core.utils import equal_range
+from tests.sf_fixtures import mpc_fixture
 
 
-@pytest.fixture(scope='module')
+@mpc_fixture
 def prod_env_and_data(sf_production_setup_devices):
+    pyu_alice = sf_production_setup_devices.alice
+
     y_actual = FedNdarray(
         partitions={
-            sf_production_setup_devices.alice: sf_production_setup_devices.alice(
-                lambda x: x
-            )(jnp.array([*range(10)]).reshape(-1, 1))
+            pyu_alice: pyu_alice(lambda x: x)(jnp.array([*range(10)]).reshape(-1, 1))
         },
         partition_way=PartitionWay.VERTICAL,
     )
     y_expected_1 = FedNdarray(
         partitions={
-            sf_production_setup_devices.alice: sf_production_setup_devices.alice(
-                lambda x: x
-            )(jnp.array([*range(10)]).reshape(-1, 1))
+            pyu_alice: pyu_alice(lambda x: x)(jnp.array([*range(10)]).reshape(-1, 1))
         },
         partition_way=PartitionWay.VERTICAL,
     )
@@ -51,17 +50,15 @@ def prod_env_and_data(sf_production_setup_devices):
 
     y_expected_2 = VDataFrame(
         partitions={
-            sf_production_setup_devices.alice: partition(
-                data=sf_production_setup_devices.alice(lambda x: x)(
-                    y_expected_2_pd_dataframe
-                )
+            pyu_alice: partition(
+                data=pyu_alice(lambda x: x)(y_expected_2_pd_dataframe)
             ),
         }
     )
 
     split_points = equal_range(jnp.array([*range(10)]), 2)
 
-    yield sf_production_setup_devices, {
+    return sf_production_setup_devices, {
         "y_actual": y_actual,
         "y_expected_1": y_expected_1,
         "split_points": split_points,
@@ -69,6 +66,7 @@ def prod_env_and_data(sf_production_setup_devices):
     }
 
 
+@pytest.mark.mpc
 def test_psi(prod_env_and_data):
     env, data = prod_env_and_data
     score_1 = reveal(

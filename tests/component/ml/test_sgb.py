@@ -19,19 +19,18 @@ import pandas as pd
 import pytest
 from google.protobuf.json_format import MessageToJson
 from pyarrow import orc
-from sklearn.datasets import load_breast_cancer
-from sklearn.metrics import roc_auc_score
-from sklearn.preprocessing import StandardScaler
-
-from secretflow.component.core import build_node_eval_param, make_storage
-from secretflow.component.entry import comp_eval
-from secretflow.spec.v1.data_pb2 import (
+from secretflow_spec.v1.data_pb2 import (
     DistData,
     IndividualTable,
     TableSchema,
     VerticalTable,
 )
-from secretflow.spec.v1.report_pb2 import Report
+from secretflow_spec.v1.report_pb2 import Report
+from sklearn.datasets import load_breast_cancer
+from sklearn.metrics import roc_auc_score
+from sklearn.preprocessing import StandardScaler
+
+from secretflow.component.core import build_node_eval_param, comp_eval, make_storage
 
 NUM_BOOST_ROUND = 5
 
@@ -40,41 +39,51 @@ OBJECTIVE_CASES = ["biclassification", "tweedie_regression"]
 
 
 def get_train_param(
-    alice_path, bob_path, model_path, checkpoint_uri, objective_case='biclassification'
+    alice_path,
+    bob_path,
+    report_path,
+    model_path,
+    checkpoint_uri,
+    train_version,
+    objective_case='biclassification',
 ):
     objective = "logistic"
     metric = "roc_auc"
     if objective_case == "tweedie_regression":
         objective = "tweedie"
         metric = "tweedie_deviance"
-
+    params = {
+        "num_boost_round": NUM_BOOST_ROUND,
+        "max_depth": 3,
+        "learning_rate": 0.3,
+        "objective": objective,
+        "reg_lambda": 0.1,
+        "gamma": 0.0,
+        "rowsample_by_tree": 1.0,
+        "colsample_by_tree": 1.0,
+        "sketch_eps": 0.25,
+        "base_score": 0.0,
+        "enable_monitor": True,
+        "enable_early_stop": False if checkpoint_uri else True,
+        "eval_metric": metric,
+        "validation_fraction": 0.1,
+        "stopping_rounds": 3,
+        "stopping_tolerance": 0.01,
+        "save_best_model": True,
+        "tweedie_variance_power": 1.65,
+        "input/input_ds/label": ["y"],
+        "input/input_ds/feature_selects": [f"a{i}" for i in range(15)]
+        + [f"b{i}" for i in range(15)],
+    }
+    outputs = [model_path]
+    if train_version >= "1.1.0":
+        params["report_importances"] = True
+        outputs.append(report_path)
     return build_node_eval_param(
         domain="ml.train",
         name="sgb_train",
-        version="1.0.0",
-        attrs={
-            "num_boost_round": NUM_BOOST_ROUND,
-            "max_depth": 3,
-            "learning_rate": 0.3,
-            "objective": objective,
-            "reg_lambda": 0.1,
-            "gamma": 0.0,
-            "rowsample_by_tree": 1.0,
-            "colsample_by_tree": 1.0,
-            "sketch_eps": 0.25,
-            "base_score": 0.0,
-            "enable_monitor": True,
-            "enable_early_stop": False if checkpoint_uri else True,
-            "eval_metric": metric,
-            "validation_fraction": 0.1,
-            "stopping_rounds": 3,
-            "stopping_tolerance": 0.01,
-            "save_best_model": True,
-            "tweedie_variance_power": 1.65,
-            "input/input_ds/label": ["y"],
-            "input/input_ds/feature_selects": [f"a{i}" for i in range(15)]
-            + [f"b{i}" for i in range(15)],
-        },
+        version=train_version,
+        attrs=params,
         inputs=[
             DistData(
                 name="train_dataset",
@@ -85,7 +94,7 @@ def get_train_param(
                 ],
             ),
         ],
-        output_uris=[model_path],
+        output_uris=outputs,
         checkpoint_uri=checkpoint_uri,
     )
 
@@ -132,8 +141,8 @@ def get_eval_param(input_dd):
     )
 
 
-def get_meta_and_dump_data(comp_prod_sf_cluster_config, alice_path, bob_path):
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+def get_meta_and_dump_data(sf_production_setup_comp, alice_path, bob_path):
+    storage_config, sf_cluster_config = sf_production_setup_comp
     self_party = sf_cluster_config.private_config.self_party
     storage = make_storage(storage_config)
     scaler = StandardScaler()
@@ -165,31 +174,43 @@ def get_meta_and_dump_data(comp_prod_sf_cluster_config, alice_path, bob_path):
     )
 
 
-def _inner_test_sgb(comp_prod_sf_cluster_config, with_checkpoint, objective_case):
+def _inner_test_sgb(
+    sf_production_setup_comp, with_checkpoint, objective_case, train_version
+):
     work_path = f"test_sgb_{with_checkpoint}_{objective_case}"
     alice_path = f"{work_path}/x_alice.csv"
     bob_path = f"{work_path}/x_bob.csv"
     model_path = f"{work_path}/model.sf"
+    report_path = f"{work_path}/model.report"
     predict_path = f"{work_path}/predict.csv"
     checkpoint_path = f"{work_path}/checkpoint"
 
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
 
     train_param = get_train_param(
         alice_path,
         bob_path,
+        report_path,
         model_path,
         checkpoint_path if with_checkpoint else "",
+        train_version,
         objective_case,
     )
-    meta = get_meta_and_dump_data(comp_prod_sf_cluster_config, alice_path, bob_path)
+    meta = get_meta_and_dump_data(sf_production_setup_comp, alice_path, bob_path)
     train_param.inputs[0].meta.Pack(meta)
 
     train_res = comp_eval(
         param=train_param,
         storage_config=storage_config,
         cluster_config=sf_cluster_config,
+        tracer_report=True if train_version >= "1.1.0" else False,
     )
+
+    if train_version >= "1.1.0":
+        comp_ret = Report()
+        train_res = train_res["eval_result"]
+        train_res.outputs[1].meta.Unpack(comp_ret)
+        logging.info(comp_ret)
 
     def run_pred(predict_path, train_res):
         predict_param = get_pred_param(alice_path, bob_path, train_res, predict_path)
@@ -284,10 +305,16 @@ def _inner_test_sgb(comp_prod_sf_cluster_config, with_checkpoint, objective_case
 
 
 @pytest.mark.parametrize("objective_case", OBJECTIVE_CASES)
-def test_sgb_with_checkpoint(comp_prod_sf_cluster_config, objective_case):
-    _inner_test_sgb(comp_prod_sf_cluster_config, True, objective_case)
+@pytest.mark.parametrize("train_version", ["1.1.0", "1.0.0"])
+@pytest.mark.mpc
+def test_sgb_with_checkpoint(sf_production_setup_comp, objective_case, train_version):
+    _inner_test_sgb(sf_production_setup_comp, True, objective_case, train_version)
 
 
 @pytest.mark.parametrize("objective_case", OBJECTIVE_CASES)
-def test_sgb_without_checkpoint(comp_prod_sf_cluster_config, objective_case):
-    _inner_test_sgb(comp_prod_sf_cluster_config, False, objective_case)
+@pytest.mark.parametrize("train_version", ["1.0.0", "1.1.0"])
+@pytest.mark.mpc
+def test_sgb_without_checkpoint(
+    sf_production_setup_comp, objective_case, train_version
+):
+    _inner_test_sgb(sf_production_setup_comp, False, objective_case, train_version)

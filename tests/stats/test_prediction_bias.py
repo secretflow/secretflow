@@ -24,43 +24,35 @@ from secretflow.data.vertical import VDataFrame
 from secretflow.stats import prediction_bias_eval
 from secretflow.stats.core.prediction_bias_core import PredictionBiasBucketMethod
 from secretflow.stats.core.prediction_bias_core import prediction_bias as core
+from tests.sf_fixtures import mpc_fixture
 
 prediction = jnp.array([0.9, 0.1, 0.2, 0.3, 0.4, 0.5, 0.7, 0.8])
 label = jnp.array([1, 0, 0, 0, 0, 1, 1, 1])
 
 
-@pytest.fixture(scope='module')
+@mpc_fixture
 def prod_env_and_data(sf_production_setup_devices):
-    y_actual_pd_dataframe = pd.DataFrame(
-        {
-            'y_actual': label,
-        }
-    )
+    pyu_alice = sf_production_setup_devices.alice
+
+    y_actual_pd_dataframe = pd.DataFrame({'y_actual': label})
     y_actual = VDataFrame(
         partitions={
-            sf_production_setup_devices.alice: partition(
-                data=sf_production_setup_devices.alice(lambda x: x)(
-                    y_actual_pd_dataframe
-                )
-            ),
+            pyu_alice: partition(data=pyu_alice(lambda x: x)(y_actual_pd_dataframe)),
         }
     )
 
     y_prediction = FedNdarray(
-        partitions={
-            sf_production_setup_devices.alice: sf_production_setup_devices.alice(
-                lambda x: x
-            )(prediction.reshape((-1, 1)))
-        },
+        partitions={pyu_alice: pyu_alice(lambda x: x)(prediction.reshape((-1, 1)))},
         partition_way=PartitionWay.VERTICAL,
     )
 
-    yield sf_production_setup_devices, {
+    return sf_production_setup_devices, {
         'y_actual': y_actual,
         "y_prediction": y_prediction,
     }
 
 
+@pytest.mark.mpc
 def test_eval(prod_env_and_data):
     env, data = prod_env_and_data
     report = reveal(

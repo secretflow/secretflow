@@ -19,12 +19,18 @@ import tarfile
 from typing import List
 
 import click
-from dataproxy.sdk import FileFormat
+from dataproxy import FileFormat
 from google.protobuf import json_format
 from kuscia.proto.api.v1alpha1.datamesh.domaindatasource_pb2 import DomainDataSource
+from secretflow_spec.v1.data_pb2 import DistData, StorageConfig
+from secretflow_spec.v1.evaluation_pb2 import NodeEvalParam, NodeEvalResult
 
-from secretflow.component.core import DistDataType, load_plugins
-from secretflow.component.entry import comp_eval
+from secretflow.component.core import (
+    comp_eval,
+    DistDataType,
+    format_exception,
+    load_plugins,
+)
 from secretflow.kuscia.datamesh import (
     create_channel,
     create_dm_flight_client,
@@ -42,8 +48,6 @@ from secretflow.kuscia.meta_conversion import (
 )
 from secretflow.kuscia.sf_config import get_sf_cluster_config
 from secretflow.kuscia.task_config import KusciaTaskConfig, TableAttr
-from secretflow.spec.v1.data_pb2 import DistData, StorageConfig
-from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam, NodeEvalResult
 
 _LOG_FORMAT = "%(asctime)s|{}|%(levelname)s|secretflow|%(filename)s:%(funcName)s:%(lineno)d| %(message)s"
 
@@ -308,7 +312,7 @@ def preprocess_sf_node_eval_param(
         param.ClearField('output_uris')
         param.output_uris.extend(sf_output_uris)
 
-    if param.domain == "model" and param.name == "model_export":
+    if param.comp_id.startswith("model/model_export:"):
         # TODO: Refactor comp IO, unbind dataproxy/datamesh
         param = model_export_id_to_data(
             param,
@@ -551,13 +555,15 @@ def main(task_config_path, datamesh_addr, enable_plugins: bool):
         task_conf.sf_input_ids,
         task_conf.sf_output_uris,
     )
+    logging.info("sf node eval param processed.")
 
     sf_cluster_config = get_sf_cluster_config(task_conf)
 
     try:
         res = comp_eval(sf_node_eval_param, storage_config, sf_cluster_config)
-    except Exception:
-        logging.exception(f"comp_eval exception")
+
+    except Exception as e:
+        logging.error(f"comp_eval fail.\n{format_exception(e)}")
         os._exit(1)
 
     postprocess_sf_node_eval_result(

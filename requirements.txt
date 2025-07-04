@@ -4,34 +4,36 @@
 #
 # Avoid thead pool fork issue, see https://github.com/grpc/grpc/issues/31772
 click  # FEATURE=[lite]
-grpcio==1.56.2  # FEATURE=[lite]
+grpcio>=1.56.2  # FEATURE=[lite]
 # <=0.4.26 : fix jnp.select numerical problem
 jax[cpu]>=0.4.16,<=0.4.26  # FEATURE=[lite]
 jaxlib>=0.4.16,<=0.4.26  # FEATURE=[lite]
 kuscia==0.0.3b0  # FEATURE=[lite]
-secretflow-dataproxy==0.2.0b0  # FEATURE=[lite]
+secretflow-dataproxy==0.5.0.dev20250416  # FEATURE=[lite]
 networkx==2.8.8
 numpy  # FEATURE=[lite]
-onnx==1.16.0
+onnx==1.17.0
 pandas==1.5.3  # FEATURE=[lite]
 protobuf>=4,<5 # FEATURE=[lite]
 pyarrow==14.0.2  # FEATURE=[lite]
 duckdb==1.0.0 # FEATURE=[lite]
+aiobotocore==2.17.0 # FEATURE=[lite]
 s3fs==2024.2.0 # FEATURE=[lite]
-scikit-learn==1.3.2  # FEATURE=[lite]
+scikit-learn==1.5.2  # FEATURE=[lite]
 sdc-apis==0.1.0.dev240320; platform_machine == "x86_64"  # FEATURE=[lite]
 sdc-sdk==0.1.0.dev240320; platform_machine == "x86_64"  # FEATURE=[lite]
-ray==2.9.3
+ray==2.42.0
 secretflow-rayfed==0.2.1a2
 aiohttp>=3.9.4,<4 # FEATURE=[lite]
 # For security reason.
-setuptools>=65.5.1,<70.0.0 # FEATURE=[lite]
+setuptools==75.8.0 # FEATURE=[lite]
 # For security reason.
 certifi>=2024.7.4
 sparse>=0.14.0
-spu==0.9.3.dev20241118 # FEATURE=[lite]
-sf-heu==0.6.0.dev20241106 # FEATURE=[lite]
-secretflow_serving_lib==0.8.0.dev20241119  # FEATURE=[lite]
+spu==0.9.4.dev20250618 # FEATURE=[lite]
+sf-sml==0.1.0.dev20250623 # FEATURE=[lite]
+sf-heu==0.6.0.dev20250514 # FEATURE=[lite]
+secretflow_serving_lib==0.10.0.dev20250414  # FEATURE=[lite]
 tensorflow-macos>=2.12,<2.13; platform_system == "Darwin"  # FEATURE=[fl_plugin]
 tensorflow>=2.12,<2.13; platform_system != "Darwin"  # FEATURE=[fl_plugin]
 tf2onnx>=1.13.0
@@ -40,13 +42,16 @@ validator.py==1.3.0
 xgboost==1.7.5
 # For security reason.
 wheel>=0.38.1
-torch==2.1.2
-torchmetrics==1.3.2
-torchvision==0.16.2
-torchaudio==2.1.2
+torch==2.7.0
+torchmetrics==1.6.1
+torchvision==0.22.0
+torchaudio==2.7.0
 interconnection==0.2.0.dev0
 h5py!=3.11.0; platform_machine == 'aarch64'
 sqlglot==25.5.1 # FEATURE=[lite]
-typing_extensions==4.12.2 # FEATURE=[lite]
 requests==2.32.3 # FEATURE=[lite]
+secretflow-spec==1.1.0b0 # FEATURE=[lite]
+# For DP accounting computation
+dp-accounting==0.4.4
+RestrictedPython==8.0
 multiprocess==0.70.18 # FEATURE=[lite]

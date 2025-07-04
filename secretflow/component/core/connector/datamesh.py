@@ -16,7 +16,7 @@ import os
 import uuid
 
 import grpc
-from dataproxy.sdk import (
+from dataproxy import (
     DataProxyConfig,
     DataProxyFileAdapter,
     DownloadInfo,
@@ -30,12 +30,16 @@ from kuscia.proto.api.v1alpha1.datamesh.domaindata_pb2 import (
     QueryDomainDataRequest,
 )
 from kuscia.proto.api.v1alpha1.datamesh.domaindata_pb2_grpc import DomainDataServiceStub
+from secretflow_spec import (
+    Storage,
+    StorageType,
+    StrEnum,
+    VTableField,
+    VTableFieldKind,
+    VTableFormat,
+    VTableSchema,
+)
 
-from secretflow.component.core.storage.base import StorageType
-
-from ..common.types import BaseEnum
-from ..dist_data.vtable import VTableField, VTableFieldKind, VTableFormat, VTableSchema
-from ..storage import Storage
 from .connector import IConnector, TableInfo
 
 
@@ -85,7 +89,7 @@ def get_domain_data(stub: DomainDataServiceStub, id: str) -> DomainData:
     return ret.data
 
 
-class FileType(BaseEnum):
+class FileType(StrEnum):
     TABLE = "table"
     MODEL = "model"
 
@@ -174,7 +178,7 @@ class DataMesh(IConnector):
         attributes = output_params
 
         columns = [
-            DataColumn(name=f.name, type=f.ftype, comment=str(f.kind))
+            DataColumn(name=f.name, type=f.type, comment=str(f.kind))
             for f in input_schema.fields.values()
         ]
 

@@ -13,28 +13,37 @@
 # limitations under the License.
 
 import logging
-import time
 
 import pandas as pd
 import pytest
 from pyarrow import orc
-
-from secretflow.component.core import DistDataType, build_node_eval_param, make_storage
-from secretflow.component.entry import comp_eval
-from secretflow.spec.v1.data_pb2 import (
+from secretflow_spec.v1.data_pb2 import (
     DistData,
     IndividualTable,
     TableSchema,
     VerticalTable,
 )
 
+from secretflow.component.core import (
+    DistDataType,
+    VTable,
+    VTableParty,
+    assert_almost_equal,
+    build_node_eval_param,
+    comp_eval,
+    make_storage,
+)
+from secretflow.component.preprocessing.data_prep.union import Union
+from secretflow.utils.errors import InvalidArgumentError
 
-def test_union_individual(comp_prod_sf_cluster_config):
+
+@pytest.mark.mpc
+def test_union_individual(sf_production_setup_comp):
     input1_path = "test_union_individual/input1.csv"
     input2_path = "test_union_individual/input2.csv"
     output_path = "test_union_individual/output.csv"
 
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
     self_party = sf_cluster_config.private_config.self_party
     storage = make_storage(storage_config)
 
@@ -108,21 +117,23 @@ def test_union_individual(comp_prod_sf_cluster_config):
     if self_party == "alice":
         real_result = orc.read_table(storage.get_reader(output_path)).to_pandas()
         logging.warning(f"...individual_res:{self_party}... \n{real_result}\n.....")
-        pd.testing.assert_frame_equal(
+        assert_almost_equal(
             expected_result,
             real_result,
+            ignore_order=True,
             check_dtype=False,
         )
 
 
-def test_union_vertical(comp_prod_sf_cluster_config):
+@pytest.mark.mpc
+def test_union_vertical(sf_production_setup_comp):
     alice_input1_path = "test_union_vertical/alice_input1.csv"
     alice_input2_path = "test_union_vertical/alice_input2.csv"
     bob_input1_path = "test_union_vertical/bob_input1.csv"
     bob_input2_path = "test_union_vertical/bob_input2.csv"
     output_path = "test_union_vertical/output.csv"
 
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
     self_party = sf_cluster_config.private_config.self_party
     storage = make_storage(storage_config)
 
@@ -241,12 +252,13 @@ def test_union_vertical(comp_prod_sf_cluster_config):
         )
 
 
-def test_union_load_table(comp_prod_sf_cluster_config):
+@pytest.mark.mpc
+def test_union_load_table(sf_production_setup_comp):
     input1_path = "test_union_load_table/input1.csv"
     input2_path = "test_union_load_table/input2.csv"
     output_path = "test_union_load_table/output.csv"
 
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
     self_party = sf_cluster_config.private_config.self_party
     storage = make_storage(storage_config)
 
@@ -321,103 +333,63 @@ def test_union_load_table(comp_prod_sf_cluster_config):
 
     assert len(res.outputs) == 1
     if self_party == "alice":
-        real_result = orc.read_table(storage.get_reader(output_path)).to_pandas()
+        real_result = orc.read_table(storage.get_reader(output_path))
         logging.warning(f"...load_table_result:{self_party}... \n{real_result}\n.....")
-        pd.testing.assert_frame_equal(
+        assert_almost_equal(
             expected_result,
             real_result,
+            ignore_order=True,
             check_dtype=False,
         )
 
 
-def test_union_error(comp_prod_sf_cluster_config):
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
-    self_party = sf_cluster_config.private_config.self_party
-    storage = make_storage(storage_config)
+def test_union_error():
+    # test input type error
+    comp = Union(
+        input_ds1=DistData(type=str(DistDataType.VERTICAL_TABLE)),
+        input_ds2=DistData(type=str(DistDataType.INDIVIDUAL_TABLE)),
+    )
+    with pytest.raises(InvalidArgumentError, match="input type mismatch"):
+        comp.evaluate(None)
 
-    alice_input1_path = "test_union_error/alice_input1.csv"
-    alice_input2_path = "test_union_error/alice_input2.csv"
-    bob_input1_path = "test_union_error/bob_input1.csv"
-    bob_input2_path = "test_union_error/bob_input2.csv"
-    output_path = "test_union_error/output.csv"
-
-    if self_party == "alice":
-        # different schema
-        pd.DataFrame({"id1": ["K100"]}).to_csv(
-            storage.get_writer(alice_input1_path),
-            index=False,
-        )
-        pd.DataFrame({"diff_id": ["K200"]}).to_csv(
-            storage.get_writer(alice_input2_path),
-            index=False,
-        )
-    elif self_party == "bob":
-        pd.DataFrame({"item": ["item1"]}).to_csv(
-            storage.get_writer(bob_input1_path),
-            index=False,
-        )
-        pd.DataFrame({"item": ["item2"]}).to_csv(
-            storage.get_writer(bob_input2_path),
-            index=False,
-        )
-
-    param = build_node_eval_param(
-        domain="data_prep",
-        name="union",
-        version="1.0.0",
-        attrs=None,
-        inputs=[
-            DistData(
-                name="input1",
-                type=str(DistDataType.VERTICAL_TABLE),
-                data_refs=[
-                    DistData.DataRef(
-                        uri=alice_input1_path, party="alice", format="csv"
-                    ),
-                    DistData.DataRef(uri=bob_input1_path, party="bob", format="csv"),
-                ],
+    # test input schema error
+    tbl1 = VTable(
+        name="table1",
+        parties=[
+            VTableParty.from_dict(
+                party="alice",
+                uri="alice_input1.csv",
+                format="csv",
+                features={"id1": "str"},
             ),
-            DistData(
-                name="input2",
-                type=str(DistDataType.VERTICAL_TABLE),
-                data_refs=[
-                    DistData.DataRef(
-                        uri=alice_input2_path, party="alice", format="csv"
-                    ),
-                    DistData.DataRef(uri=bob_input2_path, party="bob", format="csv"),
-                ],
+            VTableParty.from_dict(
+                party="bob",
+                uri="bob_input1.csv",
+                format="csv",
+                features={"item": "str"},
             ),
         ],
-        output_uris=[output_path],
     )
-
-    meta = VerticalTable(
-        schemas=[
-            TableSchema(
-                id_types=None,
-                ids=None,
-                feature_types=["str"],
-                features=["id1"],
+    tbl2 = VTable(
+        name="table2",
+        parties=[
+            VTableParty.from_dict(
+                party="alice",
+                uri="alice_input1.csv",
+                format="csv",
+                features={"id1": "str"},
             ),
-            TableSchema(
-                id_types=None,
-                ids=None,
-                feature_types=["str"],
-                features=["item"],
+            VTableParty.from_dict(
+                party="bob",
+                uri="bob_input1.csv",
+                format="csv",
+                features={"diff_item_name": "str"},
             ),
-        ]
+        ],
     )
-    param.inputs[0].meta.Pack(meta)
-    # reset schema
-    meta.schemas[0].features[:] = []
-    meta.schemas[0].features.append("diff_id")
-    param.inputs[1].meta.Pack(meta)
-
-    with pytest.raises(Exception, match="table meta info missmatch") as exc_info:
-        comp_eval(
-            param=param,
-            storage_config=storage_config,
-            cluster_config=sf_cluster_config,
-        )
-    time.sleep(4)
-    logging.warning(f"Caught expected AssertionError: {exc_info}")
+    comp = Union(
+        input_ds1=tbl1.to_distdata(),
+        input_ds2=tbl2.to_distdata(),
+    )
+    with pytest.raises(InvalidArgumentError, match="input schema mismatch"):
+        comp.evaluate(None)

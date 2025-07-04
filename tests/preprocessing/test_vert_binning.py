@@ -23,8 +23,8 @@ from secretflow.component.core import (
     CompVDataFrame,
     VTableField,
     VTableFieldKind,
-    VTableFieldType,
     VTableSchema,
+    VTableUtils,
 )
 from secretflow.data import partition
 from secretflow.data.vertical.dataframe import VDataFrame
@@ -33,6 +33,7 @@ from secretflow.preprocessing.binning.vert_binning import VertBinning
 from secretflow.preprocessing.binning.vert_woe_binning import VertWoeBinning
 from secretflow.utils import secure_pickle as pickle
 from secretflow.utils.simulation.datasets import dataset
+from tests.sf_fixtures import mpc_fixture
 
 
 def woe_almost_equal(a, b):
@@ -73,8 +74,12 @@ def audit_ciphertext_equal(a, b):
         assert get_c_in_a(sa) == get_c_in_b(sb), f"{sa}\n...........\n{sb}"
 
 
-@pytest.fixture(scope='module')
-def prod_env_and_data(sf_production_setup_devices_ray):
+@mpc_fixture
+def prod_env_and_data(sf_production_setup_devices):
+    pyu_alice = sf_production_setup_devices.alice
+    pyu_bob = sf_production_setup_devices.bob
+    pyu_carol = sf_production_setup_devices.carol
+
     normal_data = pd.read_csv(
         dataset('linear'),
         usecols=[f'x{i}' for i in range(1, 11)] + ['y'],
@@ -85,18 +90,10 @@ def prod_env_and_data(sf_production_setup_devices_ray):
     normal_data['x2'] = np.random.randint(0, 5, (row_num,))
     v_float_data = VDataFrame(
         {
-            sf_production_setup_devices_ray.alice: partition(
-                data=sf_production_setup_devices_ray.alice(lambda: normal_data)()
-            ),
-            sf_production_setup_devices_ray.bob: partition(
-                data=sf_production_setup_devices_ray.bob(
-                    lambda: normal_data.drop("y", axis=1)
-                )()
-            ),
-            sf_production_setup_devices_ray.carol: partition(
-                data=sf_production_setup_devices_ray.carol(
-                    lambda: normal_data.drop("y", axis=1)
-                )()
+            pyu_alice: partition(data=pyu_alice(lambda: normal_data)()),
+            pyu_bob: partition(data=pyu_bob(lambda: normal_data.drop("y", axis=1))()),
+            pyu_carol: partition(
+                data=pyu_carol(lambda: normal_data.drop("y", axis=1))()
             ),
         }
     )
@@ -125,18 +122,10 @@ def prod_env_and_data(sf_production_setup_devices_ray):
 
     v_nan_data = VDataFrame(
         {
-            sf_production_setup_devices_ray.alice: partition(
-                data=sf_production_setup_devices_ray.alice(lambda: nan_str_data)()
-            ),
-            sf_production_setup_devices_ray.bob: partition(
-                data=sf_production_setup_devices_ray.bob(
-                    lambda: nan_str_data.drop("y", axis=1)
-                )()
-            ),
-            sf_production_setup_devices_ray.carol: partition(
-                data=sf_production_setup_devices_ray.carol(
-                    lambda: nan_str_data.drop("y", axis=1)
-                )()
+            pyu_alice: partition(data=pyu_alice(lambda: nan_str_data)()),
+            pyu_bob: partition(data=pyu_bob(lambda: nan_str_data.drop("y", axis=1))()),
+            pyu_carol: partition(
+                data=pyu_carol(lambda: nan_str_data.drop("y", axis=1))()
             ),
         }
     )
@@ -146,7 +135,7 @@ def prod_env_and_data(sf_production_setup_devices_ray):
         for pyu, p in df.partitions.items():
             fields = []
             for name, dtype in p.dtypes.items():
-                dt = VTableFieldType.from_dtype(dtype)
+                dt = VTableUtils.from_dtype(dtype)
                 kind = (
                     VTableFieldKind.LABEL if name in labels else VTableFieldKind.FEATURE
                 )
@@ -156,7 +145,7 @@ def prod_env_and_data(sf_production_setup_devices_ray):
 
         return res
 
-    yield sf_production_setup_devices_ray, {
+    return sf_production_setup_devices, {
         'normal_data': normal_data,
         'v_float_data': CompVDataFrame.from_pandas(
             v_float_data, schemas=_build_schema(v_float_data)
@@ -168,6 +157,7 @@ def prod_env_and_data(sf_production_setup_devices_ray):
     }
 
 
+@pytest.mark.mpc(parties=3)
 def test_binning_nan_chi(prod_env_and_data):
     env, data = prod_env_and_data
     he_binning = VertWoeBinning(env.heu)
@@ -203,6 +193,7 @@ def test_binning_nan_chi(prod_env_and_data):
     woe_almost_equal(he_bob, he_alice)
 
 
+@pytest.mark.mpc(parties=3)
 def test_binning_nan(prod_env_and_data):
     env, data = prod_env_and_data
     he_binning = VertWoeBinning(env.heu)
@@ -264,6 +255,7 @@ def test_binning_nan(prod_env_and_data):
     assert str(spk) == str(pk)
 
 
+@pytest.mark.mpc(parties=3)
 def test_binning_normal(prod_env_and_data):
     env, data = prod_env_and_data
     he_binning = VertWoeBinning(env.heu)
@@ -316,6 +308,7 @@ def test_binning_normal(prod_env_and_data):
     woe_almost_equal(he_carol, he_alice)
 
 
+@pytest.mark.mpc(parties=3)
 def test_binning_normal_chimerge(prod_env_and_data):
     env, data = prod_env_and_data
     he_binning = VertWoeBinning(env.heu)
@@ -348,6 +341,7 @@ def test_binning_normal_chimerge(prod_env_and_data):
     woe_almost_equal(he_bob, he_alice)
 
 
+@pytest.mark.mpc(parties=3)
 def test_binning_normal_eq_range(prod_env_and_data):
     env, data = prod_env_and_data
     he_binning = VertWoeBinning(env.heu)

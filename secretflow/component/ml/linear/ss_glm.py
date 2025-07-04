@@ -15,6 +15,7 @@
 import json
 
 from secretflow_serving_lib.link_function_pb2 import LinkFunctionType
+from secretflow_spec.v1.data_pb2 import DistData
 
 from secretflow.component.core import (
     SPU_RUNTIME_CONFIG_FM128_FXP40,
@@ -24,7 +25,6 @@ from secretflow.component.core import (
     ServingBuilder,
     VTable,
 )
-from secretflow.spec.v1.data_pb2 import DistData
 
 from .linear import build_linear_model, build_phe_linear_model, get_party_features_info
 

@@ -390,6 +390,11 @@ class PartDataFrameBase(DataFrameBase, ABC):
         pass
 
     @abstractmethod
+    def nunique(self, *args, **kwargs) -> pd.Series:
+        """Count unique cells for each column."""
+        pass
+
+    @abstractmethod
     def sum(self, *args, **kwargs) -> pd.Series:
         """Returns the sum of the values over the requested axis."""
         pass

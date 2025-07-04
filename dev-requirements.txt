@@ -1,13 +1,14 @@
 matplotlib
 statsmodels==0.13.2
 polars==0.19.3
-pytest==7.3.1
+pytest==7.4.4
 pytest-cov==4.0.0
 pytest-xdist==3.2.1
 pytest-testmon==2.0.6
 pytest-custom_exit_code
-tweedie
 junitparser
+tweedie
 psutil
 tabulate
 hdbscan # added for FreqFed
+filelock==3.18.0

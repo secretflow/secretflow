@@ -18,9 +18,9 @@ import os
 import time
 
 import numpy as np
+import pytest
 import xgboost as xgb
 from sklearn.compose import ColumnTransformer
-from sklearn.datasets import fetch_openml
 from sklearn.metrics import mean_squared_error, roc_auc_score
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import (
@@ -40,7 +40,10 @@ from secretflow.ml.boost.sgb_v.core.params import (
 )
 from secretflow.ml.linear.ss_glm.core import get_dist
 from secretflow.ml.linear.ss_glm.metrics import deviance
+
+from sklearn.datasets import fetch_openml
 from secretflow.utils.simulation.datasets import load_linear
+from tests.sf_fixtures import SFProdParams
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
@@ -221,7 +224,7 @@ def _run_sgb(
     logging.info(f"{test_name} predict time: {time.perf_counter() - start}")
 
     clf = xgb.XGBClassifier(
-        **xgb_params, sample_weight=sample_weight, importance_type="gain"
+        **xgb_params, sample_weight=sample_weight, importance_type="weight"
     )
     X = np.concatenate(
         [reveal(partition_data) for partition_data in v_data.partitions.values()],
@@ -244,7 +247,8 @@ def _run_sgb(
         logging.info(f"{test_name} mse: {mse_xgb}")
         assert abs(mse - mse_xgb) <= 0.3
 
-    feature_importance = model.feature_importance_flatten(v_data)
+    feature_importance = model.feature_importance_flatten(v_data, "weight")
+    feature_importance_gain = model.feature_importance_flatten(v_data, "gain")
     xgb_feature_importance = clf.feature_importances_
 
     assert (
@@ -257,6 +261,7 @@ def _run_sgb(
     # should show relative importance among features as well
 
     logging.info(f"feature importance: {feature_importance}")
+    logging.info(f"feature importance gain: {feature_importance_gain}")
     logging.info(f"xgb feature importance: {xgb_feature_importance}")
 
 
@@ -278,17 +283,11 @@ def _run_npc_linear(env, test_name, parts, label_device):
     _run_sgb_tweedie(env, test_name, v_data, label_data, y, 0.9, 1)
 
 
-def test_2pc_linear(sf_production_setup_devices_aby3):
-    parts = {
-        sf_production_setup_devices_aby3.bob: (1, 11),
-        sf_production_setup_devices_aby3.alice: (11, 22),
-    }
-    _run_npc_linear(
-        sf_production_setup_devices_aby3,
-        "2pc_linear",
-        parts,
-        sf_production_setup_devices_aby3.alice,
-    )
+@pytest.mark.mpc(parties=3, params=SFProdParams.ABY3)
+def test_2pc_linear(sf_production_setup_devices):
+    devices = sf_production_setup_devices
+    parts = {devices.bob: (1, 11), devices.alice: (11, 22)}
+    _run_npc_linear(devices, "2pc_linear", parts, devices.alice)
 
 
 def load_mtpl2(n_samples=50000):
@@ -396,15 +395,15 @@ def dataset_to_federated(x, y, w, env):
     return v_data, label_data, weight
 
 
-def test_tweedie(sf_production_setup_devices_aby3):
+@pytest.mark.mpc(parties=3, params=SFProdParams.ABY3)
+def test_tweedie(sf_production_setup_devices):
+    devices = sf_production_setup_devices
     X, df = prepare_data()
     v_data, label_data, w = dataset_to_federated(
-        X, df["PurePremium"], df["Exposure"], sf_production_setup_devices_aby3
+        X, df["PurePremium"], df["Exposure"], devices
     )
     y = df["PurePremium"].values
-    _run_sgb_tweedie(
-        sf_production_setup_devices_aby3, "mtpl2", v_data, label_data, y, 0.9, 1
-    )
+    _run_sgb_tweedie(devices, "mtpl2", v_data, label_data, y, 0.9, 1)
 
 
 def eval(yhat, y, dist, power, w=None):

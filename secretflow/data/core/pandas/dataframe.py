@@ -77,6 +77,9 @@ class PdPartDataFrame(PartDataFrameBase):
     def count(self, *args, **kwargs) -> pd.Series:
         return self.data.count(*args, **kwargs)
 
+    def nunique(self, *args, **kwargs) -> pd.Series:
+        return self.data.nunique(*args, **kwargs)
+
     def sum(self, *args, **kwargs) -> pd.Series:
         return self.data.sum(*args, **kwargs)
 

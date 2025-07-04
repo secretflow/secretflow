@@ -23,8 +23,7 @@ from secretflow.data.base import DataFrameBase
 from secretflow.data.core import Partition
 from secretflow.data.groupby import DataFrameGroupBy
 from secretflow.data.ndarray import FedNdarray, PartitionWay
-from secretflow.device import PYU, SPU, PYUObject, reveal
-from secretflow.utils.errors import InvalidArgumentError, NotFoundError
+from secretflow.device import PYU, PYUObject, reveal, SPU
 
 
 @dataclass
@@ -146,7 +145,7 @@ class VDataFrame(DataFrameBase):
                 break
 
             if not found:
-                raise NotFoundError(f'Item {key} does not exist.')
+                raise KeyError(f'Item {key} does not exist.')
         return pyu_col
 
     def __getitem__(self, item) -> "VDataFrame":
@@ -173,7 +172,7 @@ class VDataFrame(DataFrameBase):
                 key_index = self._col_index(key)
                 for pyu, col in key_index.items():
                     self.partitions[pyu][col] = value.partitions[pyu]
-            except NotFoundError:
+            except KeyError:
                 # Insert as a new key if not seen.
                 for pyu, part in value.partitions.items():
                     self.partitions[pyu][list(part.dtypes.keys())] = part
@@ -230,6 +229,17 @@ class VDataFrame(DataFrameBase):
 
     def index(self) -> list:
         raise NotImplementedError()
+
+    def nunique(self) -> pd.Series:
+        """
+        Return the number of the unique values over the axis 0.
+
+        Restrict nunique on axis 0 in VDataFrame for data protection reasons.
+
+        Returns:
+            pd.Series
+        """
+        return self.__concat_apply_reveal(Partition.nunique)
 
     def sum(self, numeric_only=False) -> pd.Series:
         """
@@ -591,7 +601,7 @@ class VDataFrame(DataFrameBase):
         """
         for device, uri in fileuris.items():
             if device not in self.partitions:
-                raise InvalidArgumentError(f'PYU {device} is not in this dataframe.')
+                raise RuntimeError(f'PYU {device} is not in this dataframe.')
 
         return [
             self.partitions[device].to_csv(uri, **kwargs)

@@ -15,7 +15,7 @@
 import logging
 from typing import Callable, List, Union
 
-from secretflow.device import PYU, Device, PYUObject, reveal, wait
+from secretflow.device import Device, PYU, PYUObject, reveal, wait
 from secretflow.distributed.primitive import get_current_cluster_idx
 
 from ..base import DataFrameBase
@@ -209,6 +209,9 @@ class Partition(DataFrameBase):
         return StatPartition(
             self.part_agent.value_counts(self.agent_idx, *args, **kwargs)
         )
+
+    def nunique(self, *args, **kwargs) -> StatPartition:
+        return StatPartition(self.part_agent.nunique(self.agent_idx, *args, **kwargs))
 
     @property
     def values(self) -> PYUObject:

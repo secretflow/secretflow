@@ -24,7 +24,7 @@ from secretflow.component.core import (
     VTable,
     register,
 )
-from secretflow.error_system.exceptions import InvalidArgumentError
+from secretflow.utils.errors import InvalidArgumentError
 
 
 @register(domain="data_prep", version="1.0.0")
@@ -50,13 +50,14 @@ class Union(Component):
     def evaluate(self, ctx: Context):
         if self.input_ds1.type.lower() != self.input_ds2.type.lower():
             raise InvalidArgumentError(
-                f"input type not match, {self.input_ds1.type}, {self.input_ds2.type}"
+                "input type mismatch",
+                detail={"type1": self.input_ds1.type, "type2": self.input_ds2.type},
             )
 
         tbl1 = VTable.from_distdata(self.input_ds1)
         tbl2 = VTable.from_distdata(self.input_ds2)
         if tbl1.schemas != tbl2.schemas:
-            raise ValueError(f"table meta info missmatch, {tbl1.schemas, tbl2.schemas}")
+            raise InvalidArgumentError("input schema mismatch")
 
         reader1 = CompVDataFrameReader(ctx.storage, ctx.tracer, tbl1)
         reader2 = CompVDataFrameReader(ctx.storage, ctx.tracer, tbl2)

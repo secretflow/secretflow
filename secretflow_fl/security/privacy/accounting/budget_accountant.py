@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from abc import ABC
-from typing import List
+from typing import List, Optional
 
 from secretflow_fl.security.privacy.accounting.gdp_accountant import (
     cal_mu_poisson,
@@ -21,16 +21,22 @@ from secretflow_fl.security.privacy.accounting.gdp_accountant import (
     get_eps_from_mu,
 )
 from secretflow_fl.security.privacy.accounting.rdp_accountant import (
+    DEFAULT_RDP_ORDERS,
     get_privacy_spent_rdp,
     get_rdp,
 )
 
 
 class BudgetAccountant(ABC):
+    batch_size: int
+    num_samples: int
+    noise_multiplier: float
+    delta: float
+
     def __init__(self) -> None:
         super().__init__()
 
-    def privacy_spent_rdp(self, step: int, orders: List = None):
+    def privacy_spent_rdp(self, step: int, orders: Optional[List[float]] = None):
         """Get accountant using RDP.
 
         Args:
@@ -39,7 +45,7 @@ class BudgetAccountant(ABC):
         """
 
         if orders is None:
-            orders = [1 + x / 10.0 for x in range(1, 100)] + list(range(12, 64))
+            orders = DEFAULT_RDP_ORDERS
 
         q = self.batch_size / self.num_samples
         rdp = get_rdp(q, self.noise_multiplier, step, orders)

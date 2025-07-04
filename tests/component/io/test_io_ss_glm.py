@@ -20,14 +20,18 @@ import pandas as pd
 import pytest
 from google.protobuf.json_format import MessageToJson, Parse
 from pyarrow import orc
+from secretflow_spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 from sklearn.datasets import load_breast_cancer
 from sklearn.metrics import roc_auc_score
 from sklearn.preprocessing import StandardScaler
 
-from secretflow.component.core import DistDataType, build_node_eval_param, make_storage
-from secretflow.component.entry import comp_eval
+from secretflow.component.core import (
+    DistDataType,
+    build_node_eval_param,
+    comp_eval,
+    make_storage,
+)
 from secretflow.spec.extend.linear_model_pb2 import GeneralizedLinearModel, LinearModel
-from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 
 work_path = f"test_glm"
 alice_path = f"{work_path}/x_alice.csv"
@@ -36,12 +40,11 @@ predict_path = f"{work_path}/predict.csv"
 predict_referecnce_path = f"{work_path}/predict_reference.csv"
 
 
-@pytest.fixture
-def glm_model(comp_prod_sf_cluster_config):
+def gen_glm_model(sf_production_setup_comp):
     model_path = "test_glm/model.sf"
     report_path = "test_glm/model.report"
 
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
     self_party = sf_cluster_config.private_config.self_party
     storage = make_storage(storage_config)
 
@@ -115,10 +118,9 @@ def glm_model(comp_prod_sf_cluster_config):
     return train_res.outputs[0]
 
 
-@pytest.fixture
-def write_data(glm_model, comp_prod_sf_cluster_config):
+def gen_write_data(sf_production_setup_comp, glm_model):
     pb_path = "test_io/linear_model_pb"
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
 
     read_param = build_node_eval_param(
         domain="io",
@@ -139,10 +141,9 @@ def write_data(glm_model, comp_prod_sf_cluster_config):
     return write_data
 
 
-@pytest.fixture
-def write_complete_data(glm_model, comp_prod_sf_cluster_config):
+def gen_write_complete_data(sf_production_setup_comp, glm_model):
     pb_path = "test_io/generalized_linear_model_pb"
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
 
     read_param = build_node_eval_param(
         domain="io",
@@ -163,10 +164,14 @@ def write_complete_data(glm_model, comp_prod_sf_cluster_config):
     return write_data
 
 
-def test_no_change_correct(glm_model, write_data, comp_prod_sf_cluster_config):
+@pytest.mark.mpc
+def test_no_change_correct(sf_production_setup_comp):
     new_glm_model_path = "test_io/new_glm_model"
     pb_path = "test_io/glm_model_pb_unchanged"
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+
+    glm_model = gen_glm_model(sf_production_setup_comp)
+    write_data = gen_write_data(sf_production_setup_comp, glm_model)
+    storage_config, sf_cluster_config = sf_production_setup_comp
     write_param = build_node_eval_param(
         domain="io",
         name="write_data",
@@ -214,10 +219,14 @@ def test_no_change_correct(glm_model, write_data, comp_prod_sf_cluster_config):
     ), f"No ops, they should be the same  {write_data_unchanged}, {write_data}"
 
 
-def test_modify_bias_correct(glm_model, write_data, comp_prod_sf_cluster_config):
+@pytest.mark.mpc
+def test_modify_bias_correct(sf_production_setup_comp):
     new_rule_path = "test_io/new_bin_rule"
     pb_path = "test_io/rule_pb_unchanged"
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+
+    glm_model = gen_glm_model(sf_production_setup_comp)
+    write_data = gen_write_data(sf_production_setup_comp, glm_model)
+    storage_config, sf_cluster_config = sf_production_setup_comp
 
     read_linear_model_pb = LinearModel()
     Parse(write_data, read_linear_model_pb)
@@ -260,10 +269,14 @@ def test_modify_bias_correct(glm_model, write_data, comp_prod_sf_cluster_config)
     np.testing.assert_almost_equal(linear_model_pb_changed.bias, old_bias + 1, 6)
 
 
-def test_no_change_correct_complete(write_complete_data, comp_prod_sf_cluster_config):
+@pytest.mark.mpc
+def test_no_change_correct_complete(sf_production_setup_comp):
     new_glm_model_path = "test_glm/new_glm_model"
     pb_path = "test_glm/glm_model_pb_unchanged"
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+
+    glm_model = gen_glm_model(sf_production_setup_comp)
+    write_complete_data = gen_write_complete_data(sf_production_setup_comp, glm_model)
+    storage_config, sf_cluster_config = sf_production_setup_comp
     write_param = build_node_eval_param(
         domain="io",
         name="write_data",
@@ -371,8 +384,8 @@ def get_pred_param(storage_config, sf_cluster_config, model, predict_path):
     return predict_param
 
 
-def predict_reference_data(glm_model, comp_prod_sf_cluster_config):
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+def predict_reference_data(glm_model, sf_production_setup_comp):
+    storage_config, sf_cluster_config = sf_production_setup_comp
     predict_param = get_pred_param(
         storage_config, sf_cluster_config, glm_model, predict_referecnce_path
     )
@@ -393,12 +406,14 @@ def predict_reference_data(glm_model, comp_prod_sf_cluster_config):
         return predict_reference
 
 
-def test_glm_raw_model(glm_model, write_complete_data, comp_prod_sf_cluster_config):
-    model = glm_model
-    predict_reference = predict_reference_data(model, comp_prod_sf_cluster_config)
+@pytest.mark.mpc
+def test_glm_raw_model(sf_production_setup_comp):
+    glm_model = gen_glm_model(sf_production_setup_comp)
+    write_complete_data = gen_write_complete_data(sf_production_setup_comp, glm_model)
+    predict_reference = predict_reference_data(glm_model, sf_production_setup_comp)
 
     new_glm_path = "test_glm/new_glm"
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
     write_param = build_node_eval_param(
         domain="io",
         name="write_data",

@@ -19,6 +19,7 @@ from secretflow.component.core import (
     DistDataType,
     Field,
     Input,
+    IServingExporter,
     Output,
     ServingBuilder,
     VTable,
@@ -30,7 +31,7 @@ from ..preprocessing import PreprocessingMixin
 
 
 @register(domain='preprocessing', version='1.0.0')
-class Substitution(PreprocessingMixin, Component):
+class Substitution(PreprocessingMixin, Component, IServingExporter):
     '''
     unified substitution component
     '''

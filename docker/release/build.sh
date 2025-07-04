@@ -64,10 +64,10 @@ fi
 GREEN="\033[32m"
 NO_COLOR="\033[0m"
 
-IMAGE_TAG=secretflow/secretflow-anolis8:${VERSION}
-LATEST_TAG=secretflow/secretflow-anolis8:latest
-IMAGE_LITE_TAG=secretflow/secretflow-lite-anolis8:${VERSION}
-LATEST_LITE_TAG=secretflow/secretflow-lite-anolis8:latest
+IMAGE_TAG=secretflow/secretflow-ubuntu:${VERSION}
+LATEST_TAG=secretflow/secretflow-ubuntu:latest
+IMAGE_LITE_TAG=secretflow/secretflow-lite-ubuntu:${VERSION}
+LATEST_LITE_TAG=secretflow/secretflow-lite-ubuntu:latest
 
 # wait pypi to be updated.
 sleep 10s
@@ -80,8 +80,8 @@ docker buildx use secretflow
 
 #Building Secretflow Lite Multi Platform Images
 docker buildx build \
-  --platform linux/arm64,linux/amd64 \
-  -f anolis-lite.Dockerfile \
+  --platform linux/arm64/v8,linux/amd64 \
+  -f ubuntu-lite.Dockerfile \
   -t ${IMAGE_LITE_TAG} \
   --build-arg sf_version=${VERSION} \
   --build-arg config_templates="$(cat config_templates.yml)" \
@@ -93,8 +93,8 @@ echo -e "Finish building ${GREEN}${IMAGE_LITE_TAG} for linux/arm64 and linux/amd
 
 #Building multi platform images
 docker buildx build \
-  --platform linux/arm64,linux/amd64 \
-  -f anolis.Dockerfile \
+  --platform linux/arm64/v8,linux/amd64 \
+  -f ubuntu.Dockerfile \
   -t ${IMAGE_TAG} \
   --build-arg sf_version=${VERSION} \
   --build-arg config_templates="$(cat config_templates.yml)" \

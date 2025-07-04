@@ -25,6 +25,7 @@ from secretflow.device.driver import reveal
 from secretflow.ml.boost.sgb_v import Sgb
 from secretflow.ml.boost.sgb_v.model import load_model
 from secretflow.utils.simulation.datasets import load_dermatology, load_linear
+from tests.sf_fixtures import SFProdParams
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
@@ -138,7 +139,10 @@ def _run_sgb(
 
 
 @pytest.mark.skip(reason='only used for local performance test')
-def test_sgb_cleartext_benchmark(sf_production_setup_devices_aby3):
+@pytest.mark.mpc(parties=3, params=SFProdParams.ABY3)
+def test_sgb_cleartext_benchmark(sf_production_setup_devices):
+    devices = sf_production_setup_devices
+
     num_samples = 30 * 10000
     num_features = 2000
     x = np.random.random((num_samples, num_features))
@@ -146,26 +150,18 @@ def test_sgb_cleartext_benchmark(sf_production_setup_devices_aby3):
 
     v_data = FedNdarray(
         {
-            sf_production_setup_devices_aby3.alice: (
-                sf_production_setup_devices_aby3.alice(lambda: x[:, 1:])()
-            ),
-            sf_production_setup_devices_aby3.bob: (
-                sf_production_setup_devices_aby3.bob(lambda: x[:, :1])()
-            ),
+            devices.alice: (devices.alice(lambda: x[:, 1:])()),
+            devices.bob: (devices.bob(lambda: x[:, :1])()),
         },
         partition_way=PartitionWay.VERTICAL,
     )
     label_data = FedNdarray(
-        {
-            sf_production_setup_devices_aby3.alice: (
-                sf_production_setup_devices_aby3.alice(lambda: y)()
-            )
-        },
+        {devices.alice: (devices.alice(lambda: y)())},
         partition_way=PartitionWay.VERTICAL,
     )
 
     _run_sgb(
-        sf_production_setup_devices_aby3,
+        sf_production_setup_devices,
         f"{num_samples}x{num_features}_logistic_benchmark",
         v_data,
         label_data,

@@ -21,6 +21,7 @@ from dataclasses import dataclass
 from typing import Dict, List
 
 from pyarrow import csv, orc
+from secretflow_spec.v1.data_pb2 import DistData
 
 from secretflow.component.core import (
     Component,
@@ -38,10 +39,10 @@ from secretflow.component.core import (
     uuid4,
 )
 from secretflow.device import PYU, wait
-from secretflow.spec.v1.data_pb2 import DistData
+from secretflow.utils.errors import InvalidArgumentError
 
 
-@register(domain='ml.predict', version='1.0.0')
+@register(domain='ml.predict', version='1.1.0')
 class ServingModelInferencer(Component):
     '''
     batch predicting online service models in offline
@@ -53,6 +54,11 @@ class ServingModelInferencer(Component):
     pred_name: str = Field.attr(
         desc="Column name for predictions.",
         default="score",
+    )
+    input_block_size: int = Field.attr(
+        desc="block size (Byte) for input data streaming",
+        default=65536,
+        minor_min=1,
     )
     serving_model: Input = Field.input(
         desc="Input serving model.",
@@ -72,13 +78,17 @@ class ServingModelInferencer(Component):
     )
 
     def evaluate(self, ctx: Context):
-        assert len(self.pred_name) > 0, f'illegal pred_name: {self.pred_name}'
+        if not self.pred_name:
+            raise InvalidArgumentError('pred_name cannot be empty')
+
         self_party = ctx.cluster_config.private_config.self_party
         receiver = self.receiver
         party_metas = init_party_metas(self.serving_model, self.input_ds)
-        assert (
-            receiver in party_metas
-        ), f"receiver: {receiver} must be one of {list(party_metas.keys())}"
+        if receiver not in party_metas:
+            raise InvalidArgumentError(
+                "receiver should be in data_refs of the serving_model",
+                detail={"receiver": receiver, "parties": list(party_metas.keys())},
+            )
         input_vtable = VTable.from_distdata(self.input_ds)
         additional_col_names, id_column_name, pred_schema = get_col_infos(
             input_vtable,
@@ -130,6 +140,7 @@ class ServingModelInferencer(Component):
                 output_pred_path,
                 additional_col_names,
                 self.pred_name,
+                self.input_block_size,
             )
             inference_config_option = '--inference_config_file=' + inference_config_path
 
@@ -146,13 +157,13 @@ class ServingModelInferencer(Component):
                         check=True,
                     )
             except FileNotFoundError as e:
-                raise AssertionError(f"File not found error: {e}")
+                raise FileNotFoundError(f"File not found error: {e}")
             except ImportError as e:
-                raise AssertionError(f"Import error: {e}")
+                raise ImportError(f"Import error: {e}")
             except subprocess.CalledProcessError as e:
-                raise AssertionError(f"Inferencer execute error: {e}")
+                raise subprocess.CalledProcessError(f"Inferencer execute error: {e}")
             except Exception as e:
-                raise AssertionError(f"Unexpected error: {e}")
+                raise RuntimeError(f"Unexpected error: {e}")
 
         receiver_pyu = PYU(receiver)
 
@@ -454,6 +465,7 @@ def dump_inference_config(
     result_file_path: str,
     additional_col_names: List[str],
     score_col_name: str,
+    block_size: int,
 ):
     if self_party == requester_id:
         config_dict = {
@@ -461,11 +473,13 @@ def dump_inference_config(
             "result_file_path": result_file_path,
             "additional_col_names": additional_col_names,
             "score_col_name": score_col_name,
+            "block_size": block_size,
         }
     else:
         config_dict = {
             "requester_id": requester_id,
             "score_col_name": score_col_name,
+            "block_size": block_size,
         }
 
     dump_json(config_dict, config_path)

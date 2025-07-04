@@ -22,9 +22,9 @@ from secretflow.component.core import (
     VTable,
     VTableParty,
     build_node_eval_param,
+    comp_eval,
     make_storage,
 )
-from secretflow.component.entry import comp_eval
 from secretflow.component.preprocessing.unified_single_party_ops.fillna import (
     apply_fillna_rule_on_table,
     fit_col,
@@ -119,14 +119,15 @@ def test_fit(strategy_count):
 
 @pytest.mark.parametrize("nan_is_null", [True, False])
 @pytest.mark.parametrize("strategy_count", range(4))
-def test_fillna(comp_prod_sf_cluster_config, nan_is_null, strategy_count):
+@pytest.mark.mpc
+def test_fillna(sf_production_setup_comp, nan_is_null, strategy_count):
     alice_input_path = "test_fillna/alice.csv"
     bob_input_path = "test_fillna/bob.csv"
     rule_path = "test_fillna/fillna.rule"
     sub_path = "test_fillna/substitution.orc"
     sub_comp = "test_fillna/sub_comp.orc"
 
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
     self_party = sf_cluster_config.private_config.self_party
     storage = make_storage(storage_config)
 

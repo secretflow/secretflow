@@ -22,15 +22,19 @@ import tarfile
 import pandas as pd
 import secretflow_serving_lib as sfs
 from google.protobuf import json_format
+from secretflow_spec.v1.component_pb2 import Attribute
+from secretflow_spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
+from secretflow_spec.v1.evaluation_pb2 import NodeEvalParam
+from secretflow_spec.v1.report_pb2 import Report
 from sklearn.datasets import load_breast_cancer
 from sklearn.preprocessing import StandardScaler
 
-from secretflow.component.core import DistDataType, build_node_eval_param, make_storage
-from secretflow.component.entry import comp_eval
-from secretflow.spec.v1.component_pb2 import Attribute
-from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
-from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
-from secretflow.spec.v1.report_pb2 import Report
+from secretflow.component.core import (
+    DistDataType,
+    build_node_eval_param,
+    comp_eval,
+    make_storage,
+)
 
 
 def eval_export(
@@ -169,20 +173,15 @@ def get_ss_sgd_train_param(alice_path, bob_path, model_path, report_path):
 
 
 def get_eval_param(predict_path):
-    return NodeEvalParam(
+    return build_node_eval_param(
         domain="ml.eval",
         name="regression_eval",
         version="0.0.1",
-        attr_paths=[
-            "bucket_size",
-            "input/in_ds/label",
-            "input/in_ds/prediction",
-        ],
-        attrs=[
-            Attribute(i64=2),
-            Attribute(ss=["y"]),
-            Attribute(ss=["pred"]),
-        ],
+        attrs={
+            "bucket_size": 2,
+            "input/in_ds/label": ["y"],
+            "input/in_ds/prediction": ["pred"],
+        },
         inputs=[
             DistData(
                 name="in_ds",
@@ -197,9 +196,9 @@ def get_eval_param(predict_path):
 
 
 def get_meta_and_dump_data(
-    dir, comp_prod_sf_cluster_config, alice_path, bob_path, features_in_one_party
+    dir, sf_production_setup_comp, alice_path, bob_path, features_in_one_party
 ):
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
     self_party = sf_cluster_config.private_config.self_party
     storage = make_storage(storage_config)
     scaler = StandardScaler()
@@ -260,22 +259,16 @@ def get_meta_and_dump_data(
 
 
 def get_pred_param(alice_path, bob_path, train_res, predict_path):
-    return NodeEvalParam(
+    return build_node_eval_param(
         domain="ml.predict",
         name="ss_sgd_predict",
         version="1.0.0",
-        attr_paths=[
-            "batch_size",
-            "receiver",
-            "save_ids",
-            "save_label",
-        ],
-        attrs=[
-            Attribute(i64=32),
-            Attribute(ss=["alice"]),
-            Attribute(b=False),
-            Attribute(b=True),
-        ],
+        attrs={
+            "batch_size": 32,
+            "receiver": ["alice"],
+            "save_ids": False,
+            "save_label": True,
+        },
         inputs=[
             train_res.outputs[0],
             DistData(

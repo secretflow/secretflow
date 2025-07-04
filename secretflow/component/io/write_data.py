@@ -43,9 +43,9 @@ from secretflow.component.preprocessing.binning.vert_binning import VertBinning
 from secretflow.component.preprocessing.binning.vert_woe_binning import VertWoeBinning
 from secretflow.component.preprocessing.preprocessing import PreprocessingMixin
 from secretflow.device import PYU
-from secretflow.error_system.exceptions import CompEvalError
 from secretflow.spec.extend.bin_data_pb2 import Bins
 from secretflow.spec.extend.linear_model_pb2 import GeneralizedLinearModel, LinearModel
+from secretflow.utils.errors import InvalidArgumentError
 
 CURRENT_SUPPORTED_TYPES = [
     str(DistDataType.BINNING_RULE),
@@ -94,7 +94,7 @@ class WriteData(Component):
             )
             bin_rules = Parse(self.write_data, Bins())
             rule_objs, is_woe = bin_rule_from_pb_and_old_rule(
-                model.objs, model.metadata, bin_rules
+                model.objs, model.attributes, bin_rules
             )
 
             cls = VertWoeBinning if is_woe else VertBinning
@@ -116,8 +116,8 @@ class WriteData(Component):
                 try:
                     glm_pb = Parse(self.write_data, GeneralizedLinearModel())
                 except:
-                    raise CompEvalError(
-                        "write_data: {write_data} is not a valid GeneralizedLinearModel protobuf."
+                    raise InvalidArgumentError(
+                        f"write_data: {self.write_data} is not a valid GeneralizedLinearModel protobuf."
                     )
                 pyu = PYU(ctx.parties[0])
                 new_model_objs, public_info = ss_glm_from_pb(spu, pyu, glm_pb)
@@ -129,8 +129,8 @@ class WriteData(Component):
                 try:
                     lm_pb = Parse(self.write_data, LinearModel())
                 except:
-                    raise CompEvalError(
-                        "write_data: {write_data} is not a valid LinearModel protobuf."
+                    raise InvalidArgumentError(
+                        f"write_data: {self.write_data} is not a valid LinearModel protobuf."
                     )
                 pyu = PYU(ctx.parties[0])
                 new_model_objs = ss_glm_from_pb_and_old_model(
@@ -162,4 +162,6 @@ class WriteData(Component):
             )
             ctx.dump_to(out_model, self.output_data)
         else:
-            raise AttributeError(f"unknown model/rules type {self.write_data_type}")
+            raise InvalidArgumentError(
+                f"unknown model/rules type {self.write_data_type}"
+            )

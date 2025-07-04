@@ -22,7 +22,7 @@ option java_package = "org.secretflow.spec.extend";
 //
 // - Version info.
 // - Parties: who participate in the computation.
-// - Secret devices including  and their configs.
+// - Secret devices including and their configs.
 message SFClusterDesc {
   // SecretFlow version.
   string sf_version = 1;
@@ -46,6 +46,14 @@ message SFClusterDesc {
   //     "runtime_config": {
   //         "protocol": "REF2K",
   //         "field": "FM64"
+  //         "beaver_type": "TTP",
+  //         "ttp_beaver_config": {
+  //             "server_host": "ip:port or url",
+  //             "adjust_party": "Alice",
+  //             "asym_crypto_schema": "SM2",
+  //             "server_public_key": "xxxxxxx",
+  //             "transport_protocol": "http"
+  //         }
   //     },
   //     "link_desc": {
   //         "connect_retry_times": 60,

@@ -367,7 +367,7 @@ class StratifySampleAlgorithm(SampleAlgorithm):
         ), "quantiles is necessary for Stratify sample, but get null"
         assert len(quantiles) + 1 == len(
             stratify_replacements
-        ), f"len(quantiles) + 1 must equal len(replacements), but got len(quantile):{len(quantiles)}, len(replacements):{len(stratify_replacements)}"
+        ), f"len(quantiles) + 1 must equal len(replacements), but got len(quantiles):{len(quantiles)}, len(replacements):{len(stratify_replacements)}"
 
         if len(weights) > 0:
             assert len(weights) == len(

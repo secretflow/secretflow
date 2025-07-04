@@ -22,6 +22,7 @@ from secretflow.component.core import (
     Field,
     Input,
     Interval,
+    IServingExporter,
     Output,
     ServingBuilder,
     register,
@@ -35,7 +36,7 @@ from .ss_sgd import SSSGDExportMixin
 
 
 @register(domain="ml.predict", version="1.0.0", name="ss_sgd_predict")
-class SSSGDPredict(SSSGDExportMixin, Component):
+class SSSGDPredict(SSSGDExportMixin, Component, IServingExporter):
     '''
     Predict using the SS-SGD model.
     '''

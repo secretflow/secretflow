@@ -26,20 +26,22 @@ from secretflow.preprocessing.scaler import StandardScaler
 from secretflow.security.aggregation import PlainAggregator
 from secretflow.security.compare import PlainComparator
 from secretflow.utils.simulation.datasets import load_iris
+from tests.sf_fixtures import mpc_fixture
 
 
-@pytest.fixture(scope='module')
-def prod_env_and_data(sf_production_setup_devices_ray):
+@mpc_fixture
+def prod_env_and_data(sf_production_setup_devices):
+    pyu_alice = sf_production_setup_devices.alice
+    pyu_bob = sf_production_setup_devices.bob
+    pyu_carol = sf_production_setup_devices.carol
+
     hdf = load_iris(
-        parts=[
-            sf_production_setup_devices_ray.alice,
-            sf_production_setup_devices_ray.bob,
-        ],
-        aggregator=PlainAggregator(sf_production_setup_devices_ray.alice),
-        comparator=PlainComparator(sf_production_setup_devices_ray.carol),
+        parts=[pyu_alice, pyu_bob],
+        aggregator=PlainAggregator(pyu_alice),
+        comparator=PlainComparator(pyu_carol),
     )
-    hdf_alice = reveal(hdf.partitions[sf_production_setup_devices_ray.alice].data)
-    hdf_bob = reveal(hdf.partitions[sf_production_setup_devices_ray.bob].data)
+    hdf_alice = reveal(hdf.partitions[pyu_alice].data)
+    hdf_bob = reveal(hdf.partitions[pyu_bob].data)
 
     vdf_alice = pd.DataFrame(
         {
@@ -59,16 +61,12 @@ def prod_env_and_data(sf_production_setup_devices_ray):
 
     vdf = VDataFrame(
         {
-            sf_production_setup_devices_ray.alice: partition(
-                data=sf_production_setup_devices_ray.alice(lambda: vdf_alice)()
-            ),
-            sf_production_setup_devices_ray.bob: partition(
-                data=sf_production_setup_devices_ray.bob(lambda: vdf_bob)()
-            ),
+            pyu_alice: partition(data=pyu_alice(lambda: vdf_alice)()),
+            pyu_bob: partition(data=pyu_bob(lambda: vdf_bob)()),
         }
     )
 
-    yield sf_production_setup_devices_ray, {
+    return sf_production_setup_devices, {
         'hdf': hdf,
         'hdf_alice': hdf_alice,
         'hdf_bob': hdf_bob,
@@ -78,6 +76,7 @@ def prod_env_and_data(sf_production_setup_devices_ray):
     }
 
 
+@pytest.mark.mpc(parties=3)
 def test_on_hdataframe_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # GIVEN
@@ -104,6 +103,7 @@ def test_on_hdataframe_should_ok(prod_env_and_data):
     )
 
 
+@pytest.mark.mpc(parties=3)
 def test_on_hdataframe_should_ok_when_not_with_mean(prod_env_and_data):
     env, data = prod_env_and_data
     # GIVEN
@@ -130,6 +130,7 @@ def test_on_hdataframe_should_ok_when_not_with_mean(prod_env_and_data):
     )
 
 
+@pytest.mark.mpc(parties=3)
 def test_on_vdataframe_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # GIVEN
@@ -149,6 +150,7 @@ def test_on_vdataframe_should_ok(prod_env_and_data):
     np.testing.assert_equal(reveal(value.partitions[env.bob].data), expect_bob)
 
 
+@pytest.mark.mpc(parties=3)
 def test_on_vdataframe_should_ok_when_neither_with_mean_nor_with_std(prod_env_and_data):
     env, data = prod_env_and_data
     # GIVEN
@@ -168,6 +170,7 @@ def test_on_vdataframe_should_ok_when_neither_with_mean_nor_with_std(prod_env_an
     np.testing.assert_equal(reveal(value.partitions[env.bob].data), expect_bob)
 
 
+@pytest.mark.mpc(parties=3)
 def test_on_h_mixdataframe_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # GIVEN
@@ -233,6 +236,7 @@ def test_on_h_mixdataframe_should_ok(prod_env_and_data):
     )
 
 
+@pytest.mark.mpc(parties=3)
 def test_on_v_mixdataframe_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # GIVEN
@@ -300,6 +304,7 @@ def test_on_v_mixdataframe_should_ok(prod_env_and_data):
     )
 
 
+@pytest.mark.mpc(parties=3)
 def test_should_error_when_not_dataframe(prod_env_and_data):
     env, data = prod_env_and_data
     scaler = StandardScaler()
@@ -314,12 +319,14 @@ def test_should_error_when_not_dataframe(prod_env_and_data):
         scaler.transform('test')
 
 
+@pytest.mark.mpc(parties=3)
 def test_transform_should_error_when_not_fit(prod_env_and_data):
     env, data = prod_env_and_data
     with pytest.raises(AssertionError, match='Scaler has not been fit yet.'):
         StandardScaler().transform('test')
 
 
+@pytest.mark.mpc(parties=3)
 def test_should_error_when_transform_features_num_mismatch(prod_env_and_data):
     env, data = prod_env_and_data
     scaler = StandardScaler()

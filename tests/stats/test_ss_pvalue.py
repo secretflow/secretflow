@@ -34,24 +34,25 @@ from secretflow.ml.linear.ss_glm.core.link import LinkType
 from secretflow.stats import SSPValue
 from secretflow.utils.sigmoid import real_sig
 from secretflow.utils.simulation.datasets import dataset
+from tests.sf_fixtures import mpc_fixture
 
 
-@pytest.fixture(scope='module')
+@mpc_fixture
 def prod_env_and_data(sf_production_setup_devices):
-    pyus_dict = {
-        sf_production_setup_devices.alice: 1,
-        sf_production_setup_devices.bob: 1,
-        sf_production_setup_devices.carol: 1,
-        sf_production_setup_devices.davy: 1,
-    }
-    pyus = list(pyus_dict.keys())
+    pyus = [
+        sf_production_setup_devices.alice,
+        sf_production_setup_devices.bob,
+        sf_production_setup_devices.carol,
+        sf_production_setup_devices.davy,
+    ]
+    pyus = [p for p in pyus if p]
 
-    yield sf_production_setup_devices, pyus
+    return sf_production_setup_devices, pyus
 
 
 def _build_splited_ds(pyus, x, cols, parties):
     assert x.shape[1] >= parties
-    assert len(pyus) >= parties
+    assert len(pyus) >= parties, f"size mismatch,{pyus}, {parties}"
     step = math.ceil(x.shape[1] / parties)
     fed_x = VDataFrame({})
     for r in range(parties):
@@ -249,6 +250,7 @@ def _run_test(
         )
 
 
+@pytest.mark.mpc
 def random_test_dist(prod_env_and_data, x, sample_weights, dist_type: DistributionType):
     env, data = prod_env_and_data
     n, p = x.shape
@@ -278,6 +280,7 @@ def random_test_dist(prod_env_and_data, x, sample_weights, dist_type: Distributi
     ],
 )
 @pytest.mark.parametrize("use_sample_weights", [True, False])
+@pytest.mark.mpc
 def test_random_tests(prod_env_and_data, dist, use_sample_weights):
     p = 10
     n = 30000
@@ -287,6 +290,7 @@ def test_random_tests(prod_env_and_data, dist, use_sample_weights):
     random_test_dist(prod_env_and_data, x, sample_weights, dist)
 
 
+@pytest.mark.mpc(parties=3)
 def test_linear_ds(prod_env_and_data):
     env, data = prod_env_and_data
     ds = pd.read_csv(dataset('linear'))
@@ -297,6 +301,7 @@ def test_linear_ds(prod_env_and_data):
     _run_test(env, data, x, y, RegType.Linear)
 
 
+@pytest.mark.mpc(parties=3)
 def test_breast_cancer_ds(prod_env_and_data):
     env, data = prod_env_and_data
     from sklearn.datasets import load_breast_cancer
@@ -308,6 +313,7 @@ def test_breast_cancer_ds(prod_env_and_data):
     _run_test(env, data, x, y, RegType.Linear)
 
 
+@pytest.mark.mpc
 def test_ss_lr_logistic(prod_env_and_data):
     env, data = prod_env_and_data
     ds = pd.read_csv(dataset('linear'))
@@ -331,6 +337,7 @@ def test_ss_lr_logistic(prod_env_and_data):
     print(f" test_ss_lr_logistic {pvalues}\n")
 
 
+@pytest.mark.mpc
 def test_ss_lr_linear(prod_env_and_data):
     env, data = prod_env_and_data
     ds = pd.read_csv(dataset('linear'))

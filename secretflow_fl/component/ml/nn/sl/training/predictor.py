@@ -17,7 +17,7 @@ from typing import Dict
 from secretflow.data.ndarray import FedNdarray, PartitionWay
 from secretflow.data.vertical import VDataFrame
 from secretflow.device import PYU
-from secretflow.error_system.exceptions import EvalParamError
+from secretflow.utils.errors import InvalidArgumentError
 from secretflow_fl.component.ml.nn.sl.compile.compile import ModelConfig
 from secretflow_fl.ml.nn.sl.sl_model import SLModel
 
@@ -45,13 +45,13 @@ def predict(
             base_model_dict[pyu] = create_model_builder(config.server_base_path, config)
 
             if config.server_fuse_path is None:
-                raise EvalParamError.missing_or_none_param(
+                raise InvalidArgumentError(
                     f"server_fuse_path must not be None for device {pyu}"
                 )
             server_fuse_builder = create_model_builder(config.server_fuse_path, config)
         else:
             if config.client_base_path is None:
-                raise EvalParamError.missing_or_none_param(
+                raise InvalidArgumentError(
                     f"client_base_path must not be None for device {pyu}"
                 )
             base_model_dict[pyu] = create_model_builder(config.client_base_path, config)
