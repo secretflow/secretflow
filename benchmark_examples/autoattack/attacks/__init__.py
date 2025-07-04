@@ -22,6 +22,7 @@ from .norm import NormAttackCase as norm
 from .replace import ReplaceAttackCase as replace
 from .replay import ReplayAttackCase as replay
 from .sdar import SdarAttackCase as sdar
+from .sim_lia import SimilarityLiaAttackCase as sim_lia
 
 __all__ = [
     'exploit',
@@ -34,4 +35,5 @@ __all__ = [
     'fsha',
     'batch_lia',
     'sdar',
+    'sim_lia',
 ]

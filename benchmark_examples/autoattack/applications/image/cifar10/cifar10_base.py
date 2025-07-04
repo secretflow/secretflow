@@ -51,12 +51,12 @@ class Cifar10ApplicationBase(ApplicationBase, ABC):
         return 'cifar10'
 
     def prepare_data(self):
-        from secretflow.utils.simulation import datasets
+        from secretflow_fl.utils.simulation import datasets_fl
 
         (train_data, train_label), (
             test_data,
             test_label,
-        ) = datasets.load_cifar10(
+        ) = datasets_fl.load_cifar10(
             [self.alice, self.bob],
         )
 
