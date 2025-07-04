@@ -133,7 +133,7 @@ commands:
           command: |
             set +e
             conda init
-            half_cpu_count=$(python3 -c "import os; print(max(os.cpu_count() // 2, 1))")
+            half_cpu_count=$(python3 -c "import os; print(max(os.cpu_count() // 4, 1))")
             pytest --testmon --env <<parameters.mode>>  -n $half_cpu_count --junitxml=results.xml -v -x --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml  << parameters.target_folder >>
             ret=$?
             set -e
