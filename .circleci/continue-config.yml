@@ -131,8 +131,15 @@ commands:
       - run:
           name: "Run tests"
           command: |
+            set +e
             conda init
             pytest --testmon --env <<parameters.mode>>  -n auto --junitxml=results.xml -v -x --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml  << parameters.target_folder >>
+            ret=$?
+            set -e
+            if [ $ret -eq 0 ] || [$ret -eq 5 ]; then
+              exit 0
+            fi
+            exit $ret
       - store_test_results:
           path: ./results.xml
       - save_cache:
