@@ -30,7 +30,7 @@ message Common {
   // key is party, value features
   map<string, Features> partition_column = 3;
   // number of decision trees
-  int32 tree_num = 4; 
+  int32 tree_num = 4;
 }
 
 message TreeLeafWeights {

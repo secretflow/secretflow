@@ -22,7 +22,7 @@ option java_package = "org.secretflow.spec.extend";
 //
 // - Version info.
 // - Parties: who participate in the computation.
-// - Secret devices including  and their configs.
+// - Secret devices including and their configs.
 message SFClusterDesc {
   // SecretFlow version.
   string sf_version = 1;
@@ -141,8 +141,8 @@ message SFClusterConfig {
     string ray_head_addr = 2;
   }
 
-  // the inferencer from secretflow_serving_lib.tools needs ports to communication.
-  // inferencer can make predition based on tar package of model.
+  // the inferencer from secretflow_serving_lib.tools needs ports to
+  // communication. inferencer can make predition based on tar package of model.
   message InferenceConfig {
     repeated string parties = 1;
 
