@@ -33,6 +33,7 @@ def _test_device(devices):
     np.testing.assert_equal(reveal(x), reveal(y))
 
 
+@pytest.mark.mpc
 def test_device_prod(sf_production_setup_devices):
     _test_device(sf_production_setup_devices)
 
@@ -57,6 +58,7 @@ def _test_average(devices):
     np.testing.assert_equal(reveal(actual), expected)
 
 
+@pytest.mark.mpc
 def test_average_prod(sf_production_setup_devices):
     _test_average(sf_production_setup_devices)
 
@@ -76,6 +78,7 @@ def _test_multiple_return(devices):
     assert x == 1
 
 
+@pytest.mark.mpc
 def test_multiple_return_prod(sf_production_setup_devices):
     _test_multiple_return(sf_production_setup_devices)
 
@@ -96,6 +99,7 @@ def _test_dictionary_return(devices):
     assert ft.reveal(x_) == {'a': 1, 'b': 23}
 
 
+@pytest.mark.mpc
 def test_dictionary_return_prod(sf_production_setup_devices):
     _test_dictionary_return(sf_production_setup_devices)
 
@@ -117,6 +121,7 @@ def _test_to(devices):
     assert np.allclose(ft.reveal(x), ft.reveal(x_1))
 
 
+@pytest.mark.mpc
 def test_to_prod(sf_production_setup_devices):
     _test_to(sf_production_setup_devices)
 
@@ -142,6 +147,7 @@ def _test_io(devices):
     assert ft.reveal(x_) == {'a': 1, 'b': 23}
 
 
+@pytest.mark.mpc
 def test_io_prod(sf_production_setup_devices):
     _test_io(sf_production_setup_devices)
 

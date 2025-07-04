@@ -76,13 +76,13 @@ e.g. Let's check the component definition of PSI.
         "atomic": {
             "isOptional": true,
             "defaultValue": {
-            "s": "ECDH_PSI_2PC"
+            "s": "PROTOCOL_ECDH"
             },
             "allowedValues": {
             "ss": [
-                "ECDH_PSI_2PC",
-                "KKRT_PSI_2PC",
-                "BC22_PSI_2PC"
+                "PROTOCOL_ECDH",
+                "PROTOCOL_KKRT",
+                "PROTOCOL_RR22"
             ]
             }
         }
@@ -261,19 +261,19 @@ Then generate input for two parties.
 
     import json
 
-    from secretflow.component.entry import comp_eval
+    from secretflow.component.core import comp_eval
     from secretflow.spec.extend.cluster_pb2 import (
         SFClusterConfig,
         SFClusterDesc,
     )
-    from secretflow.spec.v1.component_pb2 import Attribute
-    from secretflow.spec.v1.data_pb2 import (
+    from secretflow_spec.v1.component_pb2 import Attribute
+    from secretflow_spec.v1.data_pb2 import (
         DistData,
         TableSchema,
         IndividualTable,
         StorageConfig,
     )
-    from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
+    from secretflow_spec.v1.evaluation_pb2 import NodeEvalParam
     import click
 
 
@@ -357,7 +357,7 @@ Then generate input for two parties.
                 "input/sender_input/key",
             ],
             attrs=[
-                Attribute(s="ECDH_PSI_2PC"),
+                Attribute(s="PROTOCOL_ECDH"),
                 Attribute(b=True),
                 Attribute(i64=1048576),
                 Attribute(s="CURVE_FOURQ"),
@@ -440,7 +440,7 @@ You should see the following output at both terminals:
      system_info {
      }
      meta {
-       type_url: "type.googleapis.com/secretflow.spec.v1.VerticalTable"
+       type_url: "type.googleapis.com/secretflow_spec.v1.VerticalTable"
        value: "\n\n\n\003id1\"\003str\n\n\n\003id2\"\003str\020\211\005"
      }
      data_refs {
@@ -574,7 +574,7 @@ The brief steps to build a SecretFlow Component are:
 
 .. code-block:: python
 
-   from secretflow.spec.v1.data_pb2 import DistData
+   from secretflow_spec.v1.data_pb2 import DistData
 
    # Signature of eval_fn must be
    #  func(*, ctx, attr_0, attr_1, ..., input_0, input_1, ..., output_0, output_1, ...) -> typing.Dict[str, DistData]

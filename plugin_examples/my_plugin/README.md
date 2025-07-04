@@ -3,13 +3,13 @@
 此demo展示了如何扩展一个插件,通常用于业务自定义组件开发。
 
 ## 目录结构
-```
+``` 
 .
 ├── build.sh
 ├── my_plugin
 │   ├── entry.py            # 插件入口
 │   ├── __init__.py
-│   └── my_component
+│   └── my_component            
 │       ├── __init__.py
 │       └── my_component.py # 自定义组件
 ├── README.md

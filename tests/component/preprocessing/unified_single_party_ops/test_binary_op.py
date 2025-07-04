@@ -14,7 +14,6 @@
 
 import logging
 import operator
-import time
 
 import numpy as np
 import pandas as pd
@@ -26,10 +25,13 @@ from secretflow.component.core import (
     VTable,
     VTableParty,
     build_node_eval_param,
+    comp_eval,
     make_storage,
 )
-from secretflow.component.entry import comp_eval
-from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
+from secretflow.component.preprocessing.unified_single_party_ops.binary_op import (
+    BinaryOp,
+)
+from secretflow.utils.errors import InvalidArgumentError
 
 ops = {"+": operator.add, "-": operator.sub, "*": operator.mul, "/": operator.truediv}
 
@@ -40,7 +42,6 @@ ops = {"+": operator.add, "-": operator.sub, "*": operator.mul, "/": operator.tr
         "+",
     ],  # "/"
 )
-@pytest.mark.parametrize("features", [["a4", "a9"], ["b5", "b6"]])  # ["a1", "a2"],
 @pytest.mark.parametrize(
     "as_label",
     [
@@ -49,14 +50,24 @@ ops = {"+": operator.add, "-": operator.sub, "*": operator.mul, "/": operator.tr
     ],
 )
 @pytest.mark.parametrize(
-    "new_feature_name",
+    "features,new_feature_name",
     [
-        "b6",
-        "c1",
+        (["a4", "a9"], "c1"),
+        (["b5", "b6"], "c1"),
+        (["b5", "b6"], "b6"),
     ],
 )
+# @pytest.mark.parametrize("features", [["a4", "a9"], ["b5", "b6"]])  # ["a1", "a2"],
+# @pytest.mark.parametrize(
+#     "new_feature_name",
+#     [
+#         "b6",
+#         "c1",
+#     ],
+# )
+@pytest.mark.mpc
 def test_binary_op_sample(
-    comp_prod_sf_cluster_config,
+    sf_production_setup_comp,
     features,
     binary_op,
     as_label,
@@ -70,7 +81,7 @@ def test_binary_op_sample(
     rule_path = "test_binary_op/binary_op.rule"
     sub_path = "test_binary_op/substitution.csv"
 
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
     self_party = sf_cluster_config.private_config.self_party
     storage = make_storage(storage_config)
 
@@ -119,24 +130,11 @@ def test_binary_op_sample(
         output_uris=[output_path, rule_path],
     )
 
-    bad_case = (
-        (features[0] in alice_columns) and (new_feature_name in bob_columns)
-    ) or ((features[0] in bob_columns) and (new_feature_name in alice_columns))
-    if bad_case:
-        with pytest.raises(Exception):
-            res = comp_eval(
-                param=param,
-                storage_config=storage_config,
-                cluster_config=sf_cluster_config,
-            )
-        time.sleep(4)
-        return
-    else:
-        res = comp_eval(
-            param=param,
-            storage_config=storage_config,
-            cluster_config=sf_cluster_config,
-        )
+    res = comp_eval(
+        param=param,
+        storage_config=storage_config,
+        cluster_config=sf_cluster_config,
+    )
 
     assert len(res.outputs) == 2
 
@@ -176,4 +174,43 @@ def test_binary_op_sample(
     assert len(res.outputs) == 1
     if self_party == "alice":
         a_out = orc.read_table(storage.get_reader(sub_path)).to_pandas()
-        logging.warning(f"....... \n{a_out}\n.,......")
+        logging.debug(f"....... \n{a_out}\n.,......")
+
+
+def test_binary_op_error():
+    alice_columns = [f"a{i}" for i in range(15)]
+    bob_columns = [f"b{i}" for i in range(15)]
+    input_tbl = VTable(
+        name="input",
+        parties=[
+            VTableParty.from_dict(
+                uri="alice_input_path.csv",
+                party="alice",
+                format="csv",
+                features={n: "float32" for n in alice_columns},
+            ),
+            VTableParty.from_dict(
+                uri="bob_input_path.csv",
+                party="bob",
+                format="csv",
+                features={n: "float32" for n in bob_columns},
+            ),
+        ],
+    )
+
+    bad_cases = [
+        {"f1": "a1", "f2": "a2", "new_feature_name": "b1"},
+        {"f1": "a1", "f2": "b1", "new_feature_name": "c1"},
+    ]
+
+    for bc in bad_cases:
+        comp = BinaryOp(
+            binary_op="+",
+            as_label=False,
+            **bc,
+            input_ds=input_tbl.to_distdata(),
+        )
+        with pytest.raises(
+            InvalidArgumentError, match="features must belong to one party"
+        ):
+            comp.evaluate(None)

@@ -14,21 +14,23 @@
 
 
 import pandas as pd
+import pytest
 
 from secretflow.component.core import (
     VTable,
     VTableParty,
     build_node_eval_param,
+    comp_eval,
     make_storage,
 )
-from secretflow.component.entry import comp_eval
 
 
-def test_data_sink_individual_table(comp_prod_sf_cluster_config):
+@pytest.mark.mpc
+def test_data_sink_individual_table(sf_production_setup_comp):
     work_path = f"test_data_sink_individual_table"
     alice_path = f"{work_path}/alice.csv"
 
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
     self_party = sf_cluster_config.private_config.self_party
     storage = make_storage(storage_config)
 
@@ -60,12 +62,13 @@ def test_data_sink_individual_table(comp_prod_sf_cluster_config):
     comp_eval(param, storage_config, sf_cluster_config)
 
 
-def test_data_sink_vertical_table(comp_prod_sf_cluster_config):
+@pytest.mark.mpc
+def test_data_sink_vertical_table(sf_production_setup_comp):
     work_path = f"test_data_sink_vertical_table"
     alice_path = f"{work_path}/alice.csv"
     bob_path = f"{work_path}/bob.csv"
 
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
     self_party = sf_cluster_config.private_config.self_party
     storage = make_storage(storage_config)
 

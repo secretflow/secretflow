@@ -13,10 +13,11 @@
 # limitations under the License.
 
 import pyarrow as pa
+from secretflow_spec import Storage
 
 from secretflow.device import PYU, PYUObject, proxy
 
-from .common.io import (
+from .io import (
     BufferedIO,
     CSVReader,
     CSVReadOptions,
@@ -30,7 +31,6 @@ from .common.io import (
     ORCWriter,
     WriteOptions,
 )
-from .storage import Storage
 
 
 @proxy(device_object_type=PYUObject)

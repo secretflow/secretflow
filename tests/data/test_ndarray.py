@@ -36,7 +36,8 @@ from secretflow.data.ndarray import (
 from secretflow.data.split import train_test_split
 from secretflow.data.vertical import VDataFrame
 from secretflow.utils.errors import InvalidArgumentError
-from secretflow_fl.utils.simulation.datasets_fl import create_ndarray
+from secretflow.utils.simulation.data.ndarray import create_ndarray
+from tests.sf_fixtures import mpc_fixture
 
 
 def array_equal(a: np.ndarray, b: np.ndarray) -> bool:
@@ -44,49 +45,38 @@ def array_equal(a: np.ndarray, b: np.ndarray) -> bool:
     return ((a == b) | ((a != a) & (b != b))).all()
 
 
-@pytest.fixture(scope="module")
+@mpc_fixture
 def prod_env_and_data(sf_production_setup_devices):
+    pyu_alice = sf_production_setup_devices.alice
+    pyu_bob = sf_production_setup_devices.bob
+
     def gen_arr():
         _, path = tempfile.mkstemp()
         arr = np.random.rand(20, 10)
         np.save(path, arr, allow_pickle=False)
         return path, arr
 
-    alice_path, alice_arr = reveal(
-        sf_production_setup_devices.alice(gen_arr, num_returns=2)()
-    )
-    bob_path, bob_arr = reveal(
-        sf_production_setup_devices.alice(gen_arr, num_returns=2)()
-    )
+    alice_path, alice_arr = reveal(pyu_alice(gen_arr, num_returns=2)())
+    bob_path, bob_arr = reveal(pyu_bob(gen_arr, num_returns=2)())
     path = {
-        sf_production_setup_devices.alice: f"{alice_path}.npy",
-        sf_production_setup_devices.bob: f"{bob_path}.npy",
+        pyu_alice: f"{alice_path}.npy",
+        pyu_bob: f"{bob_path}.npy",
     }
 
-    y_true = reveal(
-        sf_production_setup_devices.alice(lambda: np.random.rand(100, 100))()
-    )
-    y_pred = reveal(
-        sf_production_setup_devices.alice(
-            lambda arr: arr + np.random.rand(100, 100) / 20
-        )(y_true)
-    )
+    y_true = reveal(pyu_alice(lambda: np.random.rand(100, 100))())
+    y_pred = reveal(pyu_alice(lambda arr: arr + np.random.rand(100, 100) / 20)(y_true))
     y_true_fed_h = create_ndarray(
         y_true,
-        {sf_production_setup_devices.alice: 0.3, sf_production_setup_devices.bob: 0.7},
+        {pyu_alice: 0.3, pyu_bob: 0.7},
         axis=0,
     )
     y_pred_fed_h = create_ndarray(
         y_pred,
-        {sf_production_setup_devices.alice: 0.3, sf_production_setup_devices.bob: 0.7},
+        {pyu_alice: 0.3, pyu_bob: 0.7},
         axis=0,
     )
-    y_true_fed_v = create_ndarray(
-        y_true, {sf_production_setup_devices.bob: 1.0}, axis=1
-    )
-    y_pred_fed_v = create_ndarray(
-        y_pred, {sf_production_setup_devices.bob: 1.0}, axis=1
-    )
+    y_true_fed_v = create_ndarray(y_true, {pyu_bob: 1.0}, axis=1)
+    y_pred_fed_v = create_ndarray(y_pred, {pyu_bob: 1.0}, axis=1)
 
     yield sf_production_setup_devices, {
         "alice_path": alice_path,
@@ -109,6 +99,7 @@ def prod_env_and_data(sf_production_setup_devices):
         pass
 
 
+@pytest.mark.mpc
 def test_load_file_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # WHEN
@@ -118,6 +109,7 @@ def test_load_file_should_ok(prod_env_and_data):
     assert array_equal(reveal(fed_arr.partitions[env.bob]), data["bob_arr"])
 
 
+@pytest.mark.mpc
 def test_load_pyu_object_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # GIVEN
@@ -132,6 +124,7 @@ def test_load_pyu_object_should_ok(prod_env_and_data):
     assert fed_arr.partitions[env.bob] == bob_arr
 
 
+@pytest.mark.mpc
 def test_load_should_error_with_wrong_pyu_object(prod_env_and_data):
     env, data = prod_env_and_data
     # GIVEN
@@ -145,6 +138,7 @@ def test_load_should_error_with_wrong_pyu_object(prod_env_and_data):
         load({env.alice: bob_arr, env.bob: alice_arr})
 
 
+@pytest.mark.mpc
 def test_train_test_split_on_hdataframe_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # GIVEN
@@ -177,6 +171,7 @@ def test_train_test_split_on_hdataframe_should_ok(prod_env_and_data):
     )
 
 
+@pytest.mark.mpc
 def test_train_test_split_on_vdataframe_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # GIVEN
@@ -219,6 +214,7 @@ def test_train_test_split_on_vdataframe_should_ok(prod_env_and_data):
     )
 
 
+@pytest.mark.mpc
 def test_shuffle_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # GIVEN
@@ -257,6 +253,7 @@ def test_shuffle_should_ok(prod_env_and_data):
     )
 
 
+@pytest.mark.mpc
 def test_load_npz(prod_env_and_data):
     env, data = prod_env_and_data
 
@@ -293,6 +290,7 @@ def test_load_npz(prod_env_and_data):
             assert array_equal(reveal(v.partitions[env.bob]), bob_test)
 
 
+@pytest.mark.mpc
 def test_astype_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # WHEN
@@ -320,30 +318,35 @@ def operator_h_v_cases_test(prod_env_and_data, test_handle, true_val, binary=Tru
     np.testing.assert_almost_equal(true_val, a_v, decimal=2)
 
 
+@pytest.mark.mpc
 def test_tss(prod_env_and_data):
     env, data = prod_env_and_data
     tss_val = np.sum(np.square(data["y_true"] - np.mean(data["y_true"])))
     operator_h_v_cases_test(prod_env_and_data, tss, tss_val, False)
 
 
+@pytest.mark.mpc
 def test_rss(prod_env_and_data):
     env, data = prod_env_and_data
     rss_val = np.sum(np.square(data["y_true"] - data["y_pred"]))
     operator_h_v_cases_test(prod_env_and_data, rss, rss_val)
 
 
+@pytest.mark.mpc
 def test_r2_score(prod_env_and_data):
     env, data = prod_env_and_data
     r2score_val = sklearn.metrics.r2_score(data["y_true"], data["y_pred"])
     operator_h_v_cases_test(prod_env_and_data, r2_score, r2score_val)
 
 
+@pytest.mark.mpc
 def test_mean_abs_err(prod_env_and_data):
     env, data = prod_env_and_data
     mae_val = sklearn.metrics.mean_absolute_error(data["y_true"], data["y_pred"])
     operator_h_v_cases_test(prod_env_and_data, mean_abs_err, mae_val)
 
 
+@pytest.mark.mpc
 def test_mean_abs_percent_err(prod_env_and_data):
     env, data = prod_env_and_data
     mape_val = sklearn.metrics.mean_absolute_percentage_error(
@@ -352,12 +355,14 @@ def test_mean_abs_percent_err(prod_env_and_data):
     operator_h_v_cases_test(prod_env_and_data, mean_abs_percent_err, mape_val)
 
 
+@pytest.mark.mpc
 def test_subtraction(prod_env_and_data):
     env, data = prod_env_and_data
     residual_val = data["y_true"] - data["y_pred"]
     operator_h_v_cases_test(prod_env_and_data, subtract, residual_val)
 
 
+@pytest.mark.mpc
 def test_histogram(prod_env_and_data):
     env, data = prod_env_and_data
     hist, edges = np.histogram(data["y_true"])

@@ -17,7 +17,7 @@ from dataclasses import asdict, dataclass, fields
 from typing import Dict, List
 
 import secretflow as sf
-from secretflow.component.core import BaseEnum
+from secretflow.component.core import StrEnum
 from secretflow.device import PYU
 
 # current version 0.1
@@ -43,7 +43,7 @@ class ModelMeta:
 
 
 @enum.unique
-class ModelInputScheme(BaseEnum):
+class ModelInputScheme(StrEnum):
     TENSOR = "tensor"
     TENSOR_DICT = "tensor_dict"
 

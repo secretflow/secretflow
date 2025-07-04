@@ -24,19 +24,17 @@ from secretflow.component.core import (
     DistDataType,
     Field,
     Input,
+    IServingExporter,
     Output,
     ServingBuilder,
     VTable,
-    VTableField,
     VTableFieldKind,
+    VTableUtils,
     float_almost_equal,
     register,
 )
-from secretflow.error_system.exceptions import (
-    EvalParamError,
-    SFTrainingHyperparameterError,
-)
 from secretflow.spec.extend.case_when_rules_pb2 import CaseWhenRule
+from secretflow.utils.errors import InvalidArgumentError
 
 from ..preprocessing import PreprocessingMixin
 
@@ -122,14 +120,14 @@ def apply_case_when_rule(table: sc.Table, rules: CaseWhenRule) -> sc.Table:
         table = table.set_column(table.column_names.index(n), n, new_col)
     else:
         kind = VTableFieldKind.LABEL if rules.as_label else VTableFieldKind.FEATURE
-        field = VTableField.pa_field(rules.output_column, new_col.dtype, kind)
+        field = VTableUtils.pa_field(rules.output_column, new_col.dtype, kind)
         table = table.append_column(field, new_col)
 
     return table
 
 
 @register(domain='preprocessing', version='1.0.0')
-class CaseWhen(PreprocessingMixin, Component):
+class CaseWhen(PreprocessingMixin, Component, IServingExporter):
     '''
     case_when
     '''
@@ -150,10 +148,11 @@ class CaseWhen(PreprocessingMixin, Component):
 
     def evaluate(self, ctx: Context):
         if len(self.rules.output_column) == 0:
-            raise EvalParamError.missing_or_none_param("output_column can not be empty")
+            raise InvalidArgumentError("output_column can not be empty")
         if not (self.rules.float_epsilon > 0 and self.rules.float_epsilon < 1):
-            SFTrainingHyperparameterError.out_of_range(
-                f"float_epsilon range (0, 1), got {self.rules.float_epsilon}"
+            raise InvalidArgumentError(
+                "float_epsilon must be in range (0, 1)",
+                detail={"float_epsilon": self.rules.float_epsilon},
             )
 
         rule_features = self.get_rule_features()

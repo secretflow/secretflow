@@ -15,6 +15,8 @@
 
 from enum import Enum, auto, unique
 
+from secretflow.utils.errors import NotSupportedError
+
 
 class AutoNameEnum(Enum):
     def _generate_next_value_(name, *args):
@@ -48,4 +50,4 @@ def to_bool(value: str | bool) -> bool:
         return True
     if value.lower() in FALSE_STRINGS:
         return False
-    raise ValueError(f"Unknown boolean value '{value}'")
+    raise NotSupportedError("Unknown boolean value", detail={"value": value})

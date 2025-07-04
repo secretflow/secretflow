@@ -13,7 +13,10 @@
 # limitations under the License.
 
 
+import logging
+
 import pandas as pd
+from google.protobuf.json_format import MessageToJson
 
 from secretflow.component.core import (
     Component,
@@ -23,10 +26,10 @@ from secretflow.component.core import (
     Input,
     Interval,
     Output,
+    register,
     Reporter,
     VTable,
     VTableFieldKind,
-    register,
 )
 from secretflow.device.driver import reveal
 from secretflow.stats.regression_eval import RegressionEval as StatsRegressionEval
@@ -54,7 +57,9 @@ class RegressionEval(Component):
     '''
     Statistics evaluation for a regression model on a dataset.
     Contained Statistics:
-        R2 Score (r2_score): It is a statistical measure that represents the proportion of the variance in the dependent variable that can be predicted from the independent variables. It ranges from 0 to 1, where a higher value indicates a better fit.
+        R2 Score (r2_score): It is a statistical measure that represents the proportion of the variance in the dependent variable that can be predicted from the independent variables. It ranges from -inf to 1, where a higher value indicates a better fit. (the value can be negative because the
+        model can be arbitrarily worse). In the general case when the true y is non-constant, a constant model that always predicts the average y
+        disregarding the input features would get a :math:`R^2` score of 0.0.
 
         Mean Absolute Error (mean_abs_err): It calculates the average absolute difference between the predicted and actual values. It provides a measure of the average magnitude of the errors.
 
@@ -157,4 +162,5 @@ class RegressionEval(Component):
             name="residual histogram",
             desc="regression residual histogram",
         )
+        logging.info(f'\n--\n*report* \n\n{MessageToJson(r.report())}\n--\n')
         self.report.data = r.to_distdata()

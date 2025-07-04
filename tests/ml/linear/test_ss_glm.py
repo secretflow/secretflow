@@ -17,12 +17,14 @@ import logging
 import time
 
 import numpy as np
+import pytest
 from sklearn.preprocessing import StandardScaler
 
 from secretflow.data import FedNdarray, PartitionWay
 from secretflow.device.driver import reveal, wait
 from secretflow.ml.linear.ss_glm import SSGLM
 from secretflow.ml.linear.ss_glm.core import get_dist
+from tests.sf_fixtures import SFProdParams
 
 
 def _transform(data):
@@ -111,30 +113,25 @@ def _run_test(
     logging.info(f"{test_name} fed deviance: {deviance}")
 
 
-def test_breast_cancer(sf_production_setup_devices_aby3):
-    start = time.time()
+@pytest.mark.mpc(parties=3, params=SFProdParams.ABY3)
+def test_breast_cancer(sf_production_setup_devices):
     from sklearn.datasets import load_breast_cancer
+
+    devices = sf_production_setup_devices
+    start = time.time()
 
     ds = load_breast_cancer()
     x, y = _transform(ds['data']), ds['target']
 
     v_data = FedNdarray(
         partitions={
-            sf_production_setup_devices_aby3.alice: sf_production_setup_devices_aby3.alice(
-                lambda: x[:, :15]
-            )(),
-            sf_production_setup_devices_aby3.bob: sf_production_setup_devices_aby3.bob(
-                lambda: x[:, 15:]
-            )(),
+            devices.alice: devices.alice(lambda: x[:, :15])(),
+            devices.bob: devices.bob(lambda: x[:, 15:])(),
         },
         partition_way=PartitionWay.VERTICAL,
     )
     label_data = FedNdarray(
-        partitions={
-            sf_production_setup_devices_aby3.alice: sf_production_setup_devices_aby3.alice(
-                lambda: y
-            )()
-        },
+        partitions={devices.alice: devices.alice(lambda: y)()},
         partition_way=PartitionWay.VERTICAL,
     )
 
@@ -142,7 +139,7 @@ def test_breast_cancer(sf_production_setup_devices_aby3):
     logging.info(f"IO times: {time.time() - start}s")
 
     _run_test(
-        sf_production_setup_devices_aby3,
+        devices,
         "breast_cancer",
         v_data,
         label_data,
@@ -154,7 +151,10 @@ def test_breast_cancer(sf_production_setup_devices_aby3):
     )
 
 
-def test_gamma_data(sf_production_setup_devices_aby3):
+@pytest.mark.mpc(parties=3, params=SFProdParams.ABY3)
+def test_gamma_data(sf_production_setup_devices):
+    devices = sf_production_setup_devices
+
     start = time.time()
     import statsmodels.api as sm
 
@@ -165,21 +165,13 @@ def test_gamma_data(sf_production_setup_devices_aby3):
 
     v_data = FedNdarray(
         partitions={
-            sf_production_setup_devices_aby3.alice: sf_production_setup_devices_aby3.alice(
-                lambda: x[:, :3]
-            )(),
-            sf_production_setup_devices_aby3.bob: sf_production_setup_devices_aby3.bob(
-                lambda: x[:, 3:]
-            )(),
+            devices.alice: devices.alice(lambda: x[:, :3])(),
+            devices.bob: devices.bob(lambda: x[:, 3:])(),
         },
         partition_way=PartitionWay.VERTICAL,
     )
     label_data = FedNdarray(
-        partitions={
-            sf_production_setup_devices_aby3.alice: sf_production_setup_devices_aby3.alice(
-                lambda: y
-            )()
-        },
+        partitions={devices.alice: devices.alice(lambda: y)()},
         partition_way=PartitionWay.VERTICAL,
     )
 
@@ -187,7 +179,7 @@ def test_gamma_data(sf_production_setup_devices_aby3):
     logging.info(f"IO times: {time.time() - start}s")
 
     _run_test(
-        sf_production_setup_devices_aby3,
+        devices,
         "gamma",
         v_data,
         label_data,

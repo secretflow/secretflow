@@ -30,10 +30,12 @@ class GaussianEmbeddingDP(nn.Module, BudgetAccountant):
         is_secure_generator: bool = False,
     ) -> None:
         super().__init__()
+        # noise multiplier = \sigma / l2_norm_clip
         self.noise_multiplier = noise_multiplier
         self.l2_norm_clip = l2_norm_clip
         self.num_samples = num_samples
         self.batch_size = batch_size
+        # params of (epsilon, delta)-dp
         self.delta = delta if delta is not None else min(1 / num_samples**2, 1e-5)
         self.is_secure_generator = is_secure_generator
 

@@ -16,14 +16,16 @@ import logging
 import jax.numpy as jnp
 import numpy as np
 import pandas as pd
-
-from secretflow import reveal
-from secretflow.data import FedNdarray, partition, PartitionWay
-from secretflow.data.vertical import VDataFrame
-from secretflow.stats import BiClassificationEval
+import pytest
 from sklearn.metrics import roc_auc_score
 
+from secretflow import reveal
+from secretflow.data import FedNdarray, PartitionWay, partition
+from secretflow.data.vertical import VDataFrame
+from secretflow.stats import BiClassificationEval
 
+
+@pytest.mark.mpc
 def test_auc(sf_production_setup_devices):
     np.random.seed(42)
     y_true = np.round(np.random.random((800000,)).reshape((-1, 1)))
@@ -62,6 +64,7 @@ def test_auc(sf_production_setup_devices):
     np.testing.assert_almost_equal(true_score, score, decimal=2)
 
 
+@pytest.mark.mpc
 def test_auc_nan(sf_production_setup_devices):
     np.random.seed(42)
     y_true = np.round(np.random.random((8000,)).reshape((-1, 1)))

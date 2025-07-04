@@ -16,27 +16,29 @@ import logging
 
 import pandas as pd
 import pyarrow as pa
+import pytest
 from pyarrow import orc
+from secretflow_spec.v1.data_pb2 import VerticalTable
+from secretflow_spec.v1.report_pb2 import Report
 
 import secretflow.compute as sc
 from secretflow.component.core import (
     VTable,
-    VTableField,
     VTableFieldKind,
     VTableParty,
+    VTableUtils,
     build_node_eval_param,
+    comp_eval,
     make_storage,
 )
-from secretflow.component.entry import comp_eval
 from secretflow.component.preprocessing.unified_single_party_ops.onehot_encode import (
     _onehot_encode_fit,
     apply_onehot_rule_on_table,
 )
-from secretflow.spec.v1.data_pb2 import VerticalTable
-from secretflow.spec.v1.report_pb2 import Report
 
 
-def test_onehot_encode(comp_prod_sf_cluster_config):
+@pytest.mark.mpc
+def test_onehot_encode(sf_production_setup_comp):
     alice_input_path = "test_onehot_encode/alice.csv"
     bob_input_path = "test_onehot_encode/bob.csv"
     inplace_encode_path = "test_onehot_encode/inplace_sub.csv"
@@ -44,7 +46,7 @@ def test_onehot_encode(comp_prod_sf_cluster_config):
     report_path = "test_onehot_encode/onehot.report"
     sub_path = "test_onehot_encode/substitution.csv"
 
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
     self_party = sf_cluster_config.private_config.self_party
     storage = make_storage(storage_config)
 
@@ -177,9 +179,9 @@ def test_onehot_encode(comp_prod_sf_cluster_config):
     in_table = sc.Table.from_schema(
         pa.schema(
             [
-                VTableField.pa_field("a", pa.int32(), VTableFieldKind.FEATURE),
-                VTableField.pa_field("b", pa.float32(), VTableFieldKind.FEATURE),
-                VTableField.pa_field("c", pa.string(), VTableFieldKind.FEATURE),
+                VTableUtils.pa_field("a", pa.int32(), VTableFieldKind.FEATURE),
+                VTableUtils.pa_field("b", pa.float32(), VTableFieldKind.FEATURE),
+                VTableUtils.pa_field("c", pa.string(), VTableFieldKind.FEATURE),
             ]
         )
     )
@@ -202,7 +204,7 @@ def test_onehot_encode(comp_prod_sf_cluster_config):
     assert out_schema_r == out_schema
 
 
-def test_onehot_encode_fit(comp_prod_sf_cluster_config):
+def test_onehot_encode_fit():
     df = pd.DataFrame(
         {
             "id1": [str(i) for i in range(17)],

@@ -12,11 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from dataclasses import dataclass
 
 import numpy as np
 import pytest
-import spu
 from sklearn.metrics import roc_auc_score
 
 import secretflow as sf
@@ -26,42 +24,40 @@ from secretflow.ml.linear.fl_lr_v import FlLogisticRegressionVertical
 from secretflow.security.aggregation.plain_aggregator import PlainAggregator
 
 
-@dataclass
-class DeviceInventory:
-    alice: sf.PYU = None
-    bob: sf.PYU = None
-    carol: sf.PYU = None
-    davy: sf.PYU = None
-    heu0: sf.HEU = None
-    heu1: sf.HEU = None
+def _gen_data(devices):
+    from sklearn.datasets import load_breast_cancer
+
+    from secretflow.preprocessing.scaler import StandardScaler
+
+    features, label = load_breast_cancer(return_X_y=True, as_frame=True)
+    label = label.to_frame()
+    feat_list = [
+        features.iloc[:, :10],
+        features.iloc[:, 10:20],
+        features.iloc[:, 20:],
+    ]
+    x = VDataFrame(
+        partitions={
+            devices.alice: partition(devices.alice(lambda: feat_list[0])()),
+            devices.bob: partition(devices.bob(lambda: feat_list[1])()),
+            devices.carol: partition(devices.carol(lambda: feat_list[2])()),
+        }
+    )
+    x = StandardScaler().fit_transform(x)
+    y = VDataFrame(
+        partitions={devices.alice: partition(devices.alice(lambda: label)())}
+    )
+
+    return {'x': x, 'y': y, 'label': label}
 
 
-@pytest.fixture(scope="module")
-def env(request, sf_production_setup_linear_env_ray):
-    devices, data = sf_production_setup_linear_env_ray
-
-    heu_config = {
-        'sk_keeper': {'party': 'alice'},
-        'evaluators': [{'party': 'bob'}, {'party': 'carol'}],
-        'mode': 'PHEU',
-        'he_parameters': {
-            'schema': 'paillier',
-            'key_pair': {'generate': {'bit_size': 2048}},
-        },
-    }
-
-    devices.heu = sf.HEU(heu_config, spu.spu_pb2.FM128)
-
-    x, y = data['x'], data['y']
-
-    yield devices, {
-        'x': x,
-        'y': y,
-    }
+_MPC_PARAMS_HEU = {"heu_config": {"schema": "paillier"}}
 
 
-def test_model_should_ok_when_fit_dataframe(env):
-    devices, data = env
+@pytest.mark.mpc(parties=3, params=_MPC_PARAMS_HEU)
+def test_model_should_ok_when_fit_dataframe(sf_production_setup_devices):
+    devices = sf_production_setup_devices
+    data = _gen_data(devices)
     # GIVEN
     aggregator = PlainAggregator(devices.alice)
 
@@ -89,8 +85,10 @@ def test_model_should_ok_when_fit_dataframe(env):
     assert acc > 0.94
 
 
-def test_model_should_ok_when_fit_ndarray(env):
-    devices, data = env
+@pytest.mark.mpc(parties=3, params=_MPC_PARAMS_HEU)
+def test_model_should_ok_when_fit_ndarray(sf_production_setup_devices):
+    devices = sf_production_setup_devices
+    data = _gen_data(devices)
     # GIVEN
     aggregator = PlainAggregator(devices.alice)
 
@@ -120,8 +118,10 @@ def test_model_should_ok_when_fit_ndarray(env):
     assert acc > 0.94
 
 
-def test_fit_should_error_when_mismatch_heu_sk_keeper(env):
-    devices, data = env
+@pytest.mark.mpc(parties=3, params=_MPC_PARAMS_HEU)
+def test_fit_should_error_when_mismatch_heu_sk_keeper(sf_production_setup_devices):
+    devices = sf_production_setup_devices
+    data = _gen_data(devices)
     # GIVEN
     aggregator = PlainAggregator(devices.alice)
 

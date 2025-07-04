@@ -16,7 +16,8 @@ from typing import Tuple
 
 import jax.numpy as jnp
 import numpy as np
-from spu import spu_pb2
+import pytest
+import spu
 
 import secretflow as sf
 from secretflow.device.device.spu import SPUCompilerNumReturnsPolicy
@@ -56,6 +57,7 @@ def _test_single_return(devices):
     )
 
 
+@pytest.mark.mpc
 def test_single_return_prod(sf_production_setup_devices):
     _test_single_return(sf_production_setup_devices)
 
@@ -98,6 +100,7 @@ def _test_multiple_return(devices):
     )
 
 
+@pytest.mark.mpc
 def test_multiple_return_prod(sf_production_setup_devices):
     _test_multiple_return(sf_production_setup_devices)
 
@@ -121,64 +124,13 @@ def _test_selu(devices):
     np.testing.assert_almost_equal(sf.reveal(y), sf.reveal(y_), decimal=6)
 
 
+@pytest.mark.mpc
 def test_selu_prod(sf_production_setup_devices):
     _test_selu(sf_production_setup_devices)
 
 
 def test_selu_sim(sf_simulation_setup_devices):
     _test_selu(sf_simulation_setup_devices)
-
-
-def _test_mean(devices):
-    def get_weights():
-        import tensorflow as tf
-
-        model = tf.keras.Sequential(
-            [
-                tf.keras.layers.Dense(
-                    10, activation=tf.nn.relu, input_shape=(4,)
-                ),  # input shape required
-                tf.keras.layers.Dense(10, activation=tf.nn.relu),
-                tf.keras.layers.Dense(3),
-            ]
-        )
-
-        model.compile(
-            optimizer='adam',
-            loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-            metrics=['accuracy'],
-        )
-
-        return model.get_weights()
-
-    def average(*values, weights=None):
-        return [
-            jnp.average(
-                jnp.array(values_zip),
-                axis=0,
-                weights=jnp.array(weights) if weights else None,
-            )
-            for values_zip in zip(*values)
-        ]
-
-    # PYU
-    w1, w2 = devices.alice(get_weights)(), devices.alice(get_weights)()
-    w = devices.alice(average)(w1, w2.to(devices.alice), weights=[1, 2])
-
-    # SPU
-    w1_, w2_ = w1.to(devices.spu), w2.to(devices.spu)
-    w_ = devices.spu(average)(w1_, w2_, weights=[1, 2])
-
-    for expected, actual in zip(sf.reveal(w), sf.reveal(w_)):
-        np.testing.assert_almost_equal(expected, actual, decimal=5)
-
-
-def test_mean_prod(sf_production_setup_devices):
-    _test_mean(sf_production_setup_devices)
-
-
-def test_mean_sim(sf_simulation_setup_devices):
-    _test_mean(sf_simulation_setup_devices)
 
 
 def _test_min(devices):
@@ -200,6 +152,7 @@ def _test_min(devices):
     np.testing.assert_almost_equal(sf.reveal(m), sf.reveal(m_), decimal=6)
 
 
+@pytest.mark.mpc(parties=3)
 def test_min_prod(sf_production_setup_devices):
     _test_min(sf_production_setup_devices)
 
@@ -227,6 +180,7 @@ def _test_max(devices):
     np.testing.assert_almost_equal(sf.reveal(m), sf.reveal(m_), decimal=6)
 
 
+@pytest.mark.mpc(parties=3)
 def test_max_prod(sf_production_setup_devices):
     _test_max(sf_production_setup_devices)
 
@@ -256,6 +210,7 @@ def _test_static_argument(devices):
     print(sf.reveal(spu_w))
 
 
+@pytest.mark.mpc
 def test_static_argument_prod(sf_production_setup_devices):
     _test_static_argument(sf_production_setup_devices)
 
@@ -264,14 +219,15 @@ def test_static_argument_sim(sf_simulation_setup_devices):
     _test_static_argument(sf_simulation_setup_devices)
 
 
+@pytest.mark.mpc()
 def test_matmul(sf_production_setup_devices):
     # PYU
     x = sf_production_setup_devices.alice(np.random.rand)(3, 4)
     y = sf_production_setup_devices.bob(np.random.rand)(4, 5)
 
     # SPU
-    z_ = sf_production_setup_devices.spu2(lambda a, b: a @ b)(
-        x.to(sf_production_setup_devices.spu2), y.to(sf_production_setup_devices.spu2)
+    z_ = sf_production_setup_devices.spu(lambda a, b: a @ b)(
+        x.to(sf_production_setup_devices.spu), y.to(sf_production_setup_devices.spu)
     )
 
     # FIXME: precision is not good.
@@ -280,17 +236,18 @@ def test_matmul(sf_production_setup_devices):
     )
 
 
+@pytest.mark.mpc
 def test_copts(sf_production_setup_devices):
     # PYU
     x = sf_production_setup_devices.alice(np.random.rand)(3, 4)
     y = sf_production_setup_devices.bob(np.random.rand)(3, 4)
 
     # SPU
-    copts = spu_pb2.CompilerOptions()
-    copts.xla_pp_kind = 2
+    copts = spu.CompilerOptions()
+    copts.xla_pp_kind = spu.libspu.XLAPrettyPrintKind.HTML
 
-    z_ = sf_production_setup_devices.spu2(lambda a, b: a + b, copts=copts)(
-        x.to(sf_production_setup_devices.spu2), y.to(sf_production_setup_devices.spu2)
+    z_ = sf_production_setup_devices.spu(lambda a, b: a + b, copts=copts)(
+        x.to(sf_production_setup_devices.spu), y.to(sf_production_setup_devices.spu)
     )
 
     np.testing.assert_almost_equal(

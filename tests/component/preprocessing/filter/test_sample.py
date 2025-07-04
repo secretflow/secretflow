@@ -13,19 +13,27 @@
 # limitations under the License.
 
 import logging
+import re
 
 import numpy as np
 import pandas as pd
 import pytest
 from pyarrow import orc
+from secretflow_spec.v1.data_pb2 import (
+    DistData,
+    IndividualTable,
+    TableSchema,
+    VerticalTable,
+)
+from secretflow_spec.v1.report_pb2 import Report
 
 from secretflow.component.core import (
     DistDataType,
     VTable,
     build_node_eval_param,
+    comp_eval,
     make_storage,
 )
-from secretflow.component.entry import comp_eval
 from secretflow.component.preprocessing.filter.sample import (
     RANDOM_SAMPLE,
     STRATIFY_SAMPLE,
@@ -39,13 +47,6 @@ from secretflow.component.preprocessing.filter.sample import (
     SystemSampleAlgorithm,
     calculate_sample_number,
 )
-from secretflow.spec.v1.data_pb2 import (
-    DistData,
-    IndividualTable,
-    TableSchema,
-    VerticalTable,
-)
-from secretflow.spec.v1.report_pb2 import Report
 
 RANDOM_STATE = 1234
 
@@ -71,10 +72,8 @@ def test_illegal_sample():
     total_num = 100
     illegal_sample_method = "Illegal"
 
-    with pytest.raises(
-        AssertionError,
-        match=f"sample_algorithm must be one of \[random, system, stratify\], but got {illegal_sample_method}",
-    ):
+    expected_msg = f"sample_algorithm must be one of [random, system, stratify], but got {illegal_sample_method}"
+    with pytest.raises(AssertionError, match=re.escape(expected_msg)):
         SampleAlgorithmFactory.create(
             df_alice, total_num, illegal_sample_method, None, None, None
         )
@@ -323,10 +322,9 @@ def test_stratify_sample_illegal():
     # quantiles.size + 1 != replacements.size
     quantiles = [3.3]
     replacements = [True, True, True]
-    with pytest.raises(
-        AssertionError,
-        match=f"len\(quantiles\) \+ 1 must equal len\(replacements\), but got len\(quantile\)\:{len(quantiles)}, len\(replacements\):{len(weights)}",
-    ):
+
+    expected_msg = f"len(quantiles) + 1 must equal len(replacements), but got len(quantiles):{len(quantiles)}, len(replacements):{len(weights)}"
+    with pytest.raises(AssertionError, match=re.escape(expected_msg)):
         StratifySampleAlgorithm(
             df_alice, 100, 0.1, RANDOM_STATE, '', replacements, quantiles, weights
         )
@@ -367,13 +365,14 @@ def test_stratify_sample_illegal():
     )
 
 
-def test_sample_vertical(comp_prod_sf_cluster_config):
+@pytest.mark.mpc
+def test_sample_vertical(sf_production_setup_comp):
     alice_input_path = "sample_filter/alice.csv"
     bob_input_path = "sample_filter/bob.csv"
     sample_output_path = "sample_filter/sample.csv"
     report_path = "sample_filter/model.report"
 
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
     self_party = sf_cluster_config.private_config.self_party
     storage = make_storage(storage_config)
 
@@ -462,26 +461,27 @@ def test_sample_vertical(comp_prod_sf_cluster_config):
 
     if self_party == "alice":
         ds_alice = orc.read_table(
-            storage.get_reader(sample_data.party("alice").uri)
+            storage.get_reader(sample_data.get_party("alice").uri)
         ).to_pandas()
         np.testing.assert_equal(ds_alice.shape[0], 5)
         assert list(ds_alice["id1"]) == ["1", "3", "4", "5", "6"]
 
     if self_party == "bob":
         ds_bob = orc.read_table(
-            storage.get_reader(sample_data.party("bob").uri)
+            storage.get_reader(sample_data.get_party("bob").uri)
         ).to_pandas()
         np.testing.assert_equal(ds_bob.shape[0], 5)
         assert list(ds_bob["id2"]) == ["1", "3", "4", "5", "6"]
 
 
-def test_sample_vertical_replacement(comp_prod_sf_cluster_config):
+@pytest.mark.mpc
+def test_sample_vertical_replacement(sf_production_setup_comp):
     alice_input_path = "sample_filter/alice.csv"
     bob_input_path = "sample_filter/bob.csv"
     sample_output_path = "sample_filter/sample.csv"
     report_path = "sample_filter/model.report"
 
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
     self_party = sf_cluster_config.private_config.self_party
     storage = make_storage(storage_config)
 
@@ -574,12 +574,13 @@ def test_sample_vertical_replacement(comp_prod_sf_cluster_config):
         assert list(ds_bob["id2"]) == ["1", "1", "1", "4", "5"]
 
 
-def test_sample_individual(comp_prod_sf_cluster_config):
+@pytest.mark.mpc
+def test_sample_individual(sf_production_setup_comp):
     alice_input_path = "sample_individual_filter/alice.csv"
     sample_output_path = "sample_individual_filter/sample.csv"
     report_path = "sample_filter/model.report"
 
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
     self_party = sf_cluster_config.private_config.self_party
     storage = make_storage(storage_config)
 

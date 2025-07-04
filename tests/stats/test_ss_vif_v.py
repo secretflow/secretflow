@@ -14,6 +14,7 @@
 
 import numpy as np
 import pandas as pd
+import pytest
 import sklearn
 from statsmodels.stats.outliers_influence import variance_inflation_factor as vif
 
@@ -43,6 +44,7 @@ def _run_vif(env, vdata, data):
     assert np.amax(err) < 0.5
 
 
+@pytest.mark.mpc
 def test_linear_vif(sf_production_setup_devices):
     vdata = load_linear(
         parts={
@@ -54,6 +56,7 @@ def test_linear_vif(sf_production_setup_devices):
     _run_vif(sf_production_setup_devices, vdata, data)
 
 
+@pytest.mark.mpc
 def test_breast_cancer(sf_production_setup_devices):
     from sklearn.datasets import load_breast_cancer
 
@@ -76,6 +79,7 @@ def test_breast_cancer(sf_production_setup_devices):
     _run_vif(sf_production_setup_devices, vdata, data)
 
 
+@pytest.mark.mpc
 def test_const_col_data(sf_production_setup_devices):
     nd_data = reveal(
         sf_production_setup_devices.alice(lambda: np.random.random((10, 8)))()
@@ -100,6 +104,7 @@ def test_const_col_data(sf_production_setup_devices):
     _run_vif(sf_production_setup_devices, vdata, data)
 
 
+@pytest.mark.mpc
 def test_linear_col_data(sf_production_setup_devices):
     nd_data = reveal(
         sf_production_setup_devices.alice(lambda: np.random.random((10, 8)))()
