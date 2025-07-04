@@ -22,13 +22,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-## [v1.13.0a0] - 2025-06-24
+## [v1.13.0b0] - 2025-07-04
 
 ### Added
 
 - [component] add components derived from sf-sml to sf
 - [component] SGB component add feature importance calculation report based on gains and split count
 - [sgb] add feature importance calculation based on split count
+- [test] use thread to simulate multiple parties
+- [spec] make component specification as a separate package
 
 ## [v1.12.0.dev202412009] - 2024-12-09
 
