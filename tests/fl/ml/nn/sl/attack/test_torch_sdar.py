@@ -12,32 +12,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import random
 import tempfile
+
 import numpy as np
 import torch
 import torch.nn as nn
-from torch import optim
-from torchvision.datasets import CIFAR10
-from torchvision import transforms
-import os
 import torch.utils.data as torch_data
+from torch import optim
 from torchmetrics import AUROC, Accuracy, Precision
-
+from torchvision import transforms
+from torchvision.datasets import CIFAR10
 
 from secretflow.data.ndarray import FedNdarray, PartitionWay
+from secretflow.utils.simulation.datasets import _CACHE_DIR
 from secretflow_fl.ml.nn import SLModel
 from secretflow_fl.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
 from secretflow_fl.ml.nn.sl.attacks.sdar_torch import SDARAttack
-from tests.ml.nn.sl.attack.model_def import (
-    FModel,
-    GModel,
+from tests.fl.ml.nn.sl.attack.model_def import (
     Decoder,
     DecoderDiscriminator,
+    FModel,
+    GModel,
     SimulatorDiscriminator,
-)
-from secretflow.utils.simulation.datasets import (
-    _CACHE_DIR,
 )
 
 INTERMIDIATE_SHAPE = lambda level: (
