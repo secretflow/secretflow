@@ -240,7 +240,7 @@ commands:
                 target_folder: tests/fl/ml/nn/
                 testmon_prefix: ml_nn_sim
                 mode: "sim"
-                concurrent_num: "4"
+                concurrent_num: "1"
   run_other_sim_test:
     steps:
       - kill_countdown
@@ -255,6 +255,7 @@ commands:
                 target_folder: --ignore=tests/ml/ --ignore=tests/fl/ tests/
                 testmon_prefix: other_sim
                 mode: "sim"
+                concurrent_num: "8"
   run_component_test_wrapper:
     parameters:
       target_folder:
