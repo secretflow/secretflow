@@ -133,7 +133,7 @@ commands:
           command: |
             set +e
             conda init
-            pytest --testmon --env <<parameters.mode>> -n auto --junitxml=results.xml -v -x --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml  << parameters.target_folder >>
+            pytest --testmon --env <<parameters.mode>> -n 8 --junitxml=results.xml -v -x --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml  << parameters.target_folder >>
             ret=$?
             set -e
             if [ $ret -eq 0 ] || [ $ret -eq 5 ]; then
