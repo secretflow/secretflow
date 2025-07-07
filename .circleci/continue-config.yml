@@ -110,6 +110,9 @@ commands:
     parameters:
       target_folder:
         type: string
+      concurrent_num:
+        type: string
+        default: "auto"
       testmon_prefix:
         type: string
       mode:
@@ -133,7 +136,7 @@ commands:
           command: |
             set +e
             conda init
-            pytest --testmon --env <<parameters.mode>> -n 8 --junitxml=results.xml -v -x --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml  << parameters.target_folder >>
+            pytest --testmon --env <<parameters.mode>> -n <<parameters.concurrent_num>> --junitxml=results.xml -v -x --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml  << parameters.target_folder >>
             ret=$?
             set -e
             if [ $ret -eq 0 ] || [ $ret -eq 5 ]; then
@@ -237,6 +240,7 @@ commands:
                 target_folder: tests/fl/ml/nn/
                 testmon_prefix: ml_nn_sim
                 mode: "sim"
+                concurrent_num: "4"
   run_other_sim_test:
     steps:
       - kill_countdown
