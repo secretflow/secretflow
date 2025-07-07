@@ -190,10 +190,10 @@ jobs:
             # login docker - aliyun
             docker login -u ${ALIYUN_DOCKER_USERNAME} -p ${ALIYUN_DOCKER_PASSWORD} secretflow-registry.cn-hangzhou.cr.aliyuncs.com
 
-            SF_LITE_IMAGE=secretflow-registry.cn-hangzhou.cr.aliyuncs.com/secretflow/secretflow-lite-anolis8
+            SF_LITE_IMAGE=secretflow-registry.cn-hangzhou.cr.aliyuncs.com/secretflow/secretflow-lite-ubuntu
 
-            docker buildx imagetools create --tag ${SF_LITE_IMAGE}:${VERSION} secretflow/secretflow-lite-anolis8:${VERSION}
-            docker buildx imagetools create --tag ${SF_LITE_IMAGE}:latest secretflow/secretflow-lite-anolis8:latest
+            docker buildx imagetools create --tag ${SF_LITE_IMAGE}:${VERSION} secretflow/secretflow-lite-ubuntu:${VERSION}
+            docker buildx imagetools create --tag ${SF_LITE_IMAGE}:latest secretflow/secretflow-lite-ubuntu:latest
 
   copy_sf_image_to_aliyun:
     docker:
@@ -218,10 +218,10 @@ jobs:
             # login docker - aliyun
             docker login -u ${ALIYUN_DOCKER_USERNAME} -p ${ALIYUN_DOCKER_PASSWORD} secretflow-registry.cn-hangzhou.cr.aliyuncs.com
 
-            SF_IMAGE=secretflow-registry.cn-hangzhou.cr.aliyuncs.com/secretflow/secretflow-anolis8
+            SF_IMAGE=secretflow-registry.cn-hangzhou.cr.aliyuncs.com/secretflow/secretflow-ubuntu
 
-            docker buildx imagetools create --tag ${SF_IMAGE}:${VERSION} secretflow/secretflow-anolis8:${VERSION}
-            docker buildx imagetools create --tag ${SF_IMAGE}:latest secretflow/secretflow-anolis8:latest
+            docker buildx imagetools create --tag ${SF_IMAGE}:${VERSION} secretflow/secretflow-ubuntu:${VERSION}
+            docker buildx imagetools create --tag ${SF_IMAGE}:latest secretflow/secretflow-ubuntu:latest
 
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
