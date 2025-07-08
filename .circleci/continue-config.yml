@@ -309,8 +309,8 @@ jobs:
       - run:
           name: "Install homebrew dependencies"
           command: |
-            brew install bazelisk cmake ninja libomp wget protobuf@3
-            echo 'export PATH="/opt/homebrew/opt/protobuf@3/bin:$PATH"' >> /Users/distiller/.bash_profile
+            brew install bazelisk cmake ninja libomp wget protobuf@29
+            echo 'export PATH="/opt/homebrew/opt/protobuf@29/bin:$PATH"' >> /Users/distiller/.bash_profile
       - run:
           name: "Install Miniconda"
           command: |
