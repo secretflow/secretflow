@@ -1010,3 +1010,4 @@ msgid ""
 msgstr ""
 "请查看Kuscia的[部署文档](https://www.secretflow.org.cn/zh-"
 "CN/docs/kuscia/main/deployment) 进行部署。"
+

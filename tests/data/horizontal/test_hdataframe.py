@@ -20,30 +20,35 @@ from secretflow import reveal
 from secretflow.security.aggregation import PlainAggregator, SPUAggregator
 from secretflow.security.compare import PlainComparator, SPUComparator
 from secretflow.utils.simulation.datasets import load_iris
+from tests.sf_fixtures import mpc_fixture
 
 
-@pytest.fixture(scope='function')
-def prod_env_and_data(sf_production_setup_devices_ray):
+@mpc_fixture
+def prod_env_and_data(sf_production_setup_devices):
+    pyu_alice = sf_production_setup_devices.alice
+    pyu_bob = sf_production_setup_devices.bob
+    spu = sf_production_setup_devices.spu
+
     df_plain = load_iris(
         parts=[
-            sf_production_setup_devices_ray.alice,
-            sf_production_setup_devices_ray.bob,
+            pyu_alice,
+            pyu_bob,
         ],
-        aggregator=PlainAggregator(sf_production_setup_devices_ray.alice),
-        comparator=PlainComparator(sf_production_setup_devices_ray.alice),
+        aggregator=PlainAggregator(pyu_alice),
+        comparator=PlainComparator(pyu_alice),
     )
     df_spu = load_iris(
         parts=[
-            sf_production_setup_devices_ray.alice,
-            sf_production_setup_devices_ray.bob,
+            pyu_alice,
+            pyu_bob,
         ],
-        aggregator=SPUAggregator(sf_production_setup_devices_ray.spu),
-        comparator=SPUComparator(sf_production_setup_devices_ray.spu),
+        aggregator=SPUAggregator(spu),
+        comparator=SPUComparator(spu),
     )
-    df_alice = reveal(df_plain.partitions[sf_production_setup_devices_ray.alice].data)
-    df_bob = reveal(df_plain.partitions[sf_production_setup_devices_ray.bob].data)
+    df_alice = reveal(df_plain.partitions[pyu_alice].data)
+    df_bob = reveal(df_plain.partitions[pyu_bob].data)
 
-    yield sf_production_setup_devices_ray, {
+    yield sf_production_setup_devices, {
         "df_plain": df_plain,
         "df_spu": df_spu,
         "df_alice": df_alice,
@@ -51,6 +56,7 @@ def prod_env_and_data(sf_production_setup_devices_ray):
     }
 
 
+@pytest.mark.mpc
 def test_mean_with_plain_aggr_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # WHEN
@@ -77,6 +83,7 @@ def test_mean_with_plain_aggr_should_ok(prod_env_and_data):
     )
 
 
+@pytest.mark.mpc
 def test_mean_with_spu_aggr_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # WHEN
@@ -103,6 +110,7 @@ def test_mean_with_spu_aggr_should_ok(prod_env_and_data):
     )
 
 
+@pytest.mark.mpc
 def test_min_with_plain_comp_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # WHEN
@@ -115,6 +123,7 @@ def test_min_with_plain_comp_should_ok(prod_env_and_data):
     pd.testing.assert_series_equal(min, expected)
 
 
+@pytest.mark.mpc
 def test_min_with_spu_comp_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # WHEN
@@ -127,6 +136,7 @@ def test_min_with_spu_comp_should_ok(prod_env_and_data):
     pd.testing.assert_series_equal(min, expected)
 
 
+@pytest.mark.mpc
 def test_max_with_plain_comp_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # WHEN
@@ -139,6 +149,7 @@ def test_max_with_plain_comp_should_ok(prod_env_and_data):
     pd.testing.assert_series_equal(max, expected)
 
 
+@pytest.mark.mpc
 def test_max_with_spu_comp_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # WHEN
@@ -151,6 +162,7 @@ def test_max_with_spu_comp_should_ok(prod_env_and_data):
     pd.testing.assert_series_equal(max, expected)
 
 
+@pytest.mark.mpc
 def test_count_with_plain_aggr_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # WHEN
@@ -161,6 +173,7 @@ def test_count_with_plain_aggr_should_ok(prod_env_and_data):
     pd.testing.assert_series_equal(count, expected)
 
 
+@pytest.mark.mpc
 def test_count_with_spu_aggr_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # WHEN
@@ -171,6 +184,7 @@ def test_count_with_spu_aggr_should_ok(prod_env_and_data):
     pd.testing.assert_series_equal(count, expected)
 
 
+@pytest.mark.mpc
 def test_count_na_with_plain_aggr_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # WHEN
@@ -183,6 +197,7 @@ def test_count_na_with_plain_aggr_should_ok(prod_env_and_data):
     pd.testing.assert_series_equal(count, expected)
 
 
+@pytest.mark.mpc
 def test_count_na_with_spu_aggr_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # WHEN
@@ -195,6 +210,7 @@ def test_count_na_with_spu_aggr_should_ok(prod_env_and_data):
     pd.testing.assert_series_equal(count, expected)
 
 
+@pytest.mark.mpc
 def test_len_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # WHEN
@@ -205,6 +221,7 @@ def test_len_should_ok(prod_env_and_data):
     assert length == expected
 
 
+@pytest.mark.mpc
 def test_getitem_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # Case 1: single item.
@@ -230,6 +247,7 @@ def test_getitem_should_ok(prod_env_and_data):
     pd.testing.assert_frame_equal(reveal(value.partitions[env.bob].data), expected_bob)
 
 
+@pytest.mark.mpc
 def test_setitem_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # GIVEN
@@ -265,6 +283,7 @@ def test_setitem_should_ok(prod_env_and_data):
     pd.testing.assert_frame_equal(reveal(hdf.partitions[env.bob].data), expected_bob)
 
 
+@pytest.mark.mpc
 def test_drop(prod_env_and_data):
     env, data = prod_env_and_data
     # GIVEN
@@ -297,6 +316,7 @@ def test_drop(prod_env_and_data):
     )
 
 
+@pytest.mark.mpc
 def test_fillna(prod_env_and_data):
     env, data = prod_env_and_data
     # GIVEN
@@ -329,6 +349,7 @@ def test_fillna(prod_env_and_data):
     )
 
 
+@pytest.mark.mpc
 def test_astype_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # GIVEN

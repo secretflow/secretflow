@@ -15,6 +15,10 @@
 import json
 from dataclasses import dataclass
 
+from secretflow_spec.v1.component_pb2 import Attribute
+from secretflow_spec.v1.data_pb2 import DistData
+from secretflow_spec.v1.report_pb2 import Div, Report, Tab, Table
+
 from secretflow.component.core import (
     Component,
     Context,
@@ -31,9 +35,6 @@ from secretflow.component.core import (
     register,
 )
 from secretflow.data.split import train_test_split
-from secretflow.spec.v1.component_pb2 import Attribute
-from secretflow.spec.v1.data_pb2 import DistData
-from secretflow.spec.v1.report_pb2 import Div, Report, Tab, Table
 
 from ..core.utils import check_enabled_or_fail
 from .base import (

@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import numpy as np
+import pytest
 
 from secretflow.device.driver import reveal
 from secretflow.utils import sigmoid
@@ -34,25 +35,31 @@ def do_test(env, fn):
     np.testing.assert_almost_equal(fn(-100), 0, decimal=2)
 
 
+@pytest.mark.mpc
 def test_t1(sf_production_setup_devices):
     do_test(sf_production_setup_devices, sigmoid.t1_sig)
 
 
+@pytest.mark.mpc
 def test_t3(sf_production_setup_devices):
     do_test(sf_production_setup_devices, sigmoid.t3_sig)
 
 
+@pytest.mark.mpc
 def test_t5(sf_production_setup_devices):
     do_test(sf_production_setup_devices, sigmoid.t5_sig)
 
 
+@pytest.mark.mpc
 def test_seg3(sf_production_setup_devices):
     do_test(sf_production_setup_devices, sigmoid.seg3_sig)
 
 
+@pytest.mark.mpc
 def test_df(sf_production_setup_devices):
     do_test(sf_production_setup_devices, sigmoid.df_sig)
 
 
+@pytest.mark.mpc
 def test_sr(sf_production_setup_devices):
     do_test(sf_production_setup_devices, sigmoid.sr_sig)

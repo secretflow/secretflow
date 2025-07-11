@@ -13,55 +13,40 @@
 # limitations under the License.
 
 import os
-import tempfile
-from dataclasses import dataclass
 from sys import platform
 
 import numpy as np
 import pytest
 
 import secretflow as sf
-import secretflow.distributed as sfd
 from secretflow.device import global_state
 from secretflow.device.device.teeu import TEEU
-from secretflow.distributed.const import DISTRIBUTION_MODE
-from secretflow.utils.testing import unused_tcp_port
-from tests.cluster import cluster, get_self_party, set_self_party
+from tests.sf_config import build_prod_cluster_config
+from tests.sf_fixtures import ClusterConfig, DeviceInventory, mpc_fixture
+from tests.sf_services import SERVICE_AUTH
 
 
-@dataclass
-class TeeuTestInventory:
-    alice: sf.PYU = None
-    bob: sf.PYU = None
-    carol: sf.PYU = None
-    davy: sf.PYU = None
-    tmp_files: list = None
+@mpc_fixture(services=[SERVICE_AUTH])
+def sf_production_setup_devices_teeu(
+    self_party, parties: list[str], cluster: ClusterConfig, auth_port: int
+):
+    assert len(parties) == 4, f"parties={parties}"
 
+    party_key_pair = None
+    files = []
+    if self_party in ('alice', 'bob'):
+        import tempfile
 
-@pytest.fixture(scope="module")
-def teeu_production_setup_devices_ray(request, sf_party_for_4pc):
-    inventory = TeeuTestInventory()
-    sfd.set_distribution_mode(mode=DISTRIBUTION_MODE.PRODUCTION)
-    set_self_party(sf_party_for_4pc)
-    self_party = get_self_party()
-    if self_party in ('carol', 'davy'):
-        sf.init(
-            address='local',
-            cluster_config=cluster(),
-            logging_level='info',
-            num_cpus=8,
-            log_to_driver=True,
-            tee_simulation=True,
-            enable_waiting_for_other_parties_ready=False,
-        )
-
-    elif self_party in ('alice', 'bob'):
         from cryptography.hazmat.primitives import serialization
         from cryptography.hazmat.primitives.asymmetric import rsa
 
         _, private_key_path = tempfile.mkstemp()
         _, public_key_path = tempfile.mkstemp()
-        inventory.tmp_files = [private_key_path, public_key_path]
+        files = [private_key_path, public_key_path]
+
+        party_key_pair = {
+            self_party: {'public_key': public_key_path, 'private_key': private_key_path}
+        }
 
         def gen_rsa(pub_path: str, pri_path: str):
             key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
@@ -81,64 +66,44 @@ def teeu_production_setup_devices_ray(request, sf_party_for_4pc):
 
         gen_rsa(public_key_path, private_key_path)
 
-        if self_party == 'alice':
-            party_key_pair = {
-                'alice': {
-                    'public_key': public_key_path,
-                    'private_key': private_key_path,
-                },
-            }
-        else:
-            party_key_pair = {
-                'bob': {
-                    'public_key': public_key_path,
-                    'private_key': private_key_path,
-                },
-            }
-        sf.init(
-            address='local',
-            cluster_config=cluster(),
-            num_cpus=8,
-            log_to_driver=True,
-            party_key_pair=party_key_pair,
-            tee_simulation=True,
-            enable_waiting_for_other_parties_ready=False,
-        )
+    cluster_config = build_prod_cluster_config(self_party, cluster.fed_addrs)
 
-    inventory.alice = sf.PYU('alice')
-    inventory.bob = sf.PYU('bob')
-    inventory.carol = sf.PYU('carol')
-    inventory.davy = sf.PYU('davy')
-
-    auth_port = sf.reveal(inventory.carol(unused_tcp_port)())
     global_state.set_auth_manager_host(f'127.0.0.1:{auth_port}')
 
-    if self_party == 'carol':
-        from tests.utils.auth_manager import start_auth_server
+    sf.init(
+        address='local',
+        cluster_config=cluster_config,
+        num_cpus=8,
+        log_to_driver=True,
+        party_key_pair=party_key_pair,
+        tee_simulation=True,
+        enable_waiting_for_other_parties_ready=False,
+    )
 
-        inventory.server = start_auth_server(auth_port)
+    devices = DeviceInventory()
+    devices.build_pyus(parties)
+    yield devices
+    del devices
 
-    yield inventory
-
-    if inventory.tmp_files:
-        for file in inventory.tmp_files:
-            try:
-                os.remove(file)
-            except SystemError:
-                # Do nothing.
-                pass
-    del inventory
+    for file in files:
+        try:
+            os.remove(file)
+        except:
+            pass
     sf.shutdown()
 
 
 @pytest.mark.skipif(platform == 'darwin', reason="TEEU does not support macOS")
-def test_teeu_function_should_ok(teeu_production_setup_devices_ray):
+@pytest.mark.mpc(parties=4)
+def test_teeu_function_should_ok(sf_production_setup_devices_teeu):
     def average(data):
         return np.average(data, axis=0)
 
+    devices = sf_production_setup_devices_teeu
+
     teeu = TEEU(party='carol', mr_enclave='')
-    d1 = teeu_production_setup_devices_ray.alice(lambda: np.random.random([2, 4]))()
-    d2 = teeu_production_setup_devices_ray.bob(lambda: np.random.random([2, 4]))()
+    d1 = devices.alice(lambda: np.random.random([2, 4]))()
+    d2 = devices.bob(lambda: np.random.random([2, 4]))()
     d1_tee = d1.to(teeu, allow_funcs=average)
     d2_tee = d2.to(teeu, allow_funcs=average)
     avg_val = teeu(average)([d1_tee, d2_tee])
@@ -148,7 +113,8 @@ def test_teeu_function_should_ok(teeu_production_setup_devices_ray):
 
 
 @pytest.mark.skipif(platform == 'darwin', reason="TEEU does not support macOS")
-def test_teeu_actor_should_ok(teeu_production_setup_devices_ray):
+@pytest.mark.mpc(parties=4)
+def test_teeu_actor_should_ok(sf_production_setup_devices_teeu):
     class Model:
         def __init__(self, x):
             self.x = x.copy()
@@ -157,9 +123,11 @@ def test_teeu_actor_should_ok(teeu_production_setup_devices_ray):
             self.x += data
             return self.x
 
+    devices = sf_production_setup_devices_teeu
+
     teeu = TEEU(party='carol', mr_enclave='')
-    d1 = teeu_production_setup_devices_ray.alice(lambda: np.random.random([2, 4]))()
-    d2 = teeu_production_setup_devices_ray.bob(lambda: np.random.random([2, 4]))()
+    d1 = devices.alice(lambda: np.random.random([2, 4]))()
+    d2 = devices.bob(lambda: np.random.random([2, 4]))()
     d1_tee = d1.to(teeu, allow_funcs=Model)
     d2_tee = d2.to(teeu, allow_funcs=Model)
     model = teeu(Model)(d1_tee)

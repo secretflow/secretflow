@@ -164,11 +164,11 @@ msgstr "单键隐私求交"
 
 #: ../../tutorial/PSI_On_SPU.ipynb:469
 msgid ""
-"Next, we use ``uid`` to intersect the two data, SPU provide ``psi_csv`` "
+"Next, we use ``uid`` to intersect the two data, SPU provide ``psi`` "
 "which take the csv file as input and generate the csv file after the "
 "intersection. The default protocol is KKRT."
 msgstr ""
-"接下来，我们使用 ``uid`` 作为求交列来处理这两个数据，SPU提供 ``psi_csv`` 函数， ``psi_csv`` "
+"接下来，我们使用 ``uid`` 作为求交列来处理这两个数据，SPU提供 ``psi`` 函数， ``psi`` "
 "将csv文件作为输入，并在求交后生成csv文件。默认协议为KKRT。"
 
 #: ../../tutorial/PSI_On_SPU.ipynb:492

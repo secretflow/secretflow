@@ -24,20 +24,25 @@ from secretflow.preprocessing.encoder import VOrdinalEncoder as OrdinalEncoder
 from secretflow.security.aggregation.plain_aggregator import PlainAggregator
 from secretflow.security.compare.plain_comparator import PlainComparator
 from secretflow.utils.simulation.datasets import load_iris
+from tests.sf_fixtures import mpc_fixture
 
 
-@pytest.fixture(scope='module')
-def prod_env_and_ordinal_encoder_data(sf_production_setup_devices_ray):
+@mpc_fixture
+def prod_env_and_ordinal_encoder_data(sf_production_setup_devices):
+    pyu_alice = sf_production_setup_devices.alice
+    pyu_bob = sf_production_setup_devices.bob
+    pyu_carol = sf_production_setup_devices.carol
+
     hdf = load_iris(
         parts=[
-            sf_production_setup_devices_ray.alice,
-            sf_production_setup_devices_ray.bob,
+            pyu_alice,
+            pyu_bob,
         ],
-        aggregator=PlainAggregator(sf_production_setup_devices_ray.alice),
-        comparator=PlainComparator(sf_production_setup_devices_ray.carol),
+        aggregator=PlainAggregator(pyu_alice),
+        comparator=PlainComparator(pyu_carol),
     )
-    hdf_alice = reveal(hdf.partitions[sf_production_setup_devices_ray.alice].data)
-    hdf_bob = reveal(hdf.partitions[sf_production_setup_devices_ray.bob].data)
+    hdf_alice = reveal(hdf.partitions[pyu_alice].data)
+    hdf_bob = reveal(hdf.partitions[pyu_bob].data)
 
     vdf_alice = pd.DataFrame(
         {
@@ -56,16 +61,12 @@ def prod_env_and_ordinal_encoder_data(sf_production_setup_devices_ray):
     )
     vdf = VDataFrame(
         {
-            sf_production_setup_devices_ray.alice: partition(
-                data=sf_production_setup_devices_ray.alice(lambda: vdf_alice)()
-            ),
-            sf_production_setup_devices_ray.bob: partition(
-                data=sf_production_setup_devices_ray.bob(lambda: vdf_bob)()
-            ),
+            pyu_alice: partition(data=pyu_alice(lambda: vdf_alice)()),
+            pyu_bob: partition(data=pyu_bob(lambda: vdf_bob)()),
         }
     )
 
-    yield sf_production_setup_devices_ray, {
+    return sf_production_setup_devices, {
         'hdf': hdf,
         'hdf_alice': hdf_alice,
         'hdf_bob': hdf_bob,
@@ -75,6 +76,7 @@ def prod_env_and_ordinal_encoder_data(sf_production_setup_devices_ray):
     }
 
 
+@pytest.mark.mpc(parties=3)
 class TestOrdinalEncoder:
     def test_on_vdataframe_should_ok(self, prod_env_and_ordinal_encoder_data):
         env, data = prod_env_and_ordinal_encoder_data

@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
 from dataclasses import dataclass
 from typing import Dict, List, Tuple
 
 from secretflow.data.vertical.dataframe import VDataFrame
 from secretflow.device.device.pyu import PYUObject
-from secretflow.ml.boost.sgb_v.model import SgbModel, from_dict
+from secretflow.ml.boost.sgb_v.model import from_dict, SgbModel
 
 
 @dataclass
@@ -64,10 +65,12 @@ def build_sgb_model(snapshot: SGBSnapshot) -> SgbModel:
         and "tree_num" in model_meta["common"]
         and model_meta["label_holder"] in pyus
     ), f"{model_meta}, {pyus}"
+    logging.info(f"model_meta check success")
     tree_num = model_meta["common"]["tree_num"]
     assert (
         tree_num > 0 and len(model_objs) % tree_num == 0
     ), f"model_objs {model_objs}, model_meta {model_meta}"
+    logging.info("tree num check success")
     leaf_weights = model_objs[:tree_num]
     split_trees = {}
     for pos in range(1, int(len(model_objs) / tree_num)):

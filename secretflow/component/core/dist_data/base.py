@@ -15,18 +15,15 @@
 
 import enum
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 
-from secretflow.spec.v1.data_pb2 import DistData
-
-from ..common.types import BaseEnum
-from ..storage import Storage
+from secretflow_spec import Storage, StrEnum
+from secretflow_spec.v1.data_pb2 import DistData
 
 
 @enum.unique
-class DistDataType(BaseEnum):
+class DistDataType(StrEnum):
     # tables
-    VERTICAL_TABLE = "sf.table.vertical_table"
+    VERTICAL_TABLE = "sf.table.vertical"
     INDIVIDUAL_TABLE = "sf.table.individual"
     # models
     SS_SGD_MODEL = "sf.model.ss_sgd"
@@ -34,6 +31,11 @@ class DistDataType(BaseEnum):
     SGB_MODEL = "sf.model.sgb"
     SS_XGB_MODEL = "sf.model.ss_xgb"
     SL_NN_MODEL = "sf.model.sl_nn"
+    # sml related
+    SS_KMEANS_MODEL = "sf.model.kmeans"
+    SS_GPC_MODEL = "sf.model.gpc"
+    SS_GNB_MODEL = "sf.model.gnb"
+    SS_KNN_MODEL = "sf.model.knn"
     # binning rule
     BINNING_RULE = "sf.rule.binning"
     # others preprocessing rules
@@ -57,17 +59,5 @@ class DistDataType(BaseEnum):
 
 class IDumper(ABC):
     @abstractmethod
-    def dump(self, storage: Storage, uri: str, **kwargs) -> DistData:  # type: ignore
+    def dump(self, storage: Storage, uri: str, **kwargs) -> DistData:
         raise NotImplementedError(f"dump not implemented {uri}")
-
-
-@dataclass
-class Version:
-    major: int
-    minor: int
-
-    def check(self, max_version: 'Version'):
-        if max_version and not (
-            max_version.major == self.major and max_version.minor >= self.minor
-        ):
-            raise ValueError(f"model version mismatch, {self}, {max_version}")

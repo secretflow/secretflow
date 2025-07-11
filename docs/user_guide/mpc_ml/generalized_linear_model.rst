@@ -15,12 +15,12 @@ The key components of a GLM are:
 
 - **Systematic Component**: This is the linear combination of the explanatory variables :math:`X = (x_1, x_2, ..., x_n)` associated with their coefficients :math:`\beta = (\beta_0, \beta_1, \beta_2, ..., \beta_n)`. In a simple linear regression, this would just be :math:`\eta = X^\top \beta = \beta_0 + \beta_1x_1 + \beta_2x_2 + ... + \beta_nx_n`.
 
-- **Link Function**: The link function provides the relationship between the linear predictor (:math:`\eta`) and the expected value (:math:`\mu`) of the response variable. It is a function that maps the expected value of the response variable to the linear predictor. The choice of the link function depends on the distribution of the response variable. For example,
-
+- **Link Function**: The link function provides the relationship between the linear predictor (:math:`\eta`) and the expected value (:math:`\mu`) of the response variable. It is a function that maps the expected value of the response variable to the linear predictor. The choice of the link function depends on the distribution of the response variable. For example, 
+  
   - the identity link (:math:`\eta = \mu`) is typically used for Gaussian responses,
-
+  
   - the logit link (:math:`\log(\mu/(1-\mu)) = \eta`) for Bernoulli responses,
-
+  
   - and the log link (:math:`\log(\mu) = \eta`) for Poisson responses.
 
 The GLM fitting process involves estimating the coefficients (:math:`\beta`) that best explain the relationship between the predictors and the response variable. This estimation is typically done using maximum likelihood estimation, rather than the least squares estimation used in ordinary linear regression.
@@ -58,7 +58,7 @@ The IRLS algorithm is a general-purpose parameter estimation algorithm for GLM t
 Hypothesis Testing
 -------
 
-The GLM framework also provides tools for hypothesis testing, which allows researchers to test if certain predictors have a statistically significant effect on the response variable.
+The GLM framework also provides tools for hypothesis testing, which allows researchers to test if certain predictors have a statistically significant effect on the response variable. 
 
 GLMs include diagnostic measures, such as deviance, to assess the adequacy and fit of the model. Deviance can be used to identify outliers or points that have a high influence on the model fit, and they help in determining whether the chosen model and link function are appropriate for the data.
 
@@ -85,7 +85,7 @@ To enhance the modeling efficiency, several steps involves Reveal operations tha
 
 2. **Check Convergence**: To determine whether an early-stop condition emerges, we choose to reveal the convergence result. Its value :math:`\in \{0, 1\}`, indicating whether the model converges. This is a one-bit leakage.
 
-3. **Evaluation Metrics**: To measure the performance of trained model, we decide to reveal the metrics like MSE, deviance to help judge the convergence of models.
+3. **Evaluation Metrics**: To measure the performance of trained model, we decide to reveal the metrics like MSE, deviance to help judge the convergence of models. 
 
 Performance Concern
 -------

@@ -19,6 +19,7 @@ from secretflow.component.core import (
     Field,
     Input,
     Interval,
+    IServingExporter,
     Output,
     ServingBuilder,
     VTable,
@@ -34,7 +35,7 @@ from .base import VertBinningBase
 
 
 @register(domain="preprocessing", version="1.0.0", name="vert_binning")
-class VertBinning(VertBinningBase):
+class VertBinning(VertBinningBase, IServingExporter):
     '''
     Generate equal frequency or equal range binning rules for vertical partitioning datasets.
     '''

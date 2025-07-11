@@ -172,6 +172,14 @@ We are going to formalize this part in future.
     "runtime_config": {
         "protocol": "REF2K",
         "field": "FM64"
+        "beaver_type": "TTP",
+        "ttp_beaver_config": {
+            "server_host": "ip:port or url",
+            "adjust_party": "Alice",
+            "asym_crypto_schema": "SM2",
+            "server_public_key": "xxxxxxx",
+            "transport_protocol": "http"
+        }
     },
     "link_desc": {
         "connect_retry_times": 60,

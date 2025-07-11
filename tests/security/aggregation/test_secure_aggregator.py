@@ -16,15 +16,16 @@ import pytest
 
 from secretflow.security.aggregation.secure_aggregator import SecureAggregator
 from tests.security.aggregation.test_aggregator_base import AggregatorBase
+from tests.sf_fixtures import mpc_fixture
 
 
-class TestSecureAggregator(AggregatorBase):
-    @pytest.fixture()
-    def env_and_aggregator(self, sf_production_setup_devices_ray):
-        yield sf_production_setup_devices_ray, SecureAggregator(
-            sf_production_setup_devices_ray.carol,
-            [
-                sf_production_setup_devices_ray.alice,
-                sf_production_setup_devices_ray.bob,
-            ],
-        )
+@mpc_fixture(alias="env_and_aggregator")
+def secure_env_and_aggregator(sf_production_setup_devices):
+    return sf_production_setup_devices, SecureAggregator(
+        sf_production_setup_devices.carol,
+        [sf_production_setup_devices.alice, sf_production_setup_devices.bob],
+    )
+
+
+@pytest.mark.mpc(parties=3, fixtures=["secure_env_and_aggregator"])
+class TestSecureAggregator(AggregatorBase): ...

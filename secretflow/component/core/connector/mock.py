@@ -19,15 +19,10 @@ import os
 import pyarrow as pa
 import pyarrow.csv as csv
 import pyarrow.orc as orc
+from secretflow_spec import Storage, VTableFormat, VTableSchema
 
-from ..dist_data.vtable import (
-    VTableField,
-    VTableFieldKind,
-    VTableFieldType,
-    VTableFormat,
-    VTableSchema,
-)
-from ..storage import Storage
+from secretflow.component.core.dist_data.vtable_utils import VTableUtils
+
 from .connector import IConnector, TableInfo
 
 _mock_storage = {}
@@ -67,7 +62,7 @@ class Mock(IConnector):
             orc.write_table(data, w)
 
         return TableInfo(
-            schema=VTableSchema.from_arrow(data.schema, check_kind=False),
+            schema=VTableUtils.from_arrow_schema(data.schema, check_kind=False),
             line_count=data.num_rows,
         )
 

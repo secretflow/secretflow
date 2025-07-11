@@ -20,7 +20,7 @@ from .score_card import ScoreCard
 from .ss_pearsonr_v import PearsonR as SSVertPearsonR
 from .ss_pvalue_v import PValue as SSPValue
 from .ss_vif_v import VIF as SSVertVIF
-from .table_statistics import table_statistics
+from .table_statistics import categorical_statistics, table_statistics
 
 __all__ = [
     'SSVertPearsonR',
@@ -30,6 +30,7 @@ __all__ = [
     'BiClassificationEval',
     'prediction_bias_eval',
     'table_statistics',
+    'categorical_statistics',
     'psi_eval',
     'ScoreCard',
 ]

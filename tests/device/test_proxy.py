@@ -19,6 +19,7 @@ import pytest
 
 from secretflow import reveal
 from secretflow.device import PYUObject, proxy
+from tests.sf_fixtures import mpc_fixture
 
 
 @proxy(PYUObject)
@@ -42,10 +43,10 @@ class Model:
         return self.weights, 100
 
 
-@pytest.fixture
+@mpc_fixture
 def prod_env_and_model(sf_production_setup_devices):
     model = Model(lambda: np.ones((3, 4)), device=sf_production_setup_devices.alice)
-    yield sf_production_setup_devices, model
+    return sf_production_setup_devices, model
 
 
 @pytest.fixture
@@ -59,6 +60,7 @@ def _test_init_without_device(devices):
         Model(lambda: np.ones((3, 4)))
 
 
+@pytest.mark.mpc
 def test_init_without_device_prod(sf_production_setup_devices):
     _test_init_without_device(sf_production_setup_devices)
 
@@ -72,6 +74,7 @@ def _test_init_with_mismatch_device(devices):
         Model(lambda: np.ones((3, 4)), device=devices.spu)
 
 
+@pytest.mark.mpc
 def test_init_with_mismatch_device_prod(sf_production_setup_devices):
     _test_init_with_mismatch_device(sf_production_setup_devices)
 
@@ -86,6 +89,7 @@ def _test_call_with_mismatch_device(devices, model):
         model.build_dataset(x, y)
 
 
+@pytest.mark.mpc
 def test_call_with_mismatch_device_prod(prod_env_and_model):
     env, model = prod_env_and_model
     _test_call_with_mismatch_device(env, model)
@@ -103,6 +107,7 @@ def _test_single_return(devices, model):
     np.testing.assert_equal(weights, np.ones((3, 4)))
 
 
+@pytest.mark.mpc
 def test_single_return_prod(prod_env_and_model):
     env, model = prod_env_and_model
     _test_single_return(env, model)
@@ -123,6 +128,7 @@ def _test_multiple_return(devices, model):
     assert n == 100
 
 
+@pytest.mark.mpc
 def test_multiple_return_prod(prod_env_and_model):
     env, model = prod_env_and_model
     _test_multiple_return(env, model)
@@ -146,6 +152,7 @@ def _test_multiple_return_without_annotation(devices, model):
     np.testing.assert_equal(y_, y)
 
 
+@pytest.mark.mpc
 def test_multiple_return_without_annotation_prod(prod_env_and_model):
     env, model = prod_env_and_model
     _test_multiple_return_without_annotation(env, model)

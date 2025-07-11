@@ -19,6 +19,9 @@ from collections import defaultdict
 
 import pyarrow as pa
 from google.protobuf import json_format
+from secretflow_spec.v1.data_pb2 import DistData
+from secretflow_spec.v1.evaluation_pb2 import NodeEvalParam
+from secretflow_spec.v1.report_pb2 import Report
 
 from secretflow.component.core import (
     Component,
@@ -26,6 +29,7 @@ from secretflow.component.core import (
     Definition,
     DistDataType,
     Field,
+    IServingExporter,
     Output,
     Registry,
     ServingBuilder,
@@ -38,10 +42,7 @@ from secretflow.component.core import (
 )
 from secretflow.compute.tracer import Table
 from secretflow.device import PYU, PYUObject, reveal
-from secretflow.error_system.exceptions import EvalParamError
-from secretflow.spec.v1.data_pb2 import DistData
-from secretflow.spec.v1.evaluation_pb2 import NodeEvalParam
-from secretflow.spec.v1.report_pb2 import Report
+from secretflow.utils.errors import InvalidArgumentError, NotSupportedError
 
 
 @register(domain="model", version="1.0.0")
@@ -99,7 +100,7 @@ class ModelExport(Component):
             for o in self.component_eval_params
         ]
         if not input_datasets or not output_datasets or not component_eval_params:
-            raise EvalParamError.missing_or_none_param(
+            raise InvalidArgumentError(
                 "input_datasets, output_datasets and component_eval_Params must be set"
             )
         system_info = input_datasets[0].system_info
@@ -109,12 +110,10 @@ class ModelExport(Component):
 
         builder = ServingBuilder(pyus)
         for param in component_eval_params:
-            comp_def = Registry.get_definition(param.domain, param.name, param.version)
+            comp_def = Registry.get_definition_by_id(param.comp_id)
             if comp_def is None:
-                raise ValueError(
-                    f"unknown component: {param.domain}, {param.name}, {param.version}"
-                )
-            minor = Definition.parse_minor(param.version)
+                raise ValueError(f"unknown component: {param.comp_id}")
+            minor = Definition.parse_minor(comp_def.version)
             input_defs = comp_def.get_input_defs(minor)
             output_defs = comp_def.get_output_defs(minor)
             inputs = input_datasets[: len(input_defs)]
@@ -123,7 +122,12 @@ class ModelExport(Component):
             output_datasets = output_datasets[len(output_defs) :]
 
             comp_kwargs = comp_def.parse_param(param, inputs, outputs)
-            comp = comp_def.make_component(comp_kwargs)
+            comp: Component = comp_def.make_component(comp_kwargs)
+            if not isinstance(comp, IServingExporter):
+                raise NotSupportedError(
+                    "The component does not implement the IServingExporter interface",
+                    detail={"component": comp.__class__.__name__},
+                )
             export_kwargs = self.get_export_kwargs(comp)
             comp.export(ctx, builder, **export_kwargs)
 
@@ -132,18 +136,16 @@ class ModelExport(Component):
         self.dump_report(used_columns, system_info)
 
     @staticmethod
-    def get_init_table(input_datasets, component_eval_params) -> VTable:
+    def get_init_table(
+        input_datasets, component_eval_params: list[NodeEvalParam]
+    ) -> VTable:
         first_param = component_eval_params[0]
-        comp_def = Registry.get_definition(
-            first_param.domain, first_param.name, first_param.version
-        )
-        minor = Definition.parse_minor(first_param.version)
+        comp_def = Registry.get_definition_by_id(first_param.comp_id)
+        minor = Definition.parse_minor(comp_def.version)
         dist_datas = input_datasets[: len(comp_def.get_input_defs(minor))]
         v_tables = [d for d in dist_datas if d.type == DistDataType.VERTICAL_TABLE]
         if len(v_tables) != 1:
-            raise EvalParamError.support_only_one_param(
-                "only support one v table input for now"
-            )
+            raise InvalidArgumentError("only support one vertical_table input for now")
         return VTable.from_distdata(v_tables[0])
 
     def get_export_kwargs(self, comp: Component) -> dict:

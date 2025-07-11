@@ -12,8 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import numpy as np
+import logging
+
 import pandas as pd
+from google.protobuf.json_format import MessageToJson
 
 from secretflow.component.core import (
     Component,
@@ -23,10 +25,10 @@ from secretflow.component.core import (
     Input,
     Interval,
     Output,
+    register,
     Reporter,
     VTable,
     VTableFieldKind,
-    register,
 )
 from secretflow.device.driver import reveal
 from secretflow.stats.biclassification_eval import (
@@ -130,7 +132,7 @@ class BiClassificationEval(Component):
             self.head_report_to_df(result.head_report), prefix="case_"
         )
         r.add_tab(head_report_table, name="head_report")
-
+        logging.info(f'\n--\n*report* \n\n{MessageToJson(r.report())}\n--\n')
         self.report.data = r.to_distdata()
 
     @staticmethod

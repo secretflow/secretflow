@@ -23,6 +23,7 @@ from secretflow.component.core import (
     Field,
     Input,
     Interval,
+    IServingExporter,
     Model,
     Output,
     Reporter,
@@ -38,7 +39,7 @@ from .ss_sgd import SSSGDExportMixin
 
 
 @register(domain="ml.train", version="1.0.0", name="ss_sgd_train")
-class SSSGDTrain(SSSGDExportMixin, Component):
+class SSSGDTrain(SSSGDExportMixin, Component, IServingExporter):
     '''
     Train both linear and logistic regression
     linear models for vertical partitioning dataset with mini batch SGD training solver by using secret sharing.

@@ -19,6 +19,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from pyarrow import orc
+from secretflow_spec.v1.report_pb2 import Report
 from sklearn.datasets import load_breast_cancer
 from sklearn.metrics import roc_auc_score
 from sklearn.preprocessing import StandardScaler
@@ -27,16 +28,16 @@ from secretflow.component.core import (
     VTable,
     VTableParty,
     build_node_eval_param,
+    comp_eval,
     make_storage,
 )
-from secretflow.component.entry import comp_eval
-from secretflow.spec.v1.report_pb2 import Report
 
 
 @pytest.mark.parametrize("optimizer", ["SGD", "IRLS"])
 @pytest.mark.parametrize("with_checkpoint", [True, False])
 @pytest.mark.parametrize("train_version", ["1.1.0", "1.0.0"])
-def test_glm(comp_prod_sf_cluster_config, optimizer, with_checkpoint, train_version):
+@pytest.mark.mpc
+def test_glm(sf_production_setup_comp, optimizer, with_checkpoint, train_version):
     work_path = f"test_glm_{optimizer}_{with_checkpoint}"
     alice_path = f"{work_path}/x_alice.csv"
     bob_path = f"{work_path}/x_bob.csv"
@@ -44,7 +45,7 @@ def test_glm(comp_prod_sf_cluster_config, optimizer, with_checkpoint, train_vers
     report_path = f"{work_path}/model.report"
     checkpoint_path = f"{work_path}/checkpoint"
 
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
     self_party = sf_cluster_config.private_config.self_party
     storage = make_storage(storage_config)
 

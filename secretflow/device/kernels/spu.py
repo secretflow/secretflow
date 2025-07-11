@@ -127,18 +127,14 @@ def psi_df(
     key: Union[str, List[str], Dict[Device, List[str]]],
     dfs: List['PYUObject'],
     receiver: str,
-    protocol='KKRT_PSI_2PC',
+    protocol='PROTOCOL_RR22',
     precheck_input=True,
     sort=True,
     broadcast_result=True,
     bucket_size=1 << 20,
     curve_type="CURVE_25519",
-    preprocess_path=None,
-    ecdh_secret_key_path=None,
     dppsi_bob_sub_sampling=0.9,
     dppsi_epsilon=3,
-    progress_callbacks: Callable[[str, ProgressData], None] = None,
-    callbacks_interval_ms: int = 5 * 1000,
 ) -> List[PYUObject]:
     assert isinstance(device, SPU), f'device must be SPU device'
     assert isinstance(
@@ -174,151 +170,13 @@ def psi_df(
                     broadcast_result,
                     bucket_size,
                     curve_type,
-                    preprocess_path,
-                    ecdh_secret_key_path,
                     dppsi_bob_sub_sampling,
                     dppsi_epsilon,
-                    progress_callbacks,
-                    callbacks_interval_ms,
                 ),
             )
         )
 
     return res
-
-
-@register(DeviceType.SPU)
-def psi_csv(
-    device: SPU,
-    key: Union[str, List[str], Dict[Device, List[str]]],
-    input_path: Union[str, Dict[Device, str]],
-    output_path: Union[str, Dict[Device, str]],
-    receiver: str,
-    protocol='KKRT_PSI_2PC',
-    precheck_input=True,
-    sort=True,
-    broadcast_result=True,
-    bucket_size=1 << 20,
-    curve_type="CURVE_25519",
-    preprocess_path: Union[str, Dict[Device, str]] = None,
-    ecdh_secret_key_path=None,
-    dppsi_bob_sub_sampling=0.9,
-    dppsi_epsilon=3,
-    progress_callbacks: Callable[[str, ProgressData], None] = None,
-    callbacks_interval_ms: int = 5 * 1000,
-):
-    assert isinstance(device, SPU), f'device must be SPU device'
-    assert isinstance(
-        key, (str, List, Dict)
-    ), f'invalid key, must be str of list of str or dict of list str'
-    assert isinstance(input_path, (str, Dict)), f'input_path must be str or dict of str'
-    assert isinstance(
-        output_path, (str, Dict)
-    ), f'output_path must be str or dict of str'
-
-    if isinstance(key, Dict):
-        if isinstance(input_path, Dict):
-            assert (
-                key.keys() == input_path.keys() == output_path.keys()
-            ), f'mismatch key & input_path & out_path devices'
-            for dev in key.keys():
-                assert (
-                    dev.party in device.actors
-                ), f'key {dev} not co-located with {device}'
-
-    if isinstance(input_path, Dict):
-        assert (
-            input_path.keys() == output_path.keys()
-        ), f'mismatch input_path and out_path devices'
-        assert len(input_path) == len(
-            device.actors
-        ), f'unexpected number of dataframes, should be {len(device.actors)}'
-
-        for dev in input_path.keys():
-            assert (
-                dev.party in device.actors
-            ), f'input_path {dev} not co-located with {device}'
-
-        for dev in output_path.keys():
-            assert (
-                dev.party in device.actors
-            ), f'output_path {dev} not co-located with {device}'
-
-    if isinstance(preprocess_path, Dict):
-        if isinstance(input_path, Dict):
-            assert (
-                preprocess_path.keys() == input_path.keys() == output_path.keys()
-            ), f'mismatch key & input_path & out_path devices'
-            for dev in preprocess_path.keys():
-                assert (
-                    dev.party in device.actors
-                ), f'key {dev} not co-located with {device}'
-
-    res = []
-    if isinstance(input_path, str):
-        assert isinstance(
-            output_path, str
-        ), f'input_path and output_path must be same types'
-        for actor in device.actors.values():
-            k = key[actor] if isinstance(key, Dict) else key
-            p = (
-                preprocess_path[actor]
-                if isinstance(preprocess_path, Dict)
-                else preprocess_path
-            )
-            res.append(
-                actor.psi_csv.remote(
-                    k,
-                    input_path,
-                    output_path,
-                    receiver,
-                    protocol,
-                    precheck_input,
-                    sort,
-                    broadcast_result,
-                    bucket_size,
-                    curve_type,
-                    p,
-                    ecdh_secret_key_path,
-                    dppsi_bob_sub_sampling,
-                    dppsi_epsilon,
-                    progress_callbacks,
-                    callbacks_interval_ms,
-                )
-            )
-    else:
-        for dev, ipath in input_path.items():
-            opath = output_path[dev]
-            actor = device.actors[dev.party]
-            k = key[dev] if isinstance(key, Dict) else key
-            p = (
-                preprocess_path[dev]
-                if isinstance(preprocess_path, Dict)
-                else preprocess_path
-            )
-            res.append(
-                actor.psi_csv.remote(
-                    k,
-                    ipath,
-                    opath,
-                    receiver,
-                    protocol,
-                    precheck_input,
-                    sort,
-                    broadcast_result,
-                    bucket_size,
-                    curve_type,
-                    p,
-                    ecdh_secret_key_path,
-                    dppsi_bob_sub_sampling,
-                    dppsi_epsilon,
-                    progress_callbacks,
-                    callbacks_interval_ms,
-                )
-            )
-
-    # wait for all tasks done
-    return sfd.get(res)
 
 
 @register(DeviceType.SPU)
@@ -347,12 +205,12 @@ def ub_psi(
                 mode=mode,
                 role=role[party],
                 input_path=(
-                    input_path[party] if input_path and party in input_path else None
+                    input_path[party] if input_path and party in input_path else ''
                 ),
-                keys=keys[party] if keys and party in keys else None,
+                keys=keys[party] if keys and party in keys else [],
                 server_secret_key_path=server_secret_key_path,
                 cache_path=(
-                    cache_path[party] if cache_path and party in cache_path else None
+                    cache_path[party] if cache_path and party in cache_path else ''
                 ),
                 server_get_result=server_get_result,
                 client_get_result=client_get_result,
@@ -360,163 +218,13 @@ def ub_psi(
                 output_path=(
                     output_path[party]
                     if (output_path and (party in output_path))
-                    else None
+                    else ''
                 ),
                 join_type=join_type,
                 left_side=left_side,
                 null_rep=null_rep,
             )
         )
-    # wait for all tasks done
-    return sfd.get(res)
-
-
-@register(DeviceType.SPU)
-def psi_join_df(
-    device: SPU,
-    key: Union[str, List[str], Dict[Device, List[str]]],
-    dfs: List['PYUObject'],
-    receiver: str,
-    join_party: str,
-    protocol='KKRT_PSI_2PC',
-    bucket_size=1 << 20,
-    curve_type="CURVE_25519",
-    progress_callbacks: Callable[[str, ProgressData], None] = None,
-    callbacks_interval_ms: int = 5 * 1000,
-) -> List[PYUObject]:
-    assert isinstance(device, SPU), f'device must be SPU device'
-    assert isinstance(
-        key, (str, List, Dict)
-    ), f'invalid key, must be str of list of str or dict of str list'
-    assert len(set([df.device for df in dfs])) == len(
-        dfs
-    ), f'dataframe should not be in same PYU device'
-    assert len(dfs) == len(
-        device.actors
-    ), f'unexpected number of dataframes, should be {len(device.actors)}'
-
-    for df in dfs:
-        assert isinstance(df, PYUObject), f'dataframe must be in PYU device'
-        assert (
-            df.device.party in device.actors
-        ), f'{df.device} not co-located with {device}'
-
-    res = []
-    for df in dfs:
-        actor = device.actors[df.device.party]
-        k = key[df.device] if isinstance(key, Dict) else key
-        res.append(
-            PYUObject(
-                df.device,
-                actor.psi_join_df.remote(
-                    k,
-                    df.data,
-                    receiver,
-                    join_party,
-                    protocol,
-                    bucket_size,
-                    curve_type,
-                    progress_callbacks,
-                    callbacks_interval_ms,
-                ),
-            )
-        )
-
-    return res
-
-
-@register(DeviceType.SPU)
-def psi_join_csv(
-    device: SPU,
-    key: Union[str, List[str], Dict[Device, List[str]]],
-    input_path: Union[str, Dict[Device, str]],
-    output_path: Union[str, Dict[Device, str]],
-    receiver: str,
-    join_party: str,
-    protocol='KKRT_PSI_2PC',
-    bucket_size=1 << 20,
-    curve_type="CURVE_25519",
-    progress_callbacks: Callable[[str, ProgressData], None] = None,
-    callbacks_interval_ms: int = 5 * 1000,
-):
-    assert isinstance(device, SPU), f'device must be SPU device'
-    assert isinstance(
-        key, (str, List, Dict)
-    ), f'invalid key, must be str of list of str or dict of list str'
-    assert isinstance(input_path, (str, Dict)), f'input_path must be str or dict of str'
-    assert isinstance(
-        output_path, (str, Dict)
-    ), f'output_path must be str or dict of str'
-
-    if isinstance(key, Dict):
-        if isinstance(input_path, Dict):
-            assert (
-                key.keys() == input_path.keys() == output_path.keys()
-            ), f'mismatch key & input_path & out_path devices'
-            for dev in key.keys():
-                assert (
-                    dev.party in device.actors
-                ), f'key {dev} not co-located with {device}'
-
-    if isinstance(input_path, Dict):
-        assert (
-            input_path.keys() == output_path.keys()
-        ), f'mismatch input_path and out_path devices'
-        assert len(input_path) == len(
-            device.actors
-        ), f'unexpected number of dataframes, should be {len(device.actors)}'
-
-        for dev in input_path.keys():
-            assert (
-                dev.party in device.actors
-            ), f'input_path {dev} not co-located with {device}'
-
-        for dev in output_path.keys():
-            assert (
-                dev.party in device.actors
-            ), f'output_path {dev} not co-located with {device}'
-
-    res = []
-    if isinstance(input_path, str):
-        assert isinstance(
-            output_path, str
-        ), f'input_path and output_path must be same types'
-        for actor in device.actors.values():
-            k = key[actor] if isinstance(key, Dict) else key
-            res.append(
-                actor.psi_join_csv.remote(
-                    k,
-                    input_path,
-                    output_path,
-                    receiver,
-                    join_party,
-                    protocol,
-                    bucket_size,
-                    curve_type,
-                    progress_callbacks,
-                    callbacks_interval_ms,
-                )
-            )
-    else:
-        for dev, ipath in input_path.items():
-            opath = output_path[dev]
-            actor = device.actors[dev.party]
-            k = key[dev] if isinstance(key, Dict) else key
-            res.append(
-                actor.psi_join_csv.remote(
-                    k,
-                    ipath,
-                    opath,
-                    receiver,
-                    join_party,
-                    protocol,
-                    bucket_size,
-                    curve_type,
-                    progress_callbacks,
-                    callbacks_interval_ms,
-                )
-            )
-
     # wait for all tasks done
     return sfd.get(res)
 
@@ -531,38 +239,66 @@ def psi(
     table_keys_duplicated: Dict[str, str],
     output_csv_na_rep: str,
     broadcast_result: bool = True,
-    protocol: str = 'PROTOCOL_KKRT',
+    protocol: str = 'PROTOCOL_RR22',
     ecdh_curve: str = 'CURVE_FOURQ',
-    advanced_join_type: str = "ADVANCED_JOIN_TYPE_UNSPECIFIED",
+    advanced_join_type: str = "JOIN_TYPE_UNSPECIFIED",
     left_side: str = "ROLE_RECEIVER",
-    skip_duplicates_check: bool = False,
     disable_alignment: bool = False,
-    check_hash_digest: bool = False,
+    bucket_size=1 << 20,
+    dppsi_bob_sub_sampling=0.9,
+    dppsi_epsilon=3,
 ):
     assert isinstance(device, SPU), 'device must be SPU device'
 
-    assert device.world_size == 2, 'only 2pc is allowed.'
     assert receiver in device.actors, f'receiver {receiver} is not found in spu nodes.'
 
     res = []
     for party, actor in device.actors.items():
         res.append(
             actor.psi.remote(
-                keys[party],
-                input_path[party],
-                output_path[party] if party in output_path else "",
-                receiver,
-                table_keys_duplicated[party],
-                output_csv_na_rep,
-                broadcast_result,
-                protocol,
-                ecdh_curve,
-                advanced_join_type,
-                left_side,
-                skip_duplicates_check,
-                disable_alignment,
-                check_hash_digest,
+                keys=keys[party],
+                input_path=input_path[party],
+                output_path=output_path[party] if party in output_path else "",
+                receiver=receiver,
+                table_keys_duplicated=(
+                    table_keys_duplicated[party] if table_keys_duplicated else False
+                ),
+                output_csv_na_rep=output_csv_na_rep,
+                broadcast_result=broadcast_result,
+                protocol=protocol,
+                ecdh_curve=ecdh_curve,
+                join_type=advanced_join_type,
+                left_side=left_side,
+                disable_alignment=disable_alignment,
+                bucket_size=bucket_size,
+                dppsi_bob_sub_sampling=dppsi_bob_sub_sampling,
+                dppsi_epsilon=dppsi_epsilon,
             )
         )
     # wait for all tasks done
     return sfd.get(res)
+
+
+def party_shards_to_heu_plain_text(spu_obj: SPUObject, heu: HEU, party: str):
+    assert party in spu_obj.device.actors.keys()
+    assert heu.has_party(party)
+
+    io_info, shares_chunk = spu_obj.device.outfeed_shares(spu_obj.shares_name)
+    assert (
+        len(shares_chunk) % len(spu_obj.device.actors) == 0
+    ), f"{len(shares_chunk)} % {len(spu_obj.device.actors)}"
+    chunks_count_per_party = int(len(shares_chunk) / len(spu_obj.device.actors))
+    party_chunks = None
+    for i, p in enumerate(spu_obj.device.actors.keys()):
+        if p == party:
+            party_chunks = shares_chunk[
+                i * chunks_count_per_party : (i + 1) * chunks_count_per_party
+            ]
+            break
+    assert party_chunks
+
+    shards_data = spu_obj.device.actors[party].a2h.remote(
+        io_info, heu.cleartext_type, heu.schema, *party_chunks
+    )
+
+    return HEUObject(heu, shards_data, party)

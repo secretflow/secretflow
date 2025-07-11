@@ -14,13 +14,18 @@
 
 
 import pandas as pd
+import pytest
 from google.protobuf.json_format import MessageToJson
 from pyarrow import orc
+from secretflow_spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 
-from secretflow.component.core import DistDataType, build_node_eval_param, make_storage
-from secretflow.component.entry import comp_eval
+from secretflow.component.core import (
+    DistDataType,
+    build_node_eval_param,
+    comp_eval,
+    make_storage,
+)
 from secretflow.spec.extend.case_when_rules_pb2 import CaseWhenRule
-from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 
 
 def _build_test():
@@ -159,14 +164,15 @@ def _build_test():
     return names, tests, expected
 
 
-def test_case_when(comp_prod_sf_cluster_config):
+@pytest.mark.mpc
+def test_case_when(sf_production_setup_comp):
     alice_input_path = "test_onehot_encode/alice.csv"
     bob_input_path = "test_onehot_encode/bob.csv"
     inplace_encode_path = "test_onehot_encode/inplace_sub.csv"
     rule_path = "test_onehot_encode/onehot.rule"
     sub_path = "test_onehot_encode/substitution.csv"
 
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
     self_party = sf_cluster_config.private_config.self_party
     storage = make_storage(storage_config)
 

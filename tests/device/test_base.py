@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import numpy as np
+import pytest
 
 import secretflow as sf
 
@@ -24,14 +25,15 @@ def _test_reveal(devices):
             devices.spu: x.to(
                 devices.spu,
             ),
-            devices.carol: x.to(devices.carol),
+            devices.bob: x.to(devices.bob),
         }
     )
     x = sf.reveal(x)
     np.testing.assert_almost_equal(x, vals[devices.spu], decimal=1)
-    np.testing.assert_almost_equal(x, vals[devices.carol], decimal=1)
+    np.testing.assert_almost_equal(x, vals[devices.bob], decimal=1)
 
 
+@pytest.mark.mpc
 def test_reveal_multiple_driver(sf_production_setup_devices):
     _test_reveal(sf_production_setup_devices)
 

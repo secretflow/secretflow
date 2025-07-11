@@ -80,8 +80,8 @@ def read_csv(
         drop_keys: keys to removed, which can be single or multiple fields.
             This parameter is required when spu is specified since VDataFrame
             doesn't allow duplicate column names.
-        psi_protocl: Specified protocol for PSI. Default 'KKRT_PSI_2PC' for 2
-            parties, 'ECDH_PSI_3PC' for 3 parties.
+        psi_protocl: Specified protocol for PSI. Default 'PROTOCOL_RR22' for 2
+            parties, 'PROTOCOL_ECDH_3PC' for 3 parties.
         no_header: Whether the dataset has the header, defualt to False.
         backend: The read csv backend, default use Pandas, support Polars as well.
         nrows: Stop reading from CSV file after reading n_rows.
@@ -117,18 +117,23 @@ def read_csv(
         else:
             return []
 
+    def get_spu_keys(
+        keys: Union[str, List[str], Dict[Device, List[str]]],
+    ) -> Dict[str, List[str]]:
+        return {str(party): get_keys(party, keys) for party in filepath.keys()}
+
     filepath_actual = filepath
     if spu is not None:
         if psi_protocl is None:
-            psi_protocl = "KKRT_PSI_2PC" if len(filepath) == 2 else "ECDH_PSI_3PC"
+            psi_protocl = "PROTOCOL_RR22" if len(filepath) == 2 else "PROTOCOL_ECDH_3PC"
         rand_suffix = global_random(list(filepath.keys())[0], 100000)
         output_file = {
             pyu: f"{path}.psi_output_{rand_suffix}" for pyu, path in filepath.items()
         }
-        spu.psi_csv(
-            keys,
-            input_path=filepath,
-            output_path=output_file,
+        spu.psi(
+            keys=get_spu_keys(keys),
+            input_path={str(party): path for party, path in filepath.items()},
+            output_path={str(pyu): path for pyu, path in output_file.items()},
             protocol=psi_protocl,
             receiver=list(filepath.keys())[0].party,
         )

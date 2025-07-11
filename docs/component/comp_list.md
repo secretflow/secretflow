@@ -6,7 +6,7 @@ SecretFlow Component List
 =========================
 
 
-Version: 0.0.1
+Version: 1.0
 
 First-party SecretFlow components.
 ## data_filter
@@ -21,7 +21,7 @@ Warning: the party responsible for condition filtering will directly send the sa
 Malicious participants can obtain the distribution of characteristics by repeatedly calling with different filtering values.
 Audit the usage of this component carefully.
 #### Attrs
-
+  
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
@@ -30,20 +30,20 @@ Audit the usage of this component carefully.
 |float_epsilon|Epsilon value for floating point comparison. WARNING: due to floating point representation in computers, set this number slightly larger if you want filter out the values exactly at desired boundary. for example, abs(1.001 - 1.002) is slightly larger than 0.001, and therefore may not be filter out using == and epsilson = 0.001|Float|N|Default: 0.0.Range: [0.0, $\infty$).|
 
 #### Inputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|input_ds|Input vertical table.|['sf.table.vertical_table']|Pleae fill in extra table attributes.|
+|input_ds|Input vertical table.|['sf.table.vertical']|Pleae fill in extra table attributes.|
 |input/input_ds/feature|Feature to operate on.|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. Min column number to select(inclusive): 1. Max column number to select(inclusive): 1. |
 
 #### Outputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|output_ds|Output vertical table that satisfies the condition.|['sf.table.vertical_table']||
-|output_ds_else|Output vertical table that does not satisfies the condition.|['sf.table.vertical_table']||
+|output_ds|Output vertical table that satisfies the condition.|['sf.table.vertical']||
+|output_ds_else|Output vertical table that does not satisfies the condition.|['sf.table.vertical']||
 
 ### expr_condition_filter
 
@@ -53,26 +53,26 @@ Component version: 1.0.0
 Only row-level filtering is supported, column processing is not available;
 the custom expression must comply with SQLite syntax standards
 #### Attrs
-
+  
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
 |expr|The custom expression must comply with SQLite syntax standards|String|Y||
 
 #### Inputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|input_ds|Input vertical or individual table|['sf.table.individual', 'sf.table.vertical_table']||
+|input_ds|Input vertical or individual table|['sf.table.individual', 'sf.table.vertical']||
 
 #### Outputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|output_ds|Output table that satisfies the condition|['sf.table.individual', 'sf.table.vertical_table']||
-|output_ds_else|Output table that does not satisfies the condition|['sf.table.individual', 'sf.table.vertical_table']||
+|output_ds|Output table that satisfies the condition|['sf.table.individual', 'sf.table.vertical']||
+|output_ds_else|Output table that does not satisfies the condition|['sf.table.individual', 'sf.table.vertical']||
 
 ### feature_filter
 
@@ -81,19 +81,19 @@ Component version: 1.0.0
 
 Drop features from the dataset.
 #### Inputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|input_ds|Input vertical table.|['sf.table.vertical_table']|Pleae fill in extra table attributes.|
+|input_ds|Input vertical table.|['sf.table.vertical']|Pleae fill in extra table attributes.|
 |input/input_ds/drop_features|Features to drop.|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. Min column number to select(inclusive): 1. |
 
 #### Outputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|output_ds|Output vertical table.|['sf.table.vertical_table']||
+|output_ds|Output vertical table.|['sf.table.vertical']||
 
 ### sample
 
@@ -102,7 +102,7 @@ Component version: 1.0.0
 
 Sample data set.
 #### Attrs
-
+  
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
@@ -122,18 +122,18 @@ Sample data set.
 |sample_algorithm/stratify/weights|stratify sample weights|Float List|N|Default: [].Range: ([], []).|
 
 #### Inputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|input_ds|Input vertical table.|['sf.table.vertical_table', 'sf.table.individual']||
+|input_ds|Input vertical table.|['sf.table.vertical', 'sf.table.individual']||
 
 #### Outputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|output_ds|Output sampled dataset.|['sf.table.vertical_table', 'sf.table.individual']||
+|output_ds|Output sampled dataset.|['sf.table.vertical', 'sf.table.individual']||
 |report|Output sample report|['sf.report']||
 
 ## data_prep
@@ -145,7 +145,7 @@ Component version: 1.0.0
 
 PSI between two parties.
 #### Attrs
-
+  
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
@@ -161,7 +161,7 @@ PSI between two parties.
 |input_ds2_keys_duplicated|Whether key columns have duplicated rows, default is True.|Boolean|N|Default: True.|
 
 #### Inputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -171,11 +171,11 @@ PSI between two parties.
 |input/input_ds2/keys|Column(s) used to join.|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds2. Min column number to select(inclusive): 1. |
 
 #### Outputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|output_ds|Output vertical table|['sf.table.vertical_table', 'sf.table.individual']||
+|output_ds|Output vertical table|['sf.table.vertical', 'sf.table.individual']||
 |report|Output psi report|['sf.report']||
 
 ### psi_tp
@@ -185,14 +185,14 @@ Component version: 1.0.0
 
 PSI between three parties.
 #### Attrs
-
+  
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
 |ecdh_curve|Curve type for ECDH PSI.|Special type. Union group. You must select one child to fill in.|N/A|This is a special type. This is a union group, you must select one child to fill in (if exists).|
 
 #### Inputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -204,11 +204,11 @@ PSI between three parties.
 |input/input_ds3/keys3|Column(s) used to join.|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds3. Min column number to select(inclusive): 1. |
 
 #### Outputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|output_ds|Output vertical table|['sf.table.vertical_table']||
+|output_ds|Output vertical table|['sf.table.vertical']||
 
 ### train_test_split
 
@@ -218,7 +218,7 @@ Component version: 1.0.0
 Split datasets into random train and test subsets.
 - Please check: https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.train_test_split.html
 #### Attrs
-
+  
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
@@ -228,19 +228,19 @@ Split datasets into random train and test subsets.
 |shuffle|Whether to shuffle the data before splitting.|Boolean|N|Default: True.|
 
 #### Inputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|input_ds|Input vertical table.|['sf.table.vertical_table']||
+|input_ds|Input vertical table.|['sf.table.vertical']||
 
 #### Outputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|train_ds|Output train dataset.|['sf.table.vertical_table']||
-|test_ds|Output test dataset.|['sf.table.vertical_table']||
+|train_ds|Output train dataset.|['sf.table.vertical']||
+|test_ds|Output test dataset.|['sf.table.vertical']||
 
 ### unbalance_psi
 
@@ -249,7 +249,7 @@ Component version: 1.0.0
 
 Unbalance psi with cache.
 #### Attrs
-
+  
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
@@ -260,7 +260,7 @@ Unbalance psi with cache.
 |receiver_parties|Party names of receiver for result, all party will be receivers default; if only one party receive result, the result will be single-party table, hence you can not connect it to component with union table input.|Special type. Specify parties.|Y||
 
 #### Inputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -269,11 +269,11 @@ Unbalance psi with cache.
 |cache|Server cache.|['sf.model.ub_psi.cache']||
 
 #### Outputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|output_ds|Output table|['sf.table.individual', 'sf.table.vertical_table']||
+|output_ds|Output table|['sf.table.individual', 'sf.table.vertical']||
 
 ### unbalance_psi_cache
 
@@ -282,14 +282,14 @@ Component version: 1.0.0
 
 Generate cache for unbalance psi on both sides.
 #### Attrs
-
+  
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
 |client|Party of client(party with the smaller dataset).|Special type. Specify parties.|Y||
 
 #### Inputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -297,7 +297,7 @@ Generate cache for unbalance psi on both sides.
 |input/input_ds/keys|Keys to be used for psi.|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. Min column number to select(inclusive): 1. |
 
 #### Outputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -310,19 +310,19 @@ Component version: 1.0.0
 
 Perform a horizontal merge of two data tables, supporting the individual table or vertical table on the same node.
 #### Inputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|input_ds1|The first input table|['sf.table.individual', 'sf.table.vertical_table']||
-|input_ds2|The second input table|['sf.table.individual', 'sf.table.vertical_table']||
+|input_ds1|The first input table|['sf.table.individual', 'sf.table.vertical']||
+|input_ds2|The second input table|['sf.table.individual', 'sf.table.vertical']||
 
 #### Outputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|output_ds|Output table|['sf.table.individual', 'sf.table.vertical_table']||
+|output_ds|Output table|['sf.table.individual', 'sf.table.vertical']||
 
 ## io
 
@@ -333,7 +333,7 @@ Component version: 1.0.0
 
 export data to an external data source
 #### Attrs
-
+  
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
@@ -341,11 +341,11 @@ export data to an external data source
 |output_uri|output uri, the uri format is datamesh:///{relative_path}?domaindata_id={domaindata_id}&datasource_id={datasource_id}&partition_spec={partition_spec}|String|Y||
 
 #### Inputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|input_data|Input dist data|['sf.table.individual', 'sf.table.vertical_table']||
+|input_data|Input dist data|['sf.table.individual', 'sf.table.vertical']||
 
 ### data_source
 
@@ -354,7 +354,7 @@ Component version: 1.0.0
 
 import data from an external data source
 #### Attrs
-
+  
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
@@ -363,7 +363,7 @@ import data from an external data source
 |columns|table column info, json format, for example {"col1": "ID", "col2":"FEATURE", "col3":"LABEL"}|String|N|Default: .|
 
 #### Outputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -376,14 +376,14 @@ Component version: 1.0.0
 
 map any input to output
 #### Inputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
 |input_data|Input data|['sf.model.ss_glm', 'sf.model.sgb', 'sf.model.ss_xgb', 'sf.model.ss_sgd', 'sf.rule.binning', 'sf.read_data']||
 
 #### Outputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -396,21 +396,21 @@ Component version: 1.0.0
 
 read model or rules from sf cluster
 #### Attrs
-
+  
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
 |generalized_linear_model|Whether to dump the complete generalized linear model. The complete generalized linear model contains link, y_scale, offset_col, and so on.|Boolean|N|Default: False.|
 
 #### Inputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
 |input_data|Input dist data|['sf.rule.binning', 'sf.model.ss_glm', 'sf.model.sgb']||
 
 #### Outputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -423,7 +423,7 @@ Component version: 1.0.0
 
 write model or rules back to sf cluster
 #### Attrs
-
+  
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
@@ -431,14 +431,14 @@ write model or rules back to sf cluster
 |write_data_type|which rule or model is writing|String|N|Default: sf.rule.binning.Allowed: ['sf.rule.binning', 'sf.model.ss_glm', 'sf.model.sgb'].|
 
 #### Inputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
 |input_data|Input dist data. Rule reconstructions may need hidden info in original rule for security considerations.|['sf.rule.binning', 'sf.model.ss_glm', 'sf.model.sgb', 'sf.null']||
 
 #### Outputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -458,7 +458,7 @@ Statistics evaluation for a bi-classification model on a dataset.
 4. head_report: List[PrReport]
 reports for fpr = 0.001, 0.005, 0.01, 0.05, 0.1, 0.2
 #### Attrs
-
+  
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
@@ -466,16 +466,16 @@ reports for fpr = 0.001, 0.005, 0.01, 0.05, 0.1, 0.2
 |min_item_cnt_per_bucket|Min item cnt per bucket. If any bucket doesn't meet the requirement, error raises. For security reasons, we require this parameter to be at least 5.|Integer|N|Default: 5.Range: [5, $\infty$).|
 
 #### Inputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|input_ds|Input table with prediction and label, usually is a result from a prediction component.|['sf.table.vertical_table', 'sf.table.individual']|Pleae fill in extra table attributes.|
+|input_ds|Input table with prediction and label, usually is a result from a prediction component.|['sf.table.vertical', 'sf.table.individual']|Pleae fill in extra table attributes.|
 |input/input_ds/label|The label name to use in the dataset.|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. Min column number to select(inclusive): 1. Max column number to select(inclusive): 1. |
 |input/input_ds/prediction|The prediction result column name to use in the dataset.|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. Min column number to select(inclusive): 1. Max column number to select(inclusive): 1. |
 
 #### Outputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -488,7 +488,7 @@ Component version: 1.0.0
 
 Calculate prediction bias, ie. average of predictions - average of labels.
 #### Attrs
-
+  
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
@@ -497,16 +497,16 @@ Calculate prediction bias, ie. average of predictions - average of labels.
 |bucket_method|Bucket method.|String|N|Default: equal_width.Allowed: ['equal_width', 'equal_frequency'].|
 
 #### Inputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|input_ds|Input table with prediction and label, usually is a result from a prediction component.|['sf.table.vertical_table', 'sf.table.individual']|Pleae fill in extra table attributes.|
+|input_ds|Input table with prediction and label, usually is a result from a prediction component.|['sf.table.vertical', 'sf.table.individual']|Pleae fill in extra table attributes.|
 |input/input_ds/label|The label name to use in the dataset.|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. Min column number to select(inclusive): 1. Max column number to select(inclusive): 1. |
 |input/input_ds/prediction|The prediction result column name to use in the dataset.|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. Min column number to select(inclusive): 1. Max column number to select(inclusive): 1. |
 
 #### Outputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -519,7 +519,9 @@ Component version: 1.0.0
 
 Statistics evaluation for a regression model on a dataset.
 Contained Statistics:
-R2 Score (r2_score): It is a statistical measure that represents the proportion of the variance in the dependent variable that can be predicted from the independent variables. It ranges from 0 to 1, where a higher value indicates a better fit.
+R2 Score (r2_score): It is a statistical measure that represents the proportion of the variance in the dependent variable that can be predicted from the independent variables. It ranges from -inf to 1, where a higher value indicates a better fit. (the value can be negative because the
+model can be arbitrarily worse). In the general case when the true y is non-constant, a constant model that always predicts the average y
+disregarding the input features would get a :math:'R^2' score of 0.0.
 Mean Absolute Error (mean_abs_err): It calculates the average absolute difference between the predicted and actual values. It provides a measure of the average magnitude of the errors.
 Mean Absolute Percentage Error (mean_abs_percent_err): It calculates the average absolute percentage difference between the predicted and actual values. It measures the average magnitude of the errors in terms of percentages.
 Sum of Squared Errors (sum_squared_errors): It calculates the sum of the squared differences between the predicted and actual values. It provides an overall measure of the model's performance.
@@ -529,23 +531,23 @@ Mean of True Values (y_true_mean): It calculates the average of the actual value
 Mean of Predicted Values (y_pred_mean): It calculates the average of the predicted values. It can be compared with the y_true_mean to get an idea of the model's bias.
 Residual Histograms (residual_hists): It represents the distribution of the differences between the predicted and actual values. It helps to understand the spread and pattern of the errors.
 #### Attrs
-
+  
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
 |bucket_size|Number of buckets for residual histogram.|Integer|N|Default: 10.Range: [1, 10000].|
 
 #### Inputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|input_ds|Input table with prediction and label, usually is a result from a prediction component.|['sf.table.vertical_table', 'sf.table.individual']|Pleae fill in extra table attributes.|
+|input_ds|Input table with prediction and label, usually is a result from a prediction component.|['sf.table.vertical', 'sf.table.individual']|Pleae fill in extra table attributes.|
 |input/input_ds/label|The label name to use in the dataset.|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. Min column number to select(inclusive): 1. Max column number to select(inclusive): 1. |
 |input/input_ds/prediction|The prediction result column name to use in the dataset.|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. Min column number to select(inclusive): 1. Max column number to select(inclusive): 1. |
 
 #### Outputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -560,15 +562,15 @@ Calculate P-Value for LR model training on vertical partitioning dataset by usin
 For large dataset(large than 10w samples & 200 features),
 recommend to use [Ring size: 128, Fxp: 40] options for SPU device.
 #### Inputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
 |input_model|Input model.|['sf.model.ss_sgd', 'sf.model.ss_glm']||
-|input_ds|Input vertical table.|['sf.table.vertical_table']||
+|input_ds|Input vertical table.|['sf.table.vertical']||
 
 #### Outputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -576,31 +578,159 @@ recommend to use [Ring size: 128, Fxp: 40] options for SPU device.
 
 ## ml.predict
 
-### serving_model_inferencer
+### gnb_predict
 
 
 Component version: 1.0.0
 
+Predict using the gaussian naive bayes model. This component is currently experimental.
+#### Attrs
+  
+
+|Name|Description|Type|Required|Notes|
+| :--- | :--- | :--- | :--- | :--- |
+|receiver|Party of receiver.|Special type. Specify parties.|Y||
+|pred_name|Column name for predictions.|String|N|Default: pred.|
+|save_ids|Whether to save ids columns into output prediction table. If true, input feature_dataset must contain id columns, and receiver party must be id owner.|Boolean|N|Default: False.|
+|save_label|Whether or not to save real label columns into output pred file. If true, input feature_dataset must contain label columns and receiver party must be label owner.|Boolean|N|Default: True.|
+
+#### Inputs
+  
+
+|Name|Description|Type(s)|Notes|
+| :--- | :--- | :--- | :--- |
+|input_model|model|['sf.model.gnb']||
+|input_ds|Input vertical table.|['sf.table.vertical']|Pleae fill in extra table attributes.|
+|input/input_ds/saved_features|which features should be saved with prediction result|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. |
+
+#### Outputs
+  
+
+|Name|Description|Type(s)|Notes|
+| :--- | :--- | :--- | :--- |
+|output_ds|Output prediction.|['sf.table.individual']||
+
+### gpc_predict
+
+
+Component version: 1.0.0
+
+Predict using the gaussian process classifier model. This component is currently experimental.
+#### Attrs
+  
+
+|Name|Description|Type|Required|Notes|
+| :--- | :--- | :--- | :--- | :--- |
+|receiver|Party of receiver.|Special type. Specify parties.|Y||
+|pred_name|Column name for predictions.|String|N|Default: pred.|
+|save_ids|Whether to save ids columns into output prediction table. If true, input feature_dataset must contain id columns, and receiver party must be id owner.|Boolean|N|Default: False.|
+|save_label|Whether or not to save real label columns into output pred file. If true, input feature_dataset must contain label columns and receiver party must be label owner.|Boolean|N|Default: True.|
+
+#### Inputs
+  
+
+|Name|Description|Type(s)|Notes|
+| :--- | :--- | :--- | :--- |
+|input_model|model|['sf.model.gpc']||
+|input_ds|Input vertical table.|['sf.table.vertical']|Pleae fill in extra table attributes.|
+|input/input_ds/saved_features|which features should be saved with prediction result|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. |
+
+#### Outputs
+  
+
+|Name|Description|Type(s)|Notes|
+| :--- | :--- | :--- | :--- |
+|output_ds|Output prediction.|['sf.table.individual']||
+
+### kmeans_predict
+
+
+Component version: 1.0.0
+
+Predict using the KMeans model. This component is currently experimental.
+#### Attrs
+  
+
+|Name|Description|Type|Required|Notes|
+| :--- | :--- | :--- | :--- | :--- |
+|receiver|Party of receiver.|Special type. Specify parties.|Y||
+|pred_name|Column name for predictions.|String|N|Default: pred.|
+|save_ids|Whether to save ids columns into output prediction table. If true, input feature_dataset must contain id columns, and receiver party must be id owner.|Boolean|N|Default: False.|
+
+#### Inputs
+  
+
+|Name|Description|Type(s)|Notes|
+| :--- | :--- | :--- | :--- |
+|input_model|model|['sf.model.kmeans']||
+|input_ds|Input vertical table.|['sf.table.vertical']|Pleae fill in extra table attributes.|
+|input/input_ds/saved_features|which features should be saved with prediction result|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. |
+
+#### Outputs
+  
+
+|Name|Description|Type(s)|Notes|
+| :--- | :--- | :--- | :--- |
+|output_ds|Output prediction.|['sf.table.individual']||
+
+### knn_predict
+
+
+Component version: 1.0.0
+
+Predict using the K neighbors classifier model. This component is currently experimental.
+#### Attrs
+  
+
+|Name|Description|Type|Required|Notes|
+| :--- | :--- | :--- | :--- | :--- |
+|receiver|Party of receiver.|Special type. Specify parties.|Y||
+|pred_name|Column name for predictions.|String|N|Default: pred.|
+|save_ids|Whether to save ids columns into output prediction table. If true, input feature_dataset must contain id columns, and receiver party must be id owner.|Boolean|N|Default: False.|
+|save_label|Whether or not to save real label columns into output pred file. If true, input feature_dataset must contain label columns and receiver party must be label owner.|Boolean|N|Default: True.|
+
+#### Inputs
+  
+
+|Name|Description|Type(s)|Notes|
+| :--- | :--- | :--- | :--- |
+|input_model|model|['sf.model.knn']||
+|input_ds|Input vertical table.|['sf.table.vertical']|Pleae fill in extra table attributes.|
+|input/input_ds/saved_features|which features should be saved with prediction result|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. |
+
+#### Outputs
+  
+
+|Name|Description|Type(s)|Notes|
+| :--- | :--- | :--- | :--- |
+|output_ds|Output prediction.|['sf.table.individual']||
+
+### serving_model_inferencer
+
+
+Component version: 1.1.0
+
 batch predicting online service models in offline
 #### Attrs
-
+  
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
 |receiver|Party of receiver.|Special type. Specify parties.|Y||
 |pred_name|Column name for predictions.|String|N|Default: score.|
+|input_block_size|block size (Byte) for input data streaming|Integer|N|Default: 65536.|
 
 #### Inputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
 |serving_model|Input serving model.|['sf.serving.model']||
-|input_ds|Input vertical table or individual table.|['sf.table.vertical_table', 'sf.table.individual']|Pleae fill in extra table attributes.|
+|input_ds|Input vertical table or individual table.|['sf.table.vertical', 'sf.table.individual']|Pleae fill in extra table attributes.|
 |input/input_ds/saved_columns|which columns should be saved with prediction result|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. |
 
 #### Outputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -613,7 +743,7 @@ Component version: 1.0.0
 
 Predict using SGB model.
 #### Attrs
-
+  
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
@@ -623,16 +753,16 @@ Predict using SGB model.
 |save_label|Whether or not to save real label columns into output pred file. If true, input feature_dataset must contain label columns and receiver party must be label owner.|Boolean|N|Default: True.|
 
 #### Inputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
 |input_model|model|['sf.model.sgb']||
-|input_ds|Input vertical table.|['sf.table.vertical_table']|Pleae fill in extra table attributes.|
+|input_ds|Input vertical table.|['sf.table.vertical']|Pleae fill in extra table attributes.|
 |input/input_ds/saved_features|which features should be saved with prediction result|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. |
 
 #### Outputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -645,7 +775,7 @@ Component version: 1.1.0
 
 Predict using the SSGLM model.
 #### Attrs
-
+  
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
@@ -655,16 +785,16 @@ Predict using the SSGLM model.
 |save_label|Whether or not to save real label columns into output pred file. If true, input feature_dataset must contain label columns and receiver party must be label owner.|Boolean|N|Default: False.|
 
 #### Inputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
 |input_model|Input model.|['sf.model.ss_glm']||
-|input_ds|Input vertical table.|['sf.table.vertical_table']|Pleae fill in extra table attributes.|
+|input_ds|Input vertical table.|['sf.table.vertical']|Pleae fill in extra table attributes.|
 |input/input_ds/saved_features|which features should be saved with prediction result|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. |
 
 #### Outputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -677,7 +807,7 @@ Component version: 1.0.0
 
 Predict using the SS-SGD model.
 #### Attrs
-
+  
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
@@ -688,16 +818,16 @@ Predict using the SS-SGD model.
 |save_label|Whether or not to save real label columns into output pred file. If true, input feature_dataset must contain label columns and receiver party must be label owner.|Boolean|N|Default: False.|
 
 #### Inputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
 |input_model|Input model.|['sf.model.ss_sgd']||
-|input_ds|Input vertical table.|['sf.table.vertical_table']|Pleae fill in extra table attributes.|
+|input_ds|Input vertical table.|['sf.table.vertical']|Pleae fill in extra table attributes.|
 |input/input_ds/saved_features|which features should be saved with prediction result|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. |
 
 #### Outputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -710,7 +840,7 @@ Component version: 1.0.0
 
 Predict using the SS-XGB model.
 #### Attrs
-
+  
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
@@ -720,16 +850,16 @@ Predict using the SS-XGB model.
 |save_label|Whether or not to save real label columns into output pred file. If true, input feature_dataset must contain label columns and receiver party must be label owner.|Boolean|N|Default: True.|
 
 #### Inputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
 |input_model|model|['sf.model.ss_xgb']||
-|input_ds|Input vertical table.|['sf.table.vertical_table']|Pleae fill in extra table attributes.|
+|input_ds|Input vertical table.|['sf.table.vertical']|Pleae fill in extra table attributes.|
 |input/input_ds/saved_features|which features should be saved with prediction result|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. |
 
 #### Outputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -737,17 +867,139 @@ Predict using the SS-XGB model.
 
 ## ml.train
 
-### sgb_train
+### gnb_train
 
 
 Component version: 1.0.0
+
+Provide gaussian naive bayes training. This component is currently experimental.
+#### Attrs
+  
+
+|Name|Description|Type|Required|Notes|
+| :--- | :--- | :--- | :--- | :--- |
+|var_smoothing|Portion of the largest variance of all features that is added to variances for calculation stability.|Float|N|Default: 0.0.Range: (0.0, $\infty$).|
+|n_classes|The number of classes in the training data, must be preprocessed to 0, 1, 2, ..., n_classes - 1|Integer|N|Default: 2.Range: [2, $\infty$).|
+
+#### Inputs
+  
+
+|Name|Description|Type(s)|Notes|
+| :--- | :--- | :--- | :--- |
+|input_ds|Input vertical table.|['sf.table.vertical']|Pleae fill in extra table attributes.|
+|input/input_ds/feature_selects|which features should be used for training.|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. Min column number to select(inclusive): 1. |
+|input/input_ds/label|Label of train dataset.|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. Min column number to select(inclusive): 1. Max column number to select(inclusive): 1. |
+
+#### Outputs
+  
+
+|Name|Description|Type(s)|Notes|
+| :--- | :--- | :--- | :--- |
+|output_model|Output model.|['sf.model.gnb']||
+
+### gpc_train
+
+
+Component version: 1.0.0
+
+Provide gaussian process classifier training. This component is currently experimental.
+#### Attrs
+  
+
+|Name|Description|Type|Required|Notes|
+| :--- | :--- | :--- | :--- | :--- |
+|max_iter_predict|The maximum number of iterations in Newton's method for approximating the posterior during predict. Smaller values will reduce computation time at the cost of worse results.|Integer|N|Default: 20.Range: [1, $\infty$).|
+|n_classes|The number of classes in the training data, must be preprocessed to 0, 1, 2, ...|Integer|N|Default: 2.Range: [1, $\infty$).|
+
+#### Inputs
+  
+
+|Name|Description|Type(s)|Notes|
+| :--- | :--- | :--- | :--- |
+|input_ds|Input vertical table.|['sf.table.vertical', 'sf.table.individual']|Pleae fill in extra table attributes.|
+|input/input_ds/feature_selects|which features should be used for training.|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. Min column number to select(inclusive): 1. |
+|input/input_ds/label|Label of train dataset.|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. Min column number to select(inclusive): 1. Max column number to select(inclusive): 1. |
+
+#### Outputs
+  
+
+|Name|Description|Type(s)|Notes|
+| :--- | :--- | :--- | :--- |
+|output_model|Output model.|['sf.model.gpc']||
+
+### kmeans_train
+
+
+Component version: 1.0.0
+
+Provide kmeans training. This component is currently experimental.
+#### Attrs
+  
+
+|Name|Description|Type|Required|Notes|
+| :--- | :--- | :--- | :--- | :--- |
+|n_clusters|Number of clusters.|Integer|Y|Range: [1, $\infty$).|
+|max_iter|Number of iterations for kmeans training.|Integer|N|Default: 10.Range: [1, $\infty$).|
+|n_init|Number of groups for initial centers.|Integer|N|Default: 1.Range: [1, $\infty$).|
+|init_method|Params initialization method.|Special type. Union group. You must select one child to fill in.|N/A|This is a special type. This is a union group, you must select one child to fill in (if exists).|
+
+#### Inputs
+  
+
+|Name|Description|Type(s)|Notes|
+| :--- | :--- | :--- | :--- |
+|input_ds|Input vertical table.|['sf.table.vertical']|Pleae fill in extra table attributes.|
+|input/input_ds/feature_selects|which features should be used for training.|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. Min column number to select(inclusive): 1. |
+
+#### Outputs
+  
+
+|Name|Description|Type(s)|Notes|
+| :--- | :--- | :--- | :--- |
+|output_model|Output model.|['sf.model.kmeans']||
+
+### knn_train
+
+
+Component version: 1.0.0
+
+Provide k neighbors classifier training. This component is currently experimental.
+#### Attrs
+  
+
+|Name|Description|Type|Required|Notes|
+| :--- | :--- | :--- | :--- | :--- |
+|weights|weights function used in prediction method.|Special type. Union group. You must select one child to fill in.|N/A|This is a special type. This is a union group, you must select one child to fill in (if exists).|
+|n_classes|The number of classes in the training data, must be preprocessed to 0, 1, 2, ...|Integer|N|Default: 2.Range: [1, $\infty$).|
+|n_neighbors|Number of neighbors to use for prediction.|Integer|N|Default: 5.Range: [1, $\infty$).|
+
+#### Inputs
+  
+
+|Name|Description|Type(s)|Notes|
+| :--- | :--- | :--- | :--- |
+|input_ds|Input vertical table.|['sf.table.vertical']|Pleae fill in extra table attributes.|
+|input/input_ds/feature_selects|which features should be used for training.|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. Min column number to select(inclusive): 1. |
+|input/input_ds/label|Label of train dataset.|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. Min column number to select(inclusive): 1. Max column number to select(inclusive): 1. |
+
+#### Outputs
+  
+
+|Name|Description|Type(s)|Notes|
+| :--- | :--- | :--- | :--- |
+|output_model|Output model.|['sf.model.knn']||
+
+### sgb_train
+
+
+Component version: 1.1.0
 
 Provides both classification and regression tree boosting (also known as GBDT, GBM)
 for vertical split dataset setting by using secure boost.
 - SGB is short for SecureBoost. Compared to its safer counterpart SS-XGB, SecureBoost focused on protecting label holder.
 - Check https://arxiv.org/abs/1901.08755.
 #### Attrs
-
+  
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
@@ -780,22 +1032,24 @@ for vertical split dataset setting by using secure boost.
 |stopping_tolerance|Early stop specific parameter. If metric on validation set is no longer improving by at least this amount, then consider not improving.|Float|N|Default: 0.0.Range: [0.0, $\infty$).|
 |tweedie_variance_power|Parameter that controls the variance of the Tweedie distribution.|Float|N|Default: 1.5.Range: (1.0, 2.0).|
 |save_best_model|Whether to save the best model on validation set during training.|Boolean|N|Default: False.|
+|report_importances|Whether to report feature importances. Currently supported importances are: {"gain": "the average gain across all splits the feature is used in.", "weight": "the number of times a feature is used to split the data across all trees."}|Boolean|N|Default: False.|
 
 #### Inputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|input_ds|Input vertical table.|['sf.table.vertical_table']|Pleae fill in extra table attributes.|
+|input_ds|Input vertical table.|['sf.table.vertical']|Pleae fill in extra table attributes.|
 |input/input_ds/feature_selects|which features should be used for training.|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. Min column number to select(inclusive): 1. |
 |input/input_ds/label|Label of train dataset.|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. Min column number to select(inclusive): 1. Max column number to select(inclusive): 1. |
 
 #### Outputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
 |output_model|Output model.|['sf.model.sgb']||
+|report|If report_importances is true, report feature importances|['sf.report']||
 
 ### ss_glm_train
 
@@ -807,7 +1061,7 @@ The GLM generalizes linear regression by allowing the linear model to be related
 variable via a link function and by allowing the magnitude of the variance of each measurement to
 be a function of its predicted value.
 #### Attrs
-
+  
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
@@ -830,6 +1084,7 @@ be a function of its predicted value.
 |stopping_rounds|If the model is not improving for stopping_rounds, the training process will be stopped, for 'weight' stopping metric, stopping_rounds is fixed to be 1|Integer|N|Default: 0.Range: [0, 100].|
 |stopping_tolerance|the model is considered as not improving, if the metric is not improved by tolerance over best metric in history. If metric is 'weight' and tolerance == 0, then early stop is disabled.|Float|N|Default: 0.001.Range: [0.0, 1.0).|
 |report_metric|Whether to report the value of stopping metric. Only effective if early stop is enabled. If this option is set to true, metric will be revealed and logged.|Boolean|N|Default: False.|
+|use_high_precision_exp|If you do not know the details of this parameter, please do not modify this parameter! If this option is true, glm training and prediction will use a high-precision exp approx, but there will be a large performance drop. Otherwise, use high performance exp approx, There will be no significant difference in model performance. However, prediction bias may occur if the model is exported to an external system for use.|Boolean|N|Default: False.|
 |exp_mode|If you do not know the details of this parameter, please do not modify this parameter! Specify the mode of exp taylor approx, currently only supports 'taylor', 'pade' and 'prime' modes. The default value is 'taylor'. 'taylor': use taylor approx, variable precision and cost, higher exp_iters, higher cost. 'pade': use pade approx, high precision, high cost. 'prime': use prime approx, best precision, 3/4 cost of taylor (8 iter), only support for SEMI2K FM128 case. Although it has great presicion and performance inside valid domain, the approximation can be wildly inaccurate outside the valid domain. Suppose x -> exp(x), then valid domain is: x in ((47 - offset - 2fxp)/log_2(e), (125 - 2fxp - offset)/log_2(e)). That's why we need clamping x to this range. However, clamping action is expensive, so we need to set a reasonable offset to control the valid range of exp prime method, and avoid clamping for best performance.|String|N|Default: taylor.Allowed: ['pade', 'taylor', 'prime'].|
 |exp_iters|If you do not know the details of this parameter, please do not modify this parameter! Specify the number of iterations of exp taylor approx, Only takes effect when using exp mode 'taylor'. Increasing this value will improve the accuracy of exp approx, but will quickly degrade performance.|Integer|N|Default: 8.Range: [4, 32].|
 |exp_prime_offset|If you do not know the details of this parameter, please do not modify this parameter! Specify the offset of exp prime approx, only takes effect when using exp mode 'prime'. control the valid range of exp prime method. Suppose x -> exp(x), then valid domain is: x in ((47 - offset - 2fxp)/log_2(e), (125 - 2fxp - offset)/log_2(e)) default to be 13.|Integer|N|Default: 13.Range: (0, $\infty$).|
@@ -838,18 +1093,18 @@ be a function of its predicted value.
 |report_weights|If this option is set to true, model will be revealed and model details are visible to all parties|Boolean|N|Default: False.|
 
 #### Inputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|input_ds|Input vertical table.|['sf.table.vertical_table']|Pleae fill in extra table attributes.|
+|input_ds|Input vertical table.|['sf.table.vertical']|Pleae fill in extra table attributes.|
 |input/input_ds/feature_selects|which features should be used for training.|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. Min column number to select(inclusive): 1. |
 |input/input_ds/offset|Specify a column to use as the offset|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. Max column number to select(inclusive): 1. |
 |input/input_ds/weight|Specify a column to use for the observation weights|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. Max column number to select(inclusive): 1. |
 |input/input_ds/label|Label of train dataset.|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. Min column number to select(inclusive): 1. Max column number to select(inclusive): 1. |
 
 #### Outputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -865,7 +1120,7 @@ Train both linear and logistic regression
 linear models for vertical partitioning dataset with mini batch SGD training solver by using secret sharing.
 - SS-SGD is short for secret sharing SGD training.
 #### Attrs
-
+  
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
@@ -880,16 +1135,16 @@ linear models for vertical partitioning dataset with mini batch SGD training sol
 |report_weights|If this option is set to true, model will be revealed and model details are visible to all parties|Boolean|N|Default: False.|
 
 #### Inputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|input_ds|Input vertical table.|['sf.table.vertical_table']|Pleae fill in extra table attributes.|
+|input_ds|Input vertical table.|['sf.table.vertical']|Pleae fill in extra table attributes.|
 |input/input_ds/feature_selects|which features should be used for training.|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. Min column number to select(inclusive): 1. |
 |input/input_ds/label|Label of train dataset.|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. Min column number to select(inclusive): 1. Max column number to select(inclusive): 1. |
 
 #### Outputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -906,7 +1161,7 @@ for vertical partitioning dataset setting by using secret sharing.
 - SS-XGB is short for secret sharing XGB.
 - More details: https://arxiv.org/pdf/2005.08479.pdf
 #### Attrs
-
+  
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
@@ -922,16 +1177,16 @@ for vertical partitioning dataset setting by using secret sharing.
 |seed|Pseudorandom number generator seed.|Integer|N|Default: 42.Range: [0, $\infty$).|
 
 #### Inputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|input_ds|Input vertical table.|['sf.table.vertical_table']|Pleae fill in extra table attributes.|
+|input_ds|Input vertical table.|['sf.table.vertical']|Pleae fill in extra table attributes.|
 |input/input_ds/feature_selects|which features should be used for training.|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. Min column number to select(inclusive): 1. |
 |input/input_ds/label|Label of train dataset.|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. Min column number to select(inclusive): 1. Max column number to select(inclusive): 1. |
 
 #### Outputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -952,7 +1207,7 @@ list of components to be exported must contain exactly one model
 train or model predict component, and may include zero or
 multiple preprocessing and postprocessing components.
 #### Attrs
-
+  
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
@@ -964,7 +1219,7 @@ multiple preprocessing and postprocessing components.
 |he_mode|If enabled, it will export a homomorphic encryption model. Currently, only SGD and GLM models for two-party scenarios are supported.|Boolean|N|Default: False.|
 
 #### Outputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -980,7 +1235,7 @@ Component version: 1.0.0
 
 Transform the predicted result (a probability value) produced by the logistic regression model into a more understandable score (for example, a score of up to 1000 points)
 #### Attrs
-
+  
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
@@ -993,7 +1248,7 @@ Transform the predicted result (a probability value) produced by the logistic re
 |max_score|An integer of [1,1000] is supported|Integer|N|Default: 1000.Range: [1, 1000].|
 
 #### Inputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -1001,7 +1256,7 @@ Transform the predicted result (a probability value) produced by the logistic re
 |input/input_ds/predict_name||String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. Min column number to select(inclusive): 1. Max column number to select(inclusive): 1. |
 
 #### Outputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -1016,29 +1271,29 @@ Component version: 1.0.0
 
 Perform binary operation binary_op(f1, f2) and assign the result to f3, f3 can be new or old. Currently f1, f2 and f3 all belong to a single party.
 #### Attrs
-
+  
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
 |binary_op|What kind of binary operation we want to do, currently only supports +, -, *, /|String|N|Default: +.Allowed: ['+', '-', '*', '/'].|
-|new_feature_name|Name of the newly generated feature.|String|Y||
-|as_label|If True, the generated feature will be marked as label in schema.|Boolean|N|Default: False.|
+|new_feature_name|Name of the newly generated feature. If this feature already exists, it will be overwritten.|String|Y||
+|as_label|If True, the generated feature will be marked as label in schema, otherwise it will be treated as Feature.|Boolean|N|Default: False.|
 
 #### Inputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|input_ds|Input vertical table.|['sf.table.vertical_table']|Pleae fill in extra table attributes.|
+|input_ds|Input vertical table.|['sf.table.vertical']|Pleae fill in extra table attributes.|
 |input/input_ds/f1|Feature 1 to operate on.|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. Min column number to select(inclusive): 1. Max column number to select(inclusive): 1. |
 |input/input_ds/f2|Feature 2 to operate on.|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. Min column number to select(inclusive): 1. Max column number to select(inclusive): 1. |
 
 #### Outputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|output_ds|Output vertical table.|['sf.table.vertical_table']||
+|output_ds|Output vertical table.|['sf.table.vertical']||
 |output_rule|feature gen rule|['sf.rule.preprocessing']||
 
 ### case_when
@@ -1048,25 +1303,25 @@ Component version: 1.0.0
 
 case_when
 #### Attrs
-
+  
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
 |rules|input CaseWhen rules|Special type. SecretFlow customized Protocol Buffers message.|Y||
 
 #### Inputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|input_ds|Input vertical table.|['sf.table.vertical_table']||
+|input_ds|Input vertical table.|['sf.table.vertical']||
 
 #### Outputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|output_ds|output_dataset|['sf.table.vertical_table']||
+|output_ds|output_dataset|['sf.table.vertical']||
 |output_rule|case when substitution rule|['sf.rule.preprocessing']||
 
 ### cast
@@ -1076,26 +1331,26 @@ Component version: 1.0.0
 
 For conversion between basic data types, such as converting float to string.
 #### Attrs
-
+  
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
 |astype|single-choice, options available are string, integer, float|Special type. Union group. You must select one child to fill in.|N/A|This is a special type. This is a union group, you must select one child to fill in (if exists).|
 
 #### Inputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|input_ds|The input table|['sf.table.vertical_table']|Pleae fill in extra table attributes.|
+|input_ds|The input table|['sf.table.vertical']|Pleae fill in extra table attributes.|
 |input/input_ds/columns|Multiple-choice, options available are string, integer, float, boolean|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. Min column number to select(inclusive): 1. |
 
 #### Outputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|output_ds|The output table|['sf.table.vertical_table']||
+|output_ds|The output table|['sf.table.vertical']||
 |output_rule|The output rules|['sf.rule.preprocessing']||
 
 ### feature_calculate
@@ -1105,26 +1360,26 @@ Component version: 1.0.0
 
 Generate a new feature by performing calculations on an origin feature
 #### Attrs
-
+  
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
 |rules|input CalculateOpRules rules|Special type. SecretFlow customized Protocol Buffers message.|Y||
 
 #### Inputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|input_ds|Input vertical table|['sf.table.vertical_table']|Pleae fill in extra table attributes.|
+|input_ds|Input vertical table|['sf.table.vertical']|Pleae fill in extra table attributes.|
 |input/input_ds/features|Feature(s) to operate on|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. Min column number to select(inclusive): 1. |
 
 #### Outputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|output_ds|output_dataset|['sf.table.vertical_table']||
+|output_ds|output_dataset|['sf.table.vertical']||
 |output_rule|feature calculate rule|['sf.rule.preprocessing']||
 
 ### fillna
@@ -1134,7 +1389,7 @@ Component version: 1.0.0
 
 Fill null/nan or other specificed outliers in dataset
 #### Attrs
-
+  
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
@@ -1152,19 +1407,19 @@ Fill null/nan or other specificed outliers in dataset
 |fill_value_bool|For bool type data. If method is 'constant' use this value for filling null.|Boolean|N|Default: False.|
 
 #### Inputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|input_ds|Input vertical table.|['sf.table.vertical_table']|Pleae fill in extra table attributes.|
+|input_ds|Input vertical table.|['sf.table.vertical']|Pleae fill in extra table attributes.|
 |input/input_ds/fill_na_features|Features to fill.|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. |
 
 #### Outputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|output_ds|Output vertical table.|['sf.table.vertical_table']||
+|output_ds|Output vertical table.|['sf.table.vertical']||
 |output_rule|fill value rule|['sf.rule.preprocessing']||
 
 ### onehot_encode
@@ -1174,7 +1429,7 @@ Component version: 1.0.0
 
 onehot_encode
 #### Attrs
-
+  
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
@@ -1183,19 +1438,19 @@ onehot_encode
 |report_rules|Whether to report rule details|Boolean|N|Default: True.|
 
 #### Inputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|input_ds|Input vertical table.|['sf.table.vertical_table']|Pleae fill in extra table attributes.|
+|input_ds|Input vertical table.|['sf.table.vertical']|Pleae fill in extra table attributes.|
 |input/input_ds/features|Features to encode.|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. |
 
 #### Outputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|output_ds|output dataset|['sf.table.vertical_table']||
+|output_ds|output dataset|['sf.table.vertical']||
 |output_rule|onehot rule|['sf.rule.preprocessing']||
 |report|report rules details if report_rules is true|['sf.report']||
 
@@ -1206,25 +1461,25 @@ Component version: 1.0.0
 
 sql processor
 #### Attrs
-
+  
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
 |sql|sql for preprocessing, for example SELECT a, b, a+b|String|Y||
 
 #### Inputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|input_ds|Input table|['sf.table.individual', 'sf.table.vertical_table']||
+|input_ds|Input table|['sf.table.individual', 'sf.table.vertical']||
 
 #### Outputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|output_ds|Output table|['sf.table.individual', 'sf.table.vertical_table']||
+|output_ds|Output table|['sf.table.individual', 'sf.table.vertical']||
 |output_rule|Output rule|['sf.rule.preprocessing']||
 
 ### substitution
@@ -1234,19 +1489,19 @@ Component version: 1.0.0
 
 unified substitution component
 #### Inputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|input_ds|Input vertical table.|['sf.table.vertical_table']||
+|input_ds|Input vertical table.|['sf.table.vertical']||
 |input_rule|Input preprocessing rules|['sf.rule.preprocessing', 'sf.rule.binning']||
 
 #### Outputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|output_ds|output_dataset|['sf.table.vertical_table']||
+|output_ds|output_dataset|['sf.table.vertical']||
 
 ### vert_binning
 
@@ -1255,7 +1510,7 @@ Component version: 1.0.0
 
 Generate equal frequency or equal range binning rules for vertical partitioning datasets.
 #### Attrs
-
+  
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
@@ -1264,19 +1519,19 @@ Generate equal frequency or equal range binning rules for vertical partitioning 
 |report_rules|Whether report binning rules.|Boolean|N|Default: False.|
 
 #### Inputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|input_ds|Input vertical table.|['sf.table.vertical_table']|Pleae fill in extra table attributes.|
+|input_ds|Input vertical table.|['sf.table.vertical']|Pleae fill in extra table attributes.|
 |input/input_ds/feature_selects|which features should be binned.|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. Min column number to select(inclusive): 1. |
 
 #### Outputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|output_ds|Output vertical table.|['sf.table.vertical_table']||
+|output_ds|Output vertical table.|['sf.table.vertical']||
 |output_rule|Output bin rule.|['sf.rule.binning']||
 |report|report rules details if report_rules is true|['sf.report']||
 
@@ -1287,7 +1542,7 @@ Component version: 1.0.0
 
 Generate Weight of Evidence (WOE) binning rules for vertical partitioning datasets.
 #### Attrs
-
+  
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
@@ -1301,20 +1556,20 @@ Generate Weight of Evidence (WOE) binning rules for vertical partitioning datase
 |report_rules|Whether report binning rules.|Boolean|N|Default: False.|
 
 #### Inputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|input_ds|Input vertical table.|['sf.table.vertical_table']|Pleae fill in extra table attributes.|
+|input_ds|Input vertical table.|['sf.table.vertical']|Pleae fill in extra table attributes.|
 |input/input_ds/feature_selects|which features should be binned. WARNING: WOE won't be effective for features with enumeration count <=2.|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. Min column number to select(inclusive): 1. |
 |input/input_ds/label|Label of input data.|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. Min column number to select(inclusive): 1. Max column number to select(inclusive): 1. |
 
 #### Outputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|output_ds|Output vertical table.|['sf.table.vertical_table']||
+|output_ds|Output vertical table.|['sf.table.vertical']||
 |output_rule|Output WOE rule.|['sf.rule.binning']||
 |report|report rules details if report_rules is true|['sf.report']||
 
@@ -1328,7 +1583,7 @@ Component version: 1.0.0
 Get a groupby of statistics, like pandas groupby statistics.
 Currently only support VDataframe.
 #### Attrs
-
+  
 
 |Name|Description|Type|Required|Notes|
 | :--- | :--- | :--- | :--- | :--- |
@@ -1336,15 +1591,15 @@ Currently only support VDataframe.
 |max_group_size|The maximum number of groups allowed|Integer|N|Default: 10000.Range: (0, 10001).|
 
 #### Inputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|input_ds|Input table.|['sf.table.vertical_table', 'sf.table.individual']|Pleae fill in extra table attributes.|
-|input/input_ds/by|by what columns should we group the values|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. Min column number to select(inclusive): 1. Max column number to select(inclusive): 4. |
+|input_ds|Input table.|['sf.table.vertical', 'sf.table.individual']|Pleae fill in extra table attributes.|
+|input/input_ds/by|by what columns should we group the values, encode values into int or str before groupby or else numeric errors may occur|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. Min column number to select(inclusive): 1. Max column number to select(inclusive): 4. |
 
 #### Outputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -1359,15 +1614,15 @@ Calculate Pearson's product-moment correlation coefficient for vertical partitio
 by using secret sharing.
 - For large dataset(large than 10w samples & 200 features), recommend to use [Ring size: 128, Fxp: 40] options for SPU device.
 #### Inputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|input_ds|Input vertical table.|['sf.table.vertical_table', 'sf.table.individual']|Pleae fill in extra table attributes.|
+|input_ds|Input vertical table.|['sf.table.vertical', 'sf.table.individual']|Pleae fill in extra table attributes.|
 |input/input_ds/feature_selects|Specify which features to calculate correlation coefficient with. If empty, all features will be used|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. |
 
 #### Outputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -1382,15 +1637,15 @@ Calculate Variance Inflation Factor(VIF) for vertical partitioning dataset
 by using secret sharing.
 - For large dataset(large than 10w samples & 200 features), recommend to use [Ring size: 128, Fxp: 40] options for SPU device.
 #### Inputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|input_ds|Input vertical table.|['sf.table.vertical_table', 'sf.table.individual']|Pleae fill in extra table attributes.|
+|input_ds|Input vertical table.|['sf.table.vertical', 'sf.table.individual']|Pleae fill in extra table attributes.|
 |input/input_ds/feature_selects|Specify which features to calculate VIF with. If empty, all features will be used.|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. |
 
 #### Outputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -1403,17 +1658,17 @@ Component version: 1.0.0
 
 population stability index.
 #### Inputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|input_base_ds|Input base vertical table.|['sf.table.vertical_table', 'sf.table.individual']|Pleae fill in extra table attributes.|
+|input_base_ds|Input base vertical table.|['sf.table.vertical', 'sf.table.individual']|Pleae fill in extra table attributes.|
 |input/input_base_ds/feature_selects|which features should be binned.|String List(Set value with other Component Attributes)|You need to select some columns of table input_base_ds. Min column number to select(inclusive): 1. |
-|input_test_ds|Input test vertical table.|['sf.table.vertical_table', 'sf.table.individual']||
+|input_test_ds|Input test vertical table.|['sf.table.vertical', 'sf.table.individual']||
 |input_rule|Input bin rule.|['sf.rule.binning']||
 
 #### Outputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
@@ -1422,7 +1677,7 @@ population stability index.
 ### table_statistics
 
 
-Component version: 1.0.0
+Component version: 1.0.2
 
 Get a table of statistics,
 including each column's
@@ -1455,16 +1710,24 @@ including each column's
 - moment_2 means E[X^2].
 - central_moment_2 means E[(X - mean(X))^2].
 - sum_2 means sum(X^2).
+All of the object or string class columns will not be included in the above statistics, but in a separate report.
+The second report is a table of the object or string class columns.
+Note that please do not include individual information (like address, phone number, etc.) for table statistics.
+The categorical report will be with the following columns:
+1. column dtype (the data type of the column)
+2. count (the number of non-null values)
+3. nunique (the number of unique values in this column)
+if no numeric or categorical columns, the report will be dummy report.
 #### Inputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |
-|input_ds|Input table.|['sf.table.vertical_table', 'sf.table.individual']|Pleae fill in extra table attributes.|
+|input_ds|Input table.|['sf.table.vertical', 'sf.table.individual']|Pleae fill in extra table attributes.|
 |input/input_ds/features|perform statistics on these columns|String List(Set value with other Component Attributes)|You need to select some columns of table input_ds. Min column number to select(inclusive): 1. |
 
 #### Outputs
-
+  
 
 |Name|Description|Type(s)|Notes|
 | :--- | :--- | :--- | :--- |

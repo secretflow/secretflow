@@ -18,7 +18,7 @@ from enum import Enum
 
 import grpc
 import pyarrow.flight as flight
-from dataproxy.sdk import (
+from dataproxy import (
     DataProxyConfig,
     DataProxyFileAdapter,
     DownloadInfo,

@@ -13,43 +13,53 @@
 # limitations under the License.
 
 import numpy as np
-from spu import spu_pb2
+import spu
 
 
 def spu_fxp_precision(field_type):
     """Fixed point integer default precision bits"""
-    if field_type == spu_pb2.FM32:
-        return 8
-    elif field_type == spu_pb2.FM64:
-        return 18
-    elif field_type == spu_pb2.FM128:
-        return 26
+    field_precision_dict = {
+        spu.FieldType.FM32.name: 8,
+        spu.FieldType.FM64.name: 18,
+        spu.FieldType.FM128.name: 26,
+    }
+    if isinstance(field_type, spu.FieldType):
+        field_type = field_type.name
+
+    if field_type in field_precision_dict:
+        return field_precision_dict[field_type]
+
     raise ValueError(f'unsupported field type {field_type}')
 
 
 def spu_fxp_size(field_type):
     """Fixed point integer size in bytes"""
-    if field_type == spu_pb2.FM32:
-        return 4
-    elif field_type == spu_pb2.FM64:
-        return 8
-    elif field_type == spu_pb2.FM128:
-        return 16
+    field_fxp_size_dict = {
+        spu.FieldType.FM32.name: 4,
+        spu.FieldType.FM64.name: 8,
+        spu.FieldType.FM128.name: 16,
+    }
+    if isinstance(field_type, spu.FieldType):
+        field_type = field_type.name
+
+    if field_type in field_fxp_size_dict:
+        return field_fxp_size_dict[field_type]
+
     raise ValueError(f'unsupported field type {field_type}')
 
 
 HEU_SPU_DT_SWITCHER = {
-    "DT_I1": spu_pb2.DataType.DT_I1,
-    "DT_I8": spu_pb2.DataType.DT_I8,
-    "DT_U8": spu_pb2.DataType.DT_U8,
-    "DT_I16": spu_pb2.DataType.DT_I16,
-    "DT_U16": spu_pb2.DataType.DT_U16,
-    "DT_I32": spu_pb2.DataType.DT_I32,
-    "DT_U32": spu_pb2.DataType.DT_U32,
-    "DT_I64": spu_pb2.DataType.DT_I64,
-    "DT_U64": spu_pb2.DataType.DT_U64,
-    "DT_F32": spu_pb2.DataType.DT_F32,
-    "DT_F64": spu_pb2.DataType.DT_F64,
+    "DT_I1": spu.DataType.DT_I1,
+    "DT_I8": spu.DataType.DT_I8,
+    "DT_U8": spu.DataType.DT_U8,
+    "DT_I16": spu.DataType.DT_I16,
+    "DT_U16": spu.DataType.DT_U16,
+    "DT_I32": spu.DataType.DT_I32,
+    "DT_U32": spu.DataType.DT_U32,
+    "DT_I64": spu.DataType.DT_I64,
+    "DT_U64": spu.DataType.DT_U64,
+    "DT_F32": spu.DataType.DT_F32,
+    "DT_F64": spu.DataType.DT_F64,
 }
 
 
@@ -59,17 +69,17 @@ def heu_datatype_to_spu(heu_dt):
 
 
 SPU_HEU_DT_SWITCHER = {
-    spu_pb2.DataType.DT_I1: "DT_I1",
-    spu_pb2.DataType.DT_I8: "DT_I8",
-    spu_pb2.DataType.DT_U8: "DT_U8",
-    spu_pb2.DataType.DT_I16: "DT_I16",
-    spu_pb2.DataType.DT_U16: "DT_U16",
-    spu_pb2.DataType.DT_I32: "DT_I32",
-    spu_pb2.DataType.DT_U32: "DT_U32",
-    spu_pb2.DataType.DT_I64: "DT_I64",
-    spu_pb2.DataType.DT_U64: "DT_U64",
-    spu_pb2.DataType.DT_F32: "DT_F32",
-    spu_pb2.DataType.DT_F64: "DT_F64",
+    spu.DataType.DT_I1: "DT_I1",
+    spu.DataType.DT_I8: "DT_I8",
+    spu.DataType.DT_U8: "DT_U8",
+    spu.DataType.DT_I16: "DT_I16",
+    spu.DataType.DT_U16: "DT_U16",
+    spu.DataType.DT_I32: "DT_I32",
+    spu.DataType.DT_U32: "DT_U32",
+    spu.DataType.DT_I64: "DT_I64",
+    spu.DataType.DT_U64: "DT_U64",
+    spu.DataType.DT_F32: "DT_F32",
+    spu.DataType.DT_F64: "DT_F64",
 }
 
 

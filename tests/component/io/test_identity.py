@@ -18,23 +18,21 @@ import logging
 import pandas as pd
 import pytest
 from google.protobuf.json_format import MessageToJson
+from secretflow_spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 from sklearn.datasets import load_breast_cancer
 from sklearn.preprocessing import StandardScaler
 
-from secretflow.component.core import build_node_eval_param, make_storage
-from secretflow.component.entry import comp_eval
+from secretflow.component.core import build_node_eval_param, comp_eval, make_storage
 from secretflow.spec.extend.linear_model_pb2 import LinearModel
-from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 
 
-@pytest.fixture
-def glm_model(comp_prod_sf_cluster_config):
+def gen_glm_model(sf_production_setup_comp):
     alice_path = "test_glm/x_alice.csv"
     bob_path = "test_glm/x_bob.csv"
     model_path = "test_glm/model.sf"
     report_path = "test_glm/model.report"
 
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
     self_party = sf_cluster_config.private_config.self_party
     storage = make_storage(storage_config)
 
@@ -108,10 +106,9 @@ def glm_model(comp_prod_sf_cluster_config):
     return train_res.outputs[0]
 
 
-@pytest.fixture
-def write_data(glm_model, comp_prod_sf_cluster_config):
+def gen_write_data(sf_production_setup_comp, glm_model):
     pb_path = "test_io/linear_model_pb"
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
 
     read_param = build_node_eval_param(
         domain="io",
@@ -132,10 +129,14 @@ def write_data(glm_model, comp_prod_sf_cluster_config):
     return write_data
 
 
-def test_glm_model_correct(glm_model, write_data, comp_prod_sf_cluster_config):
+@pytest.mark.mpc
+def test_glm_model_correct(sf_production_setup_comp):
     new_glm_model_path = "test_io/new_glm_model"
     pb_path = "test_io/glm_model_pb_unchanged"
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+
+    glm_model = gen_glm_model(sf_production_setup_comp)
+    write_data = gen_write_data(sf_production_setup_comp, glm_model)
+    storage_config, sf_cluster_config = sf_production_setup_comp
     identity_param = build_node_eval_param(
         domain="io",
         name="identity",

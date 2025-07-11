@@ -16,6 +16,7 @@ import tempfile
 
 import jax
 import numpy as np
+import pytest
 from jax.example_libraries import optimizers, stax
 from jax.example_libraries.stax import Dense, Relu
 
@@ -56,6 +57,7 @@ def _test_scalar(devices):
     np.testing.assert_almost_equal(sf.reveal(x), sf.reveal(y), decimal=5)
 
 
+@pytest.mark.mpc
 def test_scalar_prod(sf_production_setup_devices):
     _test_scalar(sf_production_setup_devices)
 
@@ -72,6 +74,7 @@ def _test_ndarray(devices):
     np.testing.assert_almost_equal(sf.reveal(x), sf.reveal(y), decimal=5)
 
 
+@pytest.mark.mpc
 def test_ndarray_prod(sf_production_setup_devices):
     _test_ndarray(sf_production_setup_devices)
 
@@ -101,6 +104,7 @@ def _test_pytree(devices):
         np.testing.assert_almost_equal(expected, actual, decimal=5)
 
 
+@pytest.mark.mpc
 def test_pytree_prod(sf_production_setup_devices):
     _test_pytree(sf_production_setup_devices)
 
@@ -124,6 +128,7 @@ def _test_to_heu(devices):
     np.testing.assert_almost_equal(sf.reveal(x), sf.reveal(y), decimal=5)
 
 
+@pytest.mark.mpc
 def test_to_heu_prod(sf_production_setup_devices):
     _test_to_heu(sf_production_setup_devices)
 
@@ -155,6 +160,7 @@ def _test_dump_load(devices):
     np.testing.assert_almost_equal(sf.reveal(x_spu), sf.reveal(x_spu_), decimal=5)
 
 
+@pytest.mark.mpc
 def test_dump_load_prod(sf_production_setup_devices):
     _test_dump_load(sf_production_setup_devices)
 

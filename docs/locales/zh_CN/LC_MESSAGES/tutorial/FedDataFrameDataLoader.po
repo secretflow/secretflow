@@ -248,3 +248,4 @@ msgstr "同样这里也可以通过train_test_split来进行切分。"
 msgid "Next, you can try your own csv data"
 msgstr "接下来，可以用自己的csv数据尝试一下"
 
+

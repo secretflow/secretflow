@@ -110,6 +110,9 @@ commands:
     parameters:
       target_folder:
         type: string
+      concurrent_num:
+        type: string
+        default: "auto"
       testmon_prefix:
         type: string
       mode:
@@ -131,8 +134,15 @@ commands:
       - run:
           name: "Run tests"
           command: |
+            set +e
             conda init
-            pytest --suppress-no-test-exit-code --testmon --env <<parameters.mode>>  -n auto --junitxml=results.xml -v -x --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml  << parameters.target_folder >>
+            pytest --testmon --env <<parameters.mode>> -n <<parameters.concurrent_num>> --junitxml=results.xml -v -x --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml  << parameters.target_folder >>
+            ret=$?
+            set -e
+            if [ $ret -eq 0 ] || [ $ret -eq 5 ]; then
+              exit 0
+            fi
+            exit $ret
       - store_test_results:
           path: ./results.xml
       - save_cache:
@@ -168,7 +178,7 @@ commands:
               - << pipeline.parameters.test_preprocessing >>
           steps:
             - pytest_wrapper:
-                target_folder: tests/preprocessing/ 
+                target_folder: tests/preprocessing/
                 testmon_prefix: preprocessing
   run_stats_test:
     steps:
@@ -183,7 +193,7 @@ commands:
               - << pipeline.parameters.test_stats >>
           steps:
             - pytest_wrapper:
-                target_folder: tests/stats/ 
+                target_folder: tests/stats/
                 testmon_prefix: stats
   run_infra_test:
     steps:
@@ -211,7 +221,7 @@ commands:
               - << pipeline.parameters.test_ml >>
           steps:
             - pytest_wrapper:
-                target_folder: --ignore=tests/ml/nn/ tests/ml/
+                target_folder: tests/ml/
                 testmon_prefix: ml_sim
                 mode: "sim"
   run_ml_nn_test:
@@ -227,9 +237,10 @@ commands:
               - << pipeline.parameters.test_ml_nn >>
           steps:
             - pytest_wrapper:
-                target_folder: tests/ml/nn/
+                target_folder: tests/fl/ml/nn/
                 testmon_prefix: ml_nn_sim
                 mode: "sim"
+                concurrent_num: "1"
   run_other_sim_test:
     steps:
       - kill_countdown
@@ -241,9 +252,10 @@ commands:
               - << pipeline.parameters.test_any >>
           steps:
             - pytest_wrapper:
-                target_folder: --ignore=tests/ml/ tests/
+                target_folder: --ignore=tests/ml/ --ignore=tests/fl/ tests/
                 testmon_prefix: other_sim
                 mode: "sim"
+                concurrent_num: "8"
   run_component_test_wrapper:
     parameters:
       target_folder:
@@ -296,7 +308,7 @@ jobs:
             pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
       - persist_to_workspace:
           root: .
-          paths: 
+          paths:
             - artifacts
       - save_cache:
           key: *pip-cache

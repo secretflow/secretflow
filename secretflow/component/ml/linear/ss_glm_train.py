@@ -26,6 +26,7 @@ from secretflow.component.core import (
     Field,
     Input,
     Interval,
+    IServingExporter,
     Model,
     Output,
     Reporter,
@@ -46,7 +47,7 @@ EXP_MODE_DICT = {'pade': 1, 'taylor': 2, 'prime': 3}
 
 
 @register(domain="ml.train", version="1.1.0", name="ss_glm_train")
-class SSGLMTrain(SSGLMExportMixin, Component):
+class SSGLMTrain(SSGLMExportMixin, Component, IServingExporter):
     '''
     generalized linear model (GLM) is a flexible generalization of ordinary linear regression.
     The GLM generalizes linear regression by allowing the linear model to be related to the response
@@ -180,29 +181,29 @@ class SSGLMTrain(SSGLMExportMixin, Component):
     )
     use_high_precision_exp: bool = Field.attr(
         desc="""
-        If you do not know the details of this parameter, please do not modify this parameter!
+        If you do not know the details of this parameter, please do not modify this parameter! 
         If this option is true, glm training and prediction will use a high-precision exp approx,
-        but there will be a large performance drop. Otherwise, use high performance exp approx,
-        There will be no significant difference in model performance.
+        but there will be a large performance drop. Otherwise, use high performance exp approx, 
+        There will be no significant difference in model performance. 
         However, prediction bias may occur if the model is exported to an external system for use.
         """,
         default=False,
         minor_max=0,
     )
     exp_mode: str = Field.attr(
-        desc="""If you do not know the details of this parameter, please do not modify this parameter!
+        desc="""If you do not know the details of this parameter, please do not modify this parameter! 
     Specify the mode of exp taylor approx, currently only supports 'taylor', 'pade' and 'prime' modes.
     The default value is 'taylor'.
         'taylor': use taylor approx, variable precision and cost, higher exp_iters, higher cost.
         'pade': use pade approx, high precision, high cost.
-        'prime': use prime approx, best precision, 3/4 cost of taylor (8 iter),
-         only support for SEMI2K FM128 case.
+        'prime': use prime approx, best precision, 3/4 cost of taylor (8 iter), 
+         only support for SEMI2K FM128 case. 
          Although it has great presicion and performance inside valid domain,
-         the approximation can be wildly inaccurate outside the valid domain.
-         Suppose x -> exp(x), then valid domain is:
+         the approximation can be wildly inaccurate outside the valid domain. 
+         Suppose x -> exp(x), then valid domain is: 
          x in ((47 - offset - 2fxp)/log_2(e), (125 - 2fxp - offset)/log_2(e)).
-         That's why we need clamping x to this range. However, clamping action is expensive,
-         so we need to set a reasonable offset to control the valid range of exp prime method,
+         That's why we need clamping x to this range. However, clamping action is expensive, 
+         so we need to set a reasonable offset to control the valid range of exp prime method, 
          and avoid clamping for best performance.
     """,
         default="taylor",
@@ -210,19 +211,19 @@ class SSGLMTrain(SSGLMExportMixin, Component):
         minor_min=1,
     )
     exp_iters: int = Field.attr(
-        desc="""If you do not know the details of this parameter, please do not modify this parameter!
-    Specify the number of iterations of exp taylor approx,
+        desc="""If you do not know the details of this parameter, please do not modify this parameter! 
+    Specify the number of iterations of exp taylor approx, 
     Only takes effect when using exp mode 'taylor'.
-    Increasing this value will improve the accuracy of exp approx,
+    Increasing this value will improve the accuracy of exp approx, 
     but will quickly degrade performance.""",
         default=8,
         bound_limit=Interval.closed(4, 32),
     )
     exp_prime_offset: int = Field.attr(
-        desc="""If you do not know the details of this parameter, please do not modify this parameter!
+        desc="""If you do not know the details of this parameter, please do not modify this parameter! 
     Specify the offset of exp prime approx, only takes effect when using exp mode 'prime'.
     control the valid range of exp prime method. Suppose x -> exp(x), then
-    valid domain is: x in ((47 - offset - 2fxp)/log_2(e), (125 - 2fxp - offset)/log_2(e))
+    valid domain is: x in ((47 - offset - 2fxp)/log_2(e), (125 - 2fxp - offset)/log_2(e)) 
         default to be 13.
     """,
         default=13,
@@ -230,13 +231,13 @@ class SSGLMTrain(SSGLMExportMixin, Component):
         minor_min=1,
     )
     exp_prime_lower_bound_clamp: bool = Field.attr(
-        desc="""If you do not know the details of this parameter, please do not modify this parameter!
+        desc="""If you do not know the details of this parameter, please do not modify this parameter! 
     Specify whether to use lower bound for exp prime mode, only takes effect when using exp mode 'prime'.
     when calculating x -> exp(x), exp prime is only effective for
         x in ((47 - offset - 2fxp)/log_2(e), (125 - 2fxp - offset)/log_2(e)).
     If true, use clamp value below the lower bound, otherwise leave the value unchanged.
     lower bound is set to be (48 - offset - 2fxp)/log_2(e).
-
+    
     Enable clamping will avoid large numerical errors when x < lower bound.
     Disable clamping will leave the value unchanged, which may cause large numerical errors when x < lower bound.
     However, clamping cost is very high, if we are certain x is in the valid range,
@@ -246,13 +247,13 @@ class SSGLMTrain(SSGLMExportMixin, Component):
         minor_min=1,
     )
     exp_prime_higher_bound_clamp: bool = Field.attr(
-        desc="""If you do not know the details of this parameter, please do not modify this parameter!
+        desc="""If you do not know the details of this parameter, please do not modify this parameter! 
     Specify whether to use upper bound for exp prime mode, only takes effect when using exp mode 'prime'.
     when calculating x -> exp(x), exp prime is only effective for
         x in ((47 - offset - 2fxp)/log_2(e), (125 - 2fxp - offset)/log_2(e)).
     If true, use clamp value above the upper bound, otherwise leave the value unchanged.
     upper bound is set to be (125 - 2fxp - offset)/log_2(e).
-
+    
     Enable clamping will avoid large numerical errors when x > upper bound.
     Disable clamping will leave the value unchanged, which may cause large numerical errors when x > upper bound.
     However, clamping cost is very high, if we are certain x is in the valid range,
@@ -457,7 +458,7 @@ class SSGLMTrain(SSGLMExportMixin, Component):
             "sample_weight_col": self.weight if self.weight else [],
             "feature_names": feature_names,
             "party_features_length": party_features_length,
-            "model_hash": uuid4(tbl.party(0).party),
+            "model_hash": uuid4(tbl.get_party(0).party),
             "fxp_exp_mode": spu_rt_config.fxp_exp_mode,
             "fxp_exp_iters": spu_rt_config.fxp_exp_iters,
             "experimental_exp_prime_offset": spu_rt_config.experimental_exp_prime_offset,
