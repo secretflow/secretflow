@@ -572,6 +572,30 @@ jobs:
       - macos_pre_setup
       - restore_artifacts_macos
       - run_other_sim_test
+  docs_publish:
+    docker:
+      - image: cimg/python:3.10-node
+    shell: /bin/bash --login -eo pipefail
+    steps:
+      - checkout
+      - run:
+          name: Build docs and publish
+          command: |
+            set -ex
+            export DRY_RUN=0
+            export DOCTOOLS_PUBLISH_NPM_TOKEN=${DOCTOOLS_PUBLISH_NPM_TOKEN}
+            sudo apt-get update && sudo apt install -y git make
+            python3 -m venv ~/.venv/docs
+            source ~/.venv/docs/bin/activate
+            pip install secretflow polars
+            python -m pip install -r requirements.txt
+            cd docs
+            python -m pip install -r requirements.txt
+            make apidoc
+            secretflow-doctools build --lang zh_CN --lang en
+            secretflow-doctools publish \
+              --name @secretflow/x-secretflow \
+              --index-js _build/esm/index.js
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:
@@ -688,3 +712,9 @@ workflows:
       - macos_other_sim_test:
           requires:
             - macos_build
+      - docs_publish:
+          filters:
+            branches:
+              only: main
+            tags:
+              only: /^v.*/
