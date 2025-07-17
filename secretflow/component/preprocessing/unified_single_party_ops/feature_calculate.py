@@ -28,14 +28,15 @@ from secretflow.component.core import (
     Field,
     Input,
     Interval,
+    IServingExporter,
     Output,
     ServingBuilder,
     VTable,
     register,
 )
 from secretflow.device import PYUObject
-from secretflow.error_system.exceptions import NotSupportedError
 from secretflow.spec.extend.calculate_rules_pb2 import CalculateOpRules
+from secretflow.utils.errors import InvalidArgumentError, NotSupportedError
 
 from ..preprocessing import PreprocessingMixin
 
@@ -57,22 +58,20 @@ def apply_feature_calculate_rule(
 ) -> sc.Table:
     def _check_numeric(type):
         if not pa.types.is_floating(type) and not pa.types.is_integer(type):
-            raise NotSupportedError.not_supported_data_type(
-                f"operator only support float/int, but got {type}"
-            )
+            raise NotSupportedError(f"operator only support float/int, but got {type}")
 
     def _check_text(type):
         if not pa.types.is_string(type):
-            raise NotSupportedError.not_supported_data_type(
-                f"operator only support string, but got {type}"
-            )
+            raise NotSupportedError(f"operator only support string, but got {type}")
 
     # std = (x-mean)/stde
     def _apply_standardize(col: sc.Array, info: FeatureInfo):
         _check_numeric(col.dtype)
         # const column, set column elements to 0s
 
-        assert info is not None, f"invalid table info"
+        if info is None:
+            raise InvalidArgumentError("invalid table info")
+
         if info.nunique == 1:
             new_col = sc.multiply(col, 0)
         else:
@@ -84,7 +83,8 @@ def apply_feature_calculate_rule(
     # norm = (x-min)/(max-min)
     def _apply_normalize(col: sc.Array, info: FeatureInfo):
         _check_numeric(col.dtype)
-        assert info is not None, f"invalid table info"
+        if info is None:
+            raise InvalidArgumentError("invalid table info")
 
         # const column, set column elements to 0s
         if info.nunique == 1:
@@ -98,12 +98,16 @@ def apply_feature_calculate_rule(
     def _apply_range_limit(col: sc.Array):
         _check_numeric(col.dtype)
         op_cnt = len(rules.operands)
-        assert op_cnt == 2, f"range limit operator need 2 operands, but got {op_cnt}"
+        if op_cnt != 2:
+            raise InvalidArgumentError(
+                f"range limit operator need 2 operands, but got {op_cnt}"
+            )
         op0 = float(rules.operands[0])
         op1 = float(rules.operands[1])
-        assert (
-            op0 <= op1
-        ), f"range limit operator expect min <= max, but get [{op0}, {op1}]"
+        if op0 > op1:
+            raise InvalidArgumentError(
+                f"range limit operator expect min <= max, but get [{op0}, {op1}]"
+            )
 
         conds = [sc.less(col, op0), sc.greater(col, op1)]
         cases = [op0, op1, col]
@@ -113,16 +117,16 @@ def apply_feature_calculate_rule(
     def _apply_unary(col: sc.Array):
         _check_numeric(col.dtype)
         op_cnt = len(rules.operands)
-        assert op_cnt == 3, f"unary operator needs 3 operands, but got {op_cnt}"
+        if op_cnt != 3:
+            raise InvalidArgumentError(
+                f"unary operator needs 3 operands, but got {op_cnt}"
+            )
         op0 = rules.operands[0]
-        assert op0 in ['+', '-'], f"unary op0 should be [+ - r], but get {op0}"
+        if op0 not in ['+', '-']:
+            raise InvalidArgumentError(f"unary op0 should be [+ -], but get {op0}")
         op1 = rules.operands[1]
-        assert op1 in [
-            '+',
-            '-',
-            '*',
-            '/',
-        ], f"unary op1 should be [+ - * /], but get {op1}"
+        if op1 not in ['+', '-', '*', '/']:
+            raise InvalidArgumentError(f"unary op1 should be [+ - * /], but get {op1}")
         op3 = float(rules.operands[2])
         if op1 == "+":
             new_col = sc.add(col, op3)
@@ -132,7 +136,8 @@ def apply_feature_calculate_rule(
             new_col = sc.multiply(col, op3)
         elif op1 == "/":
             if op0 == "+":
-                assert op3 != 0, "unary operator divide zero"
+                if op3 == 0:
+                    raise InvalidArgumentError("unary operator divide zero")
                 new_col = sc.divide(col, op3)
             else:
                 new_col = sc.divide(op3, col)
@@ -151,7 +156,10 @@ def apply_feature_calculate_rule(
     def _apply_log_round(col: sc.Array):
         _check_numeric(col.dtype)
         op_cnt = len(rules.operands)
-        assert op_cnt == 1, f"log operator needs 1 operands, but got {op_cnt}"
+        if op_cnt != 1:
+            raise InvalidArgumentError(
+                f"log operator needs 1 operands, but got {op_cnt}"
+            )
         op0 = float(rules.operands[0])
         new_col = sc.round(sc.log2(sc.add(col, op0)))
         return new_col
@@ -165,7 +173,10 @@ def apply_feature_calculate_rule(
     def _apply_log(col: sc.Array):
         _check_numeric(col.dtype)
         op_cnt = len(rules.operands)
-        assert op_cnt == 2, f"log operator needs 2 operands, but got {op_cnt}"
+        if op_cnt != 2:
+            raise InvalidArgumentError(
+                f"log operator needs 2 operands, but got {op_cnt}"
+            )
         op0 = rules.operands[0]
         op1 = float(rules.operands[1])
         if op0 == "e":
@@ -187,7 +198,10 @@ def apply_feature_calculate_rule(
     def _apply_substr(col: sc.Array):
         _check_text(col.dtype)
         op_cnt = len(rules.operands)
-        assert op_cnt == 2, f"substr operator need 2 oprands, but get {op_cnt}"
+        if op_cnt != 2:
+            raise InvalidArgumentError(
+                f"substr operator needs 2 operands, but got {op_cnt}"
+            )
         start = int(rules.operands[0])
         length = int(rules.operands[1])
         new_col = sc.utf8_slice_codeunits(col, start, start + length)
@@ -222,7 +236,7 @@ def apply_feature_calculate_rule(
         elif rules.op == CalculateOpRules.OpType.SUBSTR:
             new_col = _apply_substr(col)
         else:
-            raise AttributeError(f"unknown rules.op {rules.op}")
+            raise InvalidArgumentError(f"unknown rules.op {rules.op}")
         table = table.set_column(
             table.column_names.index(feature),
             feature,
@@ -232,7 +246,7 @@ def apply_feature_calculate_rule(
 
 
 @register(domain="preprocessing", version="1.0.0")
-class FeatureCalculate(PreprocessingMixin, Component):
+class FeatureCalculate(PreprocessingMixin, Component, IServingExporter):
     '''
     Generate a new feature by performing calculations on an origin feature
     '''

@@ -18,18 +18,18 @@ import pytest
 import secretflow as sf
 from secretflow.data import FedNdarray, PartitionWay
 from secretflow.stats import ScoreCard
+from tests.sf_fixtures import mpc_fixture
 
 
-@pytest.fixture(scope='module')
+@mpc_fixture
 def prod_env_and_data(sf_production_setup_devices):
+    pyu_alice = sf_production_setup_devices.alice
+    pyu_bob = sf_production_setup_devices.bob
+
     sc = ScoreCard(20, 600, 20)
     pred1 = np.random.random((10, 1))
     ds1 = FedNdarray(
-        partitions={
-            sf_production_setup_devices.alice: sf_production_setup_devices.alice(
-                lambda x: x
-            )(pred1)
-        },
+        partitions={pyu_alice: pyu_alice(lambda x: x)(pred1)},
         partition_way=PartitionWay.VERTICAL,
     )
 
@@ -37,17 +37,13 @@ def prod_env_and_data(sf_production_setup_devices):
     bob_pred2 = np.random.random((10, 1))
     ds2 = FedNdarray(
         partitions={
-            sf_production_setup_devices.alice: sf_production_setup_devices.alice(
-                lambda x: x
-            )(alice_pred2),
-            sf_production_setup_devices.bob: sf_production_setup_devices.bob(
-                lambda x: x
-            )(bob_pred2),
+            pyu_alice: pyu_alice(lambda x: x)(alice_pred2),
+            pyu_bob: pyu_bob(lambda x: x)(bob_pred2),
         },
         partition_way=PartitionWay.HORIZONTAL,
     )
 
-    yield sf_production_setup_devices, {
+    return sf_production_setup_devices, {
         'sc': sc,
         'ds1': ds1,
         'ds2': ds2,
@@ -57,6 +53,7 @@ def prod_env_and_data(sf_production_setup_devices):
     }
 
 
+@pytest.mark.mpc
 def test_sc(prod_env_and_data):
     env, data = prod_env_and_data
     scord = data['sc'].transform(data['ds1'])

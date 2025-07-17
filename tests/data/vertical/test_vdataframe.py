@@ -19,11 +19,14 @@ import pytest
 from secretflow import reveal
 from secretflow.data import partition
 from secretflow.data.vertical import VDataFrame
-from secretflow.utils.errors import NotFoundError
+from tests.sf_fixtures import mpc_fixture
 
 
-@pytest.fixture(scope='function')
+@mpc_fixture
 def prod_env_and_data(sf_production_setup_devices):
+    pyu_alice = sf_production_setup_devices.alice
+    pyu_bob = sf_production_setup_devices.bob
+
     df_alice = pd.DataFrame(
         {
             'a1': ['K5', 'K1', None, 'K6'],
@@ -42,12 +45,8 @@ def prod_env_and_data(sf_production_setup_devices):
 
     df = VDataFrame(
         {
-            sf_production_setup_devices.alice: partition(
-                data=sf_production_setup_devices.alice(lambda: df_alice)()
-            ),
-            sf_production_setup_devices.bob: partition(
-                data=sf_production_setup_devices.bob(lambda: df_bob)()
-            ),
+            pyu_alice: partition(data=pyu_alice(lambda: df_alice)()),
+            pyu_bob: partition(data=pyu_bob(lambda: df_bob)()),
         }
     )
 
@@ -70,6 +69,7 @@ def prod_env_and_data(sf_production_setup_devices):
     }
 
 
+@pytest.mark.mpc
 def test_columns_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # WHEN
@@ -81,6 +81,7 @@ def test_columns_should_ok(prod_env_and_data):
     np.testing.assert_equal(columns, alice_columns)
 
 
+@pytest.mark.mpc
 def test_pow_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # WHEN
@@ -93,6 +94,7 @@ def test_pow_should_ok(prod_env_and_data):
     pd.testing.assert_series_equal(value[['b4', 'b6']], expected_bob)
 
 
+@pytest.mark.mpc
 def test_select_dtypes_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # WHEN
@@ -105,6 +107,7 @@ def test_select_dtypes_should_ok(prod_env_and_data):
     pd.testing.assert_series_equal(value[['b4', 'b6']], expected_bob)
 
 
+@pytest.mark.mpc
 def test_subtract_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # WHEN
@@ -128,6 +131,7 @@ def test_subtract_should_ok(prod_env_and_data):
     pd.testing.assert_series_equal(value[['b6']], expected_bob[['b6']])
 
 
+@pytest.mark.mpc
 def test_round_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # WHEN
@@ -142,6 +146,7 @@ def test_round_should_ok(prod_env_and_data):
     pd.testing.assert_frame_equal(value_bob, expected_bob)
 
 
+@pytest.mark.mpc
 def test_min_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # WHEN
@@ -154,6 +159,7 @@ def test_min_should_ok(prod_env_and_data):
     pd.testing.assert_series_equal(value[['b4', 'b6']], expected_bob)
 
 
+@pytest.mark.mpc
 def test_max_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # WHEN
@@ -166,6 +172,7 @@ def test_max_should_ok(prod_env_and_data):
     pd.testing.assert_series_equal(value[['b4', 'b6']], expected_bob)
 
 
+@pytest.mark.mpc
 def test_mean_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # WHEN
@@ -178,6 +185,7 @@ def test_mean_should_ok(prod_env_and_data):
     pd.testing.assert_series_equal(value[expected_bob.index], expected_bob)
 
 
+@pytest.mark.mpc
 def test_var_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # WHEN
@@ -190,6 +198,7 @@ def test_var_should_ok(prod_env_and_data):
     pd.testing.assert_series_equal(value[['b6']], expected_bob[['b6']])
 
 
+@pytest.mark.mpc
 def test_std_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # WHEN
@@ -202,6 +211,7 @@ def test_std_should_ok(prod_env_and_data):
     pd.testing.assert_series_equal(value[['b6']], expected_bob[['b6']])
 
 
+@pytest.mark.mpc
 def test_sem_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # WHEN
@@ -214,6 +224,7 @@ def test_sem_should_ok(prod_env_and_data):
     pd.testing.assert_series_equal(value[['b6']], expected_bob[['b6']])
 
 
+@pytest.mark.mpc
 def test_skew_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # WHEN
@@ -226,6 +237,7 @@ def test_skew_should_ok(prod_env_and_data):
     pd.testing.assert_series_equal(value[['b6']], expected_bob[['b6']])
 
 
+@pytest.mark.mpc
 def test_quantile_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # WHEN
@@ -238,6 +250,7 @@ def test_quantile_should_ok(prod_env_and_data):
     pd.testing.assert_series_equal(value[['b6']], expected_bob[['b6']])
 
 
+@pytest.mark.mpc
 def test_count_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # WHEN
@@ -248,6 +261,7 @@ def test_count_should_ok(prod_env_and_data):
     pd.testing.assert_series_equal(value, expected_alice)
 
 
+@pytest.mark.mpc
 def test_mode_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # WHEN
@@ -260,6 +274,7 @@ def test_mode_should_ok(prod_env_and_data):
     pd.testing.assert_series_equal(value, expected_alice)
 
 
+@pytest.mark.mpc
 def test_count_na_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # WHEN
@@ -270,6 +285,7 @@ def test_count_na_should_ok(prod_env_and_data):
     pd.testing.assert_series_equal(value, expected_alice)
 
 
+@pytest.mark.mpc
 def test_get_single_item_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # WHEN
@@ -282,13 +298,15 @@ def test_get_single_item_should_ok(prod_env_and_data):
     )
 
 
+@pytest.mark.mpc
 def test_get_non_exist_items_should_error(prod_env_and_data):
     env, data = prod_env_and_data
     # WHEN and THEN
-    with pytest.raises(NotFoundError, match='does not exist'):
+    with pytest.raises(KeyError, match='does not exist'):
         _ = data['df']['a1', 'non_exist']
 
 
+@pytest.mark.mpc
 def test_get_multi_items_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # WHEN
@@ -312,6 +330,7 @@ def test_get_multi_items_should_ok(prod_env_and_data):
     pd.testing.assert_frame_equal(reveal(value.partitions[env.bob].data), expected_bob)
 
 
+@pytest.mark.mpc
 def test_set_item_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # Case 1: single item.
@@ -340,6 +359,7 @@ def test_set_item_should_ok(prod_env_and_data):
     pd.testing.assert_frame_equal(reveal(value.partitions[env.bob].data), expected_bob)
 
 
+@pytest.mark.mpc
 def test_set_item_on_partition_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # WHEN
@@ -353,6 +373,7 @@ def test_set_item_on_partition_should_ok(prod_env_and_data):
     )
 
 
+@pytest.mark.mpc(parties=3)
 def test_set_item_on_non_exist_partition_should_error(prod_env_and_data):
     env, data = prod_env_and_data
     # WHEN
@@ -375,6 +396,7 @@ def test_set_item_on_non_exist_partition_should_error(prod_env_and_data):
         value['a1'] = part['a2']
 
 
+@pytest.mark.mpc
 def test_set_item_on_vdataframe_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # WHEN
@@ -393,6 +415,7 @@ def test_set_item_on_vdataframe_should_ok(prod_env_and_data):
     pd.testing.assert_frame_equal(reveal(value.partitions[env.bob].data), expected_bob)
 
 
+@pytest.mark.mpc(parties=3)
 def test_set_item_on_different_vdataframe_should_error(prod_env_and_data):
     env, data = prod_env_and_data
     with pytest.raises(
@@ -429,6 +452,7 @@ def test_set_item_on_different_vdataframe_should_error(prod_env_and_data):
         value[['a1', 'b4']] = df[['a2', 'b5']]
 
 
+@pytest.mark.mpc
 def test_drop(prod_env_and_data):
     env, data = prod_env_and_data
     # Case 1: not inplace.
@@ -458,6 +482,7 @@ def test_drop(prod_env_and_data):
     )
 
 
+@pytest.mark.mpc
 def test_replace_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     val = data['df_alice'].iloc[1, 1]
@@ -475,6 +500,7 @@ def test_replace_should_ok(prod_env_and_data):
     )
 
 
+@pytest.mark.mpc
 def test_fillna(prod_env_and_data):
     env, data = prod_env_and_data
     # Case 1: not inplace.
@@ -506,6 +532,7 @@ def test_fillna(prod_env_and_data):
 
 
 @pytest.mark.parametrize("agg_name", ['sum', 'count', 'min', 'max', 'mean', "var"])
+@pytest.mark.mpc
 def test_groupby_agg(prod_env_and_data, agg_name):
     env, data = prod_env_and_data
     # GIVEN

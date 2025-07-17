@@ -424,7 +424,7 @@ msgstr ""
 #: ../../tutorial/risk_control_scenario.ipynb:1388
 msgid ""
 "在一些应用场景场景中，alice和bob可能在隐私求交之后将结果直接保存至文件中，之后再进行后续操作。这个时候，请调用\\ "
-"**psi_csv**\\ 接口。"
+"**psi**\\ 接口。"
 msgstr ""
 
 #: ../../tutorial/risk_control_scenario.ipynb:1390
@@ -436,7 +436,7 @@ msgid "我们需要指定双方的输入文件和输出文件路径。对于ECDH
 msgstr ""
 
 #: ../../tutorial/risk_control_scenario.ipynb:1394
-msgid "请阅读 psi_csv 的文档。"
+msgid "请阅读 psi 的文档。"
 msgstr ""
 
 #: ../../tutorial/risk_control_scenario.ipynb:1611

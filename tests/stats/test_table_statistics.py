@@ -18,11 +18,15 @@ from sklearn.datasets import load_iris
 
 from secretflow.data import partition
 from secretflow.data.vertical.dataframe import VDataFrame
-from secretflow.stats import table_statistics
+from secretflow.stats import categorical_statistics, table_statistics
+from tests.sf_fixtures import mpc_fixture
 
 
-@pytest.fixture(scope='module')
+@mpc_fixture
 def prod_env_and_data(sf_production_setup_devices):
+    pyu_alice = sf_production_setup_devices.alice
+    pyu_bob = sf_production_setup_devices.bob
+
     iris = load_iris(as_frame=True)
     data = pd.concat([iris.data, iris.target], axis=1)
     data.iloc[1, 1] = None
@@ -34,26 +38,15 @@ def prod_env_and_data(sf_production_setup_devices):
     v_alice, v_bob = data.iloc[:, :2], data.iloc[:, 2:]
     df_v = VDataFrame(
         partitions={
-            sf_production_setup_devices.alice: partition(
-                sf_production_setup_devices.alice(lambda: v_alice)()
-            ),
-            sf_production_setup_devices.bob: partition(
-                sf_production_setup_devices.bob(lambda: v_bob)()
-            ),
+            pyu_alice: partition(pyu_alice(lambda: v_alice)()),
+            pyu_bob: partition(pyu_bob(lambda: v_bob)()),
         }
     )
     df = data
-    yield sf_production_setup_devices, {'df_v': df_v, 'df': df}
+    return sf_production_setup_devices, {'df_v': df_v, 'df': df}
 
 
-def test_table_statistics(prod_env_and_data):
-    """
-    This test shows that table statistics works on both pandas and VDataFrame,
-        i.e. all APIs align and the result is correct.
-    """
-    env, data = prod_env_and_data
-    correct_summary = table_statistics(data['df'])
-    summary = table_statistics(data['df_v'])
+def assert_summary_equal(summary, correct_summary):
     result = summary.equals(correct_summary)
     if not result:
         n_rows = correct_summary.shape[0]
@@ -65,3 +58,18 @@ def test_table_statistics(prod_env_and_data):
                 assert (
                     correct_summary.iloc[i, j] == summary.iloc[i, j]
                 ), "row {}, col {} mismatch".format(i, summary.columns[j])
+
+
+@pytest.mark.mpc
+def test_table_statistics(prod_env_and_data):
+    """
+    This test shows that table statistics works on both pandas and VDataFrame,
+        i.e. all APIs align and the result is correct.
+    """
+    _, data = prod_env_and_data
+    correct_summary = table_statistics(data['df'])
+    summary = table_statistics(data['df_v'])
+    assert_summary_equal(summary, correct_summary)
+    categorical_summary = categorical_statistics(data['df'])
+    correct_categorical_summary = categorical_statistics(data['df_v'])
+    assert_summary_equal(categorical_summary, correct_categorical_summary)

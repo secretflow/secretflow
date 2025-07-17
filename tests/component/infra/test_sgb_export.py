@@ -13,13 +13,16 @@
 # limitations under the License.
 
 
-from secretflow.component.core import DistDataType, build_node_eval_param
-from secretflow.component.entry import comp_eval
-from secretflow.spec.v1.data_pb2 import DistData
+import time
+
+import pytest
+from secretflow_spec.v1.data_pb2 import DistData
+
+from secretflow.component.core import DistDataType, build_node_eval_param, comp_eval
 from tests.component.infra.util import eval_export, get_meta_and_dump_data
 
 
-def _inner_test_sgb_export(comp_prod_sf_cluster_config, features_in_one_party):
+def _inner_test_sgb_export(sf_production_setup_comp, features_in_one_party):
     work_path = f"test_sgb_feature_in_one_party{features_in_one_party}"
     alice_path = f"{work_path}/x_alice.csv"
     bob_path = f"{work_path}/x_bob.csv"
@@ -31,7 +34,7 @@ def _inner_test_sgb_export(comp_prod_sf_cluster_config, features_in_one_party):
     model_path = f"{work_path}/model.sf"
     predict_path = f"{work_path}/predict.csv"
 
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
 
     # binning
     feature_selects = [f"a{i}" for i in range(2)] + [f"b{i}" for i in range(2)]
@@ -58,7 +61,7 @@ def _inner_test_sgb_export(comp_prod_sf_cluster_config, features_in_one_party):
 
     meta = get_meta_and_dump_data(
         work_path,
-        comp_prod_sf_cluster_config,
+        sf_production_setup_comp,
         alice_path,
         bob_path,
         features_in_one_party,
@@ -161,18 +164,50 @@ def _inner_test_sgb_export(comp_prod_sf_cluster_config, features_in_one_party):
         expected_input,
     )
 
+    with pytest.raises(
+        AssertionError, match="feature not supported yet. change `he_mode` to False."
+    ):
+        # by train comp
+        eval_export(
+            work_path,
+            [train_param],
+            [train_res],
+            storage_config,
+            sf_cluster_config,
+            expected_input,
+            True,
+        )
+    time.sleep(4)
 
-def test_sgb_export_features_in_one_party_true(comp_prod_sf_cluster_config):
+    with pytest.raises(
+        AssertionError, match="feature not supported yet. change `he_mode` to False."
+    ):
+        # by pred comp
+        eval_export(
+            work_path,
+            [predict_param],
+            [predict_res],
+            storage_config,
+            sf_cluster_config,
+            expected_input,
+            True,
+        )
+    time.sleep(4)
+
+
+@pytest.mark.mpc
+def test_sgb_export_features_in_one_party_true(sf_production_setup_comp):
     '''
     In order to accommodate the parallel execution feature of pytest tests to speed up ci pipeline,
     parameters originally configured by parameterize need to be split across two different test_ functions.
     '''
-    _inner_test_sgb_export(comp_prod_sf_cluster_config, features_in_one_party=True)
+    _inner_test_sgb_export(sf_production_setup_comp, features_in_one_party=True)
 
 
-def test_sgb_export_features_in_one_party_false(comp_prod_sf_cluster_config):
+@pytest.mark.mpc
+def test_sgb_export_features_in_one_party_false(sf_production_setup_comp):
     '''
     In order to accommodate the parallel execution feature of pytest tests to speed up ci pipeline,
     parameters originally configured by parameterize need to be split across two different test_ functions.
     '''
-    _inner_test_sgb_export(comp_prod_sf_cluster_config, features_in_one_party=False)
+    _inner_test_sgb_export(sf_production_setup_comp, features_in_one_party=False)

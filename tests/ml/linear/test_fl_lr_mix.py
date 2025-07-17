@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from dataclasses import dataclass
 from sys import platform
 from typing import List
 
@@ -25,24 +24,51 @@ import secretflow as sf
 from secretflow.data import partition
 from secretflow.data.mix import MixDataFrame
 from secretflow.data.split import train_test_split
+from secretflow.data.vertical import VDataFrame
 from secretflow.ml.linear.fl_lr_mix import FlLogisticRegressionMix
 from secretflow.security.aggregation import SecureAggregator
 
 
-@dataclass
-class DeviceInventory:
-    alice: sf.PYU = None
-    bob: sf.PYU = None
-    carol: sf.PYU = None
-    davy: sf.PYU = None
-    heu0: sf.HEU = None
-    heu1: sf.HEU = None
+def _gen_data(devices):
+    from sklearn.datasets import load_breast_cancer
+
+    from secretflow.preprocessing.scaler import StandardScaler
+
+    features, label = load_breast_cancer(return_X_y=True, as_frame=True)
+    label = label.to_frame()
+    feat_list = [
+        features.iloc[:, :10],
+        features.iloc[:, 10:20],
+        features.iloc[:, 20:],
+    ]
+    x = VDataFrame(
+        partitions={
+            devices.alice: partition(devices.alice(lambda: feat_list[0])()),
+            devices.bob: partition(devices.bob(lambda: feat_list[1])()),
+            devices.carol: partition(devices.carol(lambda: feat_list[2])()),
+        }
+    )
+    x = StandardScaler().fit_transform(x)
+    y = VDataFrame(
+        partitions={devices.alice: partition(devices.alice(lambda: label)())}
+    )
+
+    x1, x2 = train_test_split(x, train_size=0.5, shuffle=False)
+    y1, y2 = train_test_split(y, train_size=0.5, shuffle=False)
+
+    # davy holds same x
+    x2_davy = x2.partitions[devices.carol].data.to(devices.davy)
+    del x2.partitions[devices.carol]
+    x2.partitions[devices.davy] = partition(x2_davy)
+
+    return {
+        'x': MixDataFrame(partitions=[x1, x2]),
+        'y': MixDataFrame(partitions=[y1, y2]),
+        'y_arr': label.values,
+    }
 
 
-@pytest.fixture(scope="module")
-def env(request, sf_production_setup_linear_env_ray):
-    devices, data = sf_production_setup_linear_env_ray
-
+def _gen_heus():
     def heu_config(sk_keeper: str, evaluators: List[str]):
         return {
             'sk_keeper': {'party': sk_keeper},
@@ -54,29 +80,17 @@ def env(request, sf_production_setup_linear_env_ray):
             },
         }
 
-    devices.heu0 = sf.HEU(heu_config('alice', ['bob', 'carol']), spu.spu_pb2.FM128)
-    devices.heu1 = sf.HEU(heu_config('alice', ['bob', 'davy']), spu.spu_pb2.FM128)
-
-    x, y, label = data['x'], data['y'], data['label']
-    x1, x2 = train_test_split(x, train_size=0.5, shuffle=False)
-    y1, y2 = train_test_split(y, train_size=0.5, shuffle=False)
-
-    # davy holds same x
-    x2_davy = x2.partitions[devices.carol].data.to(devices.davy)
-    del x2.partitions[devices.carol]
-    x2.partitions[devices.davy] = partition(x2_davy)
-
-    yield devices, {
-        'x': MixDataFrame(partitions=[x1, x2]),
-        'y': MixDataFrame(partitions=[y1, y2]),
-        'y_arr': label.values,
-    }
-    del devices
+    heu0 = sf.HEU(heu_config('alice', ['bob', 'carol']), spu.FieldType.FM128)
+    heu1 = sf.HEU(heu_config('alice', ['bob', 'davy']), spu.FieldType.FM128)
+    return [heu0, heu1]
 
 
 @pytest.mark.skipif(platform == 'darwin', reason="macOS has accuracy issue")
-def test_model_should_ok_when_fit_dataframe(env):
-    devices, data = env
+@pytest.mark.mpc(parties=4)
+def test_model_should_ok_when_fit_dataframe(sf_production_setup_devices):
+    devices = sf_production_setup_devices
+    data = _gen_data(devices)
+    heus = _gen_heus()
 
     # GIVEN
     aggregator0 = SecureAggregator(
@@ -97,7 +111,7 @@ def test_model_should_ok_when_fit_dataframe(env):
         batch_size=64,
         learning_rate=0.1,
         aggregators=[aggregator0, aggregator1],
-        heus=[devices.heu0, devices.heu1],
+        heus=heus,
         # aggr_hooks=[RouterLrAggrHook(devices.alice)],
     )
 

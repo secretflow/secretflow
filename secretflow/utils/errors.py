@@ -13,43 +13,44 @@
 # limitations under the License.
 
 
-class AlreadyExistsError(Exception):
-    """Raise when already exists."""
+class SFException(Exception):
+    def __init__(self, message: str, detail: dict = None):
+        self.message = message
+        self.detail = detail
+
+    def __str__(self) -> str:
+        result = self.message
+        if self.detail:
+            try:
+                result += f"<{json.dumps(self.detail)}>"
+            except Exception:
+                result += f"<{self.detail}>"
+
+        return result
+
+
+class InvalidArgumentError(SFException):
+    """
+    Exception thrown if an argument does not match with the expected value.
+    """
 
     pass
 
 
-class InvalidArgumentError(Exception):
-    """Raise when invalid argument."""
+class InvalidStateError(SFException):
+    """
+    Exception thrown if the system is not in an appropriate state to
+    execute a method.
+    """
 
     pass
 
 
-class NotFoundError(Exception):
-    """Raise if not found."""
+class NotSupportedError(SFException):
+    """Raise when trigger a not supported operation."""
 
     pass
 
 
-class PartyNotFoundError(Exception):
-    """Raise if party not found."""
-
-    pass
-
-
-class UnexpectedError(Exception):
-    """Raise when unexpected."""
-
-    pass
-
-
-class HttpNotOkError(Exception):
-    """Raise if http code is not 200"""
-
-    pass
-
-
-class NotSupportedError(Exception):
-    """Raise when trigger a notsupport operation."""
-
+class YACLError(SFException):
     pass

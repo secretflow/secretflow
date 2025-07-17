@@ -81,9 +81,9 @@ class PSIThreeParty(Component):
 
     def evaluate(self, ctx: Context):
         inputs = [
-            VTable.from_distdata(self.input_ds1).party(0),
-            VTable.from_distdata(self.input_ds2).party(0),
-            VTable.from_distdata(self.input_ds3).party(0),
+            VTable.from_distdata(self.input_ds1).get_party(0),
+            VTable.from_distdata(self.input_ds2).get_party(0),
+            VTable.from_distdata(self.input_ds3).get_party(0),
         ]
         keys_list = [self.keys1, self.keys2, self.keys3]
         for table, keys in zip(inputs, keys_list):
@@ -106,36 +106,35 @@ class PSIThreeParty(Component):
             if p.party in psi_keys:
                 raise ValueError(f"duplicate party<{p.party}>")
             csv_path = os.path.join(root_dir, p.uri)
-            pyu = PYU(p.party)
-            psi_keys[pyu] = keys
-            psi_input_paths[pyu] = csv_path
-            psi_output_paths[pyu] = output_csv_path
+            psi_keys[p.party] = keys
+            psi_input_paths[p.party] = csv_path
+            psi_output_paths[p.party] = output_csv_path
 
         spu = ctx.make_spu()
         with PathCleanUp({p.party: root_dir for p in inputs}):
             with ctx.trace_io():
                 download_res = [
                     PYU(p.party)(download_csv)(
-                        ctx.storage, p, psi_input_paths[PYU(p.party)], na_rep
+                        ctx.storage, p, psi_input_paths[p.party], na_rep
                     )
                     for p in inputs
                 ]
                 wait(download_res)
             with ctx.trace_running():
-                spu.psi_csv(
-                    key=psi_keys,
+                spu.psi(
+                    keys=psi_keys,
                     input_path=psi_input_paths,
                     output_path=psi_output_paths,
                     receiver=receiver,
                     broadcast_result=True,
-                    protocol="ECDH_PSI_3PC",
-                    curve_type=self.ecdh_curve.get_selected(),
+                    protocol="PROTOCOL_ECDH_3PC",
+                    ecdh_curve=self.ecdh_curve.get_selected(),
                 )
 
             with ctx.trace_io():
-                for pyu, path in psi_output_paths.items():
-                    schema = input_parties[pyu.party].schema.to_arrow()
-                    num_rows = pyu(upload_orc)(
+                for p, path in psi_output_paths.items():
+                    schema = input_parties[p].schema
+                    num_rows = PYU(p)(upload_orc)(
                         ctx.storage, self.output_ds.uri, path, schema, na_rep
                     )
                 num_rows = reveal(num_rows)

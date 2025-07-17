@@ -21,9 +21,10 @@ from secretflow import reveal
 from secretflow.preprocessing.scaler import StandardScaler
 from secretflow.stats import SSVertPearsonR
 from secretflow.utils.simulation.datasets import dataset, load_linear
+from tests.sf_fixtures import mpc_fixture
 
 
-@pytest.fixture(scope='module')
+@mpc_fixture
 def prod_env_and_data(sf_production_setup_devices):
     vdata = load_linear(
         parts={
@@ -51,6 +52,7 @@ def scipy_pearsonr():
     return ret
 
 
+@pytest.mark.mpc
 def test_pearsonr(prod_env_and_data):
     env, data = prod_env_and_data
     for d in data.partitions.values():

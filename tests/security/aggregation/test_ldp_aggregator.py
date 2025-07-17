@@ -16,11 +16,13 @@ import pytest
 
 from secretflow.security.aggregation.experiment.ldp_aggregator import LDPAggregator
 from tests.security.aggregation.test_aggregator_base import AggregatorBase
+from tests.sf_fixtures import mpc_fixture
 
 
-class TestLDPAggregator(AggregatorBase):
-    @pytest.fixture()
-    def env_and_aggregator(self, sf_production_setup_devices_ray):
-        yield sf_production_setup_devices_ray, LDPAggregator(
-            sf_production_setup_devices_ray.carol,
-        )
+@mpc_fixture(alias="env_and_aggregator")
+def ldp_env_and_aggregator(sf_production_setup_devices):
+    return sf_production_setup_devices, LDPAggregator(sf_production_setup_devices.carol)
+
+
+@pytest.mark.mpc(parties=3, fixtures=["ldp_env_and_aggregator"])
+class TestLDPAggregator(AggregatorBase): ...

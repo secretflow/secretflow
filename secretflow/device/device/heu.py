@@ -21,11 +21,12 @@ import cloudpickle as pickle
 import jax.tree_util
 import numpy as np
 import spu
-from heu import numpy as hnp, phe
+from heu import numpy as hnp
+from heu import phe
 
 import secretflow.distributed as sfd
-from secretflow.utils.errors import PartyNotFoundError
 from secretflow.distributed.ray_op import get_obj_ref
+from secretflow.utils.errors import InvalidArgumentError, NotSupportedError
 
 from .base import Device, DeviceType
 from .spu import SPU_PROTOCOLS_MAP, SPUIOInfo, SPUValueMeta
@@ -266,7 +267,7 @@ class HEUActor:
         if isinstance(data, phe.Plaintext):
             return edr.decode(data)
 
-        raise AssertionError(f"heu can not decode {type(data)} type")
+        raise NotSupportedError(f"heu can not decode {type(data)} type")
 
     def encrypt(
         self, data: hnp.PlaintextArray, heu_audit_log: str = None
@@ -378,10 +379,10 @@ class HEUSkKeeper(HEUActor):
         # ValueProto: see spu.proto in SPU repo for details.
 
         # TODO: support chunk
-        chunk = spu.spu_pb2.ValueChunkProto()
+        chunk = spu.ValueChunk()
         chunk.content = byte_content
         chunk.chunk_offset = 0
-        chunk.total_bytes = len(chunk.content)
+        chunk.total_bytes = len(byte_content)
         return chunk.SerializeToString()
 
 
@@ -422,7 +423,7 @@ class HEUEvaluator(HEUActor):
         data: hnp.CiphertextArray,
         evaluator_parties,
         spu_protocol,
-        spu_field_type,
+        spu_field_type: spu.FieldType,
         spu_fxp_fraction_bits,
     ):
         """H2A: make share of data, runs on the side (party) where the data resides
@@ -463,17 +464,20 @@ class HEUEvaluator(HEUActor):
         shares_chunk = []
         for mask in masks:
             # TODO: support chunk
-            chunk = spu.spu_pb2.ValueChunkProto()
+            chunk = spu.ValueChunk()
             chunk.content = mask.to_bytes(spu_fxp_size(spu_field_type), 'little')
             chunk.chunk_offset = 0
             chunk.total_bytes = len(chunk.content)
             shares_chunk.append(chunk.SerializeToString())
 
-        meta = spu.spu_pb2.ValueMetaProto()
+        meta = spu.ValueMeta()
         meta.visibility = spu.Visibility.VIS_SECRET
         meta.data_type = heu_datatype_to_spu(self.cleartext_type)
-        meta.storage_type = f"{SPU_PROTOCOLS_MAP[spu_protocol]}.AShr<{spu.FieldType.Name(spu_field_type)}>"
-        meta.shape.dims.extend(tuple(mask.shape))
+        meta.storage_type = (
+            f"{SPU_PROTOCOLS_MAP[spu_protocol]}.AShr<{spu_field_type.name}>"
+        )
+        meta.shape = mask.shape
+
         io_info = SPUIOInfo(0, 1, meta.SerializeToString())
 
         value_meta = SPUValueMeta(
@@ -585,9 +589,10 @@ class HEU(Device):
         super().__init__(DeviceType.HEU)
 
         config.setdefault('mode', 'PHEU')
-        assert (
-            config['mode'] == 'PHEU'
-        ), f'HEU working mode {config["mode"]} not supported now'
+        if config['mode'] != 'PHEU':
+            raise InvalidArgumentError(
+                f"HEU working mode {config['mode']} not supported"
+            )
 
         self.sk_keeper = None
         self.evaluators = {}
@@ -598,7 +603,9 @@ class HEU(Device):
         if spu_fxp_fraction_bits > 0:
             default_scale = 1 << spu_fxp_fraction_bits
 
-        assert 'he_parameters' in config, f"missing field 'he_parameters' in heu config"
+        if 'he_parameters' not in config:
+            raise InvalidArgumentError("missing field 'he_parameters' in heu config")
+
         param: dict = config['he_parameters']
         schema = phe.parse_schema_type(param.get("schema", "paillier"))
         self.schema = schema
@@ -628,7 +635,7 @@ class HEU(Device):
                 self.encoder = phe.BatchFloatEncoder(schema, **edr_args)
                 self.scale = edr_args.get("scale", 1)
             else:
-                raise AssertionError(f"Unsupported encoder type {edr_name}")
+                raise InvalidArgumentError(f"Unsupported encoder type {edr_name}")
 
         self.init()
 
@@ -675,7 +682,7 @@ class HEU(Device):
         elif party == self.sk_keeper_name():
             return self.sk_keeper
         else:
-            raise PartyNotFoundError(f"party {party} is not a participant in HEU")
+            raise InvalidArgumentError(f"party {party} is not a participant in HEU")
 
     def has_party(self, party: str):
         return party == self.sk_keeper_name() or party in self.evaluators
@@ -688,7 +695,7 @@ def heu_from_base_config(
     base_heu_config: dict,
     new_sk_keeper: str,
     new_evaluators: List[str],
-    field_type: spu.spu_pb2.FieldType = spu.spu_pb2.FM64,
+    field_type: spu.FieldType = spu.FieldType.FM64,
     fxp_fraction_bits: int = 0,
 ):
     """Create a HEU from an existing heu config, except replacing it with new sk keeper and new evaluators"""

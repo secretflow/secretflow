@@ -13,6 +13,11 @@
 # limitations under the License.
 
 
+import logging
+
+import pandas as pd
+from google.protobuf.json_format import MessageToJson
+
 from secretflow.component.core import (
     Component,
     Context,
@@ -21,14 +26,13 @@ from secretflow.component.core import (
     Input,
     Interval,
     Output,
-    Reporter,
-    VTable,
     register,
+    Reporter,
 )
-from secretflow.stats.table_statistics import table_statistics
+from secretflow.stats.table_statistics import categorical_statistics, table_statistics
 
 
-@register(domain="stats", version="1.0.0")
+@register(domain="stats", version="1.0.2")
 class TableStatistics(Component):
     '''
     Get a table of statistics,
@@ -64,6 +68,18 @@ class TableStatistics(Component):
     - moment_2 means E[X^2].
     - central_moment_2 means E[(X - mean(X))^2].
     - sum_2 means sum(X^2).
+
+    All of the object or string class columns will not be included in the above statistics, but in a separate report.
+
+    The second report is a table of the object or string class columns.
+    Note that please do not include individual information (like address, phone number, etc.) for table statistics.
+
+    The categorical report will be with the following columns:
+    1. column dtype (the data type of the column)
+    2. count (the number of non-null values)
+    3. nunique (the number of unique values in this column)
+
+    if no numeric or categorical columns, the report will be dummy report.
     '''
 
     features: list[str] = Field.table_column_attr(
@@ -88,8 +104,17 @@ class TableStatistics(Component):
 
         with ctx.tracer.trace_running():
             stat = table_statistics(input_df)
-
+            categorical_stat = categorical_statistics(input_df)
+        if stat.empty:
+            stat = pd.DataFrame({'dummy': [0]})
+        if categorical_stat.empty:
+            categorical_stat = pd.DataFrame({'dummy': [0]})
         stat_tbl = Reporter.build_table(stat.astype(str), index=stat.index.tolist())
+        categorical_stat_tbl = Reporter.build_table(
+            categorical_stat.astype(str), index=categorical_stat.index.tolist()
+        )
         r = Reporter(name="table statistics", system_info=self.input_ds.system_info)
         r.add_tab(stat_tbl)
+        r.add_tab(categorical_stat_tbl)
         self.report.data = r.to_distdata()
+        logging.info(f'\n--\n*report* \n\n{MessageToJson(r.report())}\n--\n')

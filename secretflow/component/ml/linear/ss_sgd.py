@@ -15,6 +15,7 @@
 import json
 
 from secretflow_serving_lib.link_function_pb2 import LinkFunctionType
+from secretflow_spec.v1.data_pb2 import DistData
 
 from secretflow.component.core import (
     SS_SGD_MODEL_MAX,
@@ -23,13 +24,7 @@ from secretflow.component.core import (
     ServingBuilder,
     VTable,
 )
-from secretflow.error_system.exceptions import (
-    CompEvalError,
-    DataFormatError,
-    SFModelError,
-)
 from secretflow.ml.linear import RegType
-from secretflow.spec.v1.data_pb2 import DistData
 from secretflow.utils.sigmoid import SigType
 
 from .linear import build_linear_model, build_phe_linear_model, get_party_features_info

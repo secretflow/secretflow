@@ -18,16 +18,19 @@ import pytest
 import secretflow as sf
 from secretflow.security.aggregation.experiment.qpldp_aggregator import QPLDPAggregator
 from tests.security.aggregation.test_aggregator_base import AggregatorBase
+from tests.sf_fixtures import mpc_fixture
+
+
+@mpc_fixture(alias="env_and_aggregator")
+def qpldp_env_and_aggregator(sf_production_setup_devices):
+    return sf_production_setup_devices, QPLDPAggregator(
+        sf_production_setup_devices.carol
+    )
 
 
 @pytest.skip('Experimental, not work.', allow_module_level=True)
+@pytest.mark.mpc(parties=3, fixtures=["qpldp_env_and_aggregator"])
 class TestQPLDPAggregator(AggregatorBase):
-    @pytest.fixture()
-    def env_and_aggregator(self, sf_production_setup_devices_ray):
-        yield sf_production_setup_devices_ray, QPLDPAggregator(
-            sf_production_setup_devices_ray.carol,
-        )
-
     def test_average_on_list_with_weights_should_ok(
         test_average_on_list_with_weights_should_ok, env_and_aggregator
     ):

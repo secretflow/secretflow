@@ -18,7 +18,6 @@ import time
 import numpy as np
 import pytest
 from sklearn.compose import ColumnTransformer
-from sklearn.datasets import fetch_openml
 from sklearn.linear_model import TweedieRegressor
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import (
@@ -33,6 +32,9 @@ from secretflow.device.driver import SPU, reveal, wait
 from secretflow.ml.linear.ss_glm import SSGLM
 from secretflow.ml.linear.ss_glm.core import get_dist
 from secretflow.ml.linear.ss_glm.metrics import deviance
+
+from sklearn.datasets import fetch_openml
+from tests.sf_fixtures import SFProdParams
 
 
 def load_mtpl2(n_samples=None):
@@ -259,10 +261,11 @@ def _run_test(devices, test_name, X, df, link, dist, l2_lambda=None, power=1.9):
 
 
 @pytest.mark.skip(reason='todo: move into daily test, running too slowly in aci')
-def test_mtpl2(sf_production_setup_devices_aby3):
+@pytest.mark.mpc(parties=3, params=SFProdParams.ABY3)
+def test_mtpl2(sf_production_setup_devices):
     X, df = prepare_data()
     _run_test(
-        devices=sf_production_setup_devices_aby3,
+        devices=sf_production_setup_devices,
         test_name="mtpl2",
         X=X,
         df=df,

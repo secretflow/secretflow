@@ -22,7 +22,6 @@ import jax
 import secretflow.distributed as sfd
 from secretflow.distributed.const import DISTRIBUTION_MODE
 from secretflow.distributed.ray_op import resolve_args
-from secretflow.utils.errors import UnexpectedError
 from secretflow.utils.logging import LOG_FORMAT, get_logging_level
 
 from .device import PYU, Device, DeviceObject, PYUObject
@@ -138,9 +137,7 @@ def proxy(
 
     def make_proxy(cls):
         if hasattr(cls, '__is_wrapped__'):
-            raise UnexpectedError(
-                f"class {cls} is already wrapped, do not wrap it again!"
-            )
+            raise RuntimeError(f"class {cls} is already wrapped, do not wrap it again!")
         # create new Class, to prevent multiple wrapping when using proxy() for the same class multiple times.
         actor_cls = type(f'Actor{cls.__name__}', (cls,), {'__is_wrapped__': True})
         ActorClass = _cls_wrapper(actor_cls)

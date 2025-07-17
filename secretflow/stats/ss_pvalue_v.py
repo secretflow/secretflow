@@ -403,12 +403,12 @@ class PValue:
             tweedie_power : float
                 Specify power for tweedie distribution
             y_scale: float
-                Specify y label scaling sparse used in glm training
+                Specify y label scaling sparse used in glm training 
             sample_weights: Union[None, PYUObject, VDataFrame]
                 Specify the weight of each sample, should have shape (x, 1)
 
-        WARNING:
-        calculating pvalues will reveal model weight to label holder. Please make sure you have
+        WARNING: 
+        calculating pvalues will reveal model weight to label holder. Please make sure you have 
         enough security guarantee. Revealing model weight to label holder may lead to privacy leakage.
 
         Return:

@@ -19,13 +19,13 @@ from typing import Any, Dict, List, Tuple, cast
 import spu
 
 DEFAULT_SEMI2K_RUNTIME_CONFIG = {
-    'protocol': spu.spu_pb2.SEMI2K,
-    'field': spu.spu_pb2.FM128,
+    'protocol': spu.ProtocolKind.SEMI2K,
+    'field': spu.FieldType.FM128,
 }
 
 DEFAULT_ABY3_RUNTIME_CONFIG = {
-    'protocol': spu.spu_pb2.ABY3,
-    'field': spu.spu_pb2.FM128,
+    'protocol': spu.ProtocolKind.ABY3,
+    'field': spu.FieldType.FM128,
 }
 
 
@@ -64,7 +64,7 @@ def cluster_def(parties: List[str], runtime_config=None) -> Dict[str, Any]:
         else:
             runtime_config = DEFAULT_SEMI2K_RUNTIME_CONFIG
 
-    if runtime_config['protocol'] == spu.spu_pb2.ABY3:
+    if runtime_config['protocol'] == spu.ProtocolKind.ABY3:
         assert len(parties) == 3, 'ABY3 only supports 3PC.'
 
     cdef = {

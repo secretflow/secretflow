@@ -50,9 +50,9 @@ g_data_len = 10**8
 g_chunk_size = 2**16
 
 protocol_dict = {
-    "aby3": (spu.spu_pb2.ABY3, 3),
-    "cheetah": (spu.spu_pb2.CHEETAH, 2),
-    "semi2k": (spu.spu_pb2.SEMI2K, 2),
+    "aby3": (spu.ProtocolKind.ABY3, 3),
+    "cheetah": (spu.ProtocolKind.CHEETAH, 2),
+    "semi2k": (spu.ProtocolKind.SEMI2K, 2),
 }
 
 data_index_config = {
@@ -86,7 +86,7 @@ def get_sf_init_config(party, party_num):
 
 
 def get_spu_init_config(protocol: str, field: int):
-    field_dic = {64: spu.spu_pb2.FM64, 128: spu.spu_pb2.FM128}
+    field_dic = {64: spu.FieldType.FM64, 128: spu.FieldType.FM128}
     nodes = []
     nodes_expect_len = protocol_dict[protocol][1]
     parties = list(secretflow_config.keys())

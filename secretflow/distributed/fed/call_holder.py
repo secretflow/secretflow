@@ -17,6 +17,7 @@ import logging
 
 from jax.tree_util import tree_flatten, tree_unflatten
 
+from .exception import FedLocalError
 from .global_context import get_global_context
 from .object import FedFuture, FedObject
 
@@ -92,8 +93,8 @@ class FedCallHolder:
                     logger.debug(f"{self._task_msg} over")
                     return ret
                 except Exception as e:
-                    logger.exception(f"{self._task_msg} throw exception")
-                    raise
+                    local_err = FedLocalError(e)
+                    raise local_err from None
 
             future = get_global_context().submit_task(_task)
             if num_returns == 1:

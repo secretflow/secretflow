@@ -46,5 +46,6 @@ def _test_device(devices):
     np.testing.assert_almost_equal(reveal(x), reveal(y_spu), decimal=4)
 
 
-def test_device_prod(sf_production_setup_devices_cheetah):
-    _test_device(sf_production_setup_devices_cheetah)
+@pytest.mark.mpc
+def test_device_prod(sf_production_setup_devices):
+    _test_device(sf_production_setup_devices)

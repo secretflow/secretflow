@@ -81,8 +81,8 @@ class DataSink(Component):
         if not self.output_party:
             if len(input_tbl.parties) > 1:
                 raise ValueError(f"empty party")
-            self.output_party = input_tbl.party(0).party
+            self.output_party = input_tbl.get_party(0).party
         pyu = PYU(self.output_party)
-        input_party = input_tbl.party(self.output_party)
+        input_party = input_tbl.get_party(self.output_party)
         res = pyu(upload_table)(ctx.storage, ctx.data_dir, input_party, self.output_uri)
         wait(res)

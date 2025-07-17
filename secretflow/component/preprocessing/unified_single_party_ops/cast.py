@@ -23,18 +23,20 @@ from secretflow.component.core import (
     Field,
     Input,
     Interval,
+    IServingExporter,
     Output,
     ServingBuilder,
     UnionSelection,
     VTable,
     register,
 )
+from secretflow.utils.errors import InvalidArgumentError
 
 from ..preprocessing import PreprocessingMixin
 
 
 @register(domain='preprocessing', version='1.0.0')
-class Cast(PreprocessingMixin, Component):
+class Cast(PreprocessingMixin, Component, IServingExporter):
     '''
     For conversion between basic data types, such as converting float to string.
     '''
@@ -75,7 +77,7 @@ class Cast(PreprocessingMixin, Component):
         elif target == 'str':
             pa_type = pa.string()
         else:
-            raise ValueError(f"unsupported target type {target}")
+            raise InvalidArgumentError(f"unsupported target type {target}")
 
         columns = table.column_names
         for col_name in columns:

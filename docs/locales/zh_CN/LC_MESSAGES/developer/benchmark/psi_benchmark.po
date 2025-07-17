@@ -264,19 +264,19 @@ msgid "支持的PSI协议列表："
 msgstr ""
 
 #: ../../developer/benchmark/psi_benchmark.md:180
-msgid "ECDH_PSI_2PC"
+msgid "PROTOCOL_ECDH"
 msgstr ""
 
 #: ../../developer/benchmark/psi_benchmark.md:181
-msgid "KKRT_PSI_2PC"
+msgid "PROTOCOL_KKRT"
 msgstr ""
 
 #: ../../developer/benchmark/psi_benchmark.md:182
-msgid "BC22_PSI_2PC"
+msgid "PROTOCOL_RR22"
 msgstr ""
 
 #: ../../developer/benchmark/psi_benchmark.md:183
-msgid "ECDH_PSI_3PC"
+msgid "PROTOCOL_ECDH_3PC"
 msgstr ""
 
 #: ../../developer/benchmark/psi_benchmark.md:267

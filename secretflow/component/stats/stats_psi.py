@@ -34,7 +34,7 @@ from secretflow.component.io.core.bins.bin_utils import pad_inf_to_split_points
 from secretflow.data.vertical.dataframe import VDataFrame
 from secretflow.device.device.pyu import PYU, PYUObject
 from secretflow.device.driver import reveal
-from secretflow.error_system.exceptions import DataFormatError
+from secretflow.utils.errors import InvalidArgumentError
 
 kEpsilon = 1e-3
 
@@ -45,9 +45,11 @@ def get_feature_rules(bin_rules: dict[PYU, PYUObject]):
         rule = reveal(rule)
         variable_data_list = rule["variables"] if "variables" in rule else []
         for rule_dict in variable_data_list:
-            assert (
-                rule_dict["name"] not in feature_rules.keys()
-            ), f'{rule_dict["name"]} already exist'
+            if rule_dict["name"] in feature_rules.keys():
+                raise InvalidArgumentError(
+                    message="feature already exist",
+                    detail={"feature": rule_dict["name"]},
+                )
             feature_rules[rule_dict["name"]] = rule_dict
     return feature_rules
 
@@ -90,8 +92,13 @@ def get_stats_psi_one_feature(
 
 def get_bin_counts_one_feature(rule_dict: dict, feature: str, df: pd.DataFrame):
     if feature != rule_dict["name"] or feature not in df.columns:
-        raise DataFormatError.feature_not_matched(
-            f"feature [{feature}] not in rule dict, or not in df.columns"
+        raise InvalidArgumentError(
+            message=f"feature name mismatch or not in df.columns",
+            detail={
+                "feature": feature,
+                "name": rule_dict["name"],
+                "columns": df.columns,
+            },
         )
     rows = []
     if rule_dict["type"] == "numeric":
@@ -129,8 +136,12 @@ def get_bin_counts_one_feature(rule_dict: dict, feature: str, df: pd.DataFrame):
 
 def calculate_stats_psi_one_feature(base_bin_stat: list, test_bin_stat: list):
     if len(base_bin_stat) != len(test_bin_stat):
-        raise DataFormatError.feature_not_matched(
-            f"base_bin_stat: {len(base_bin_stat)} and test_bin_stat: {len(test_bin_stat)} size not match."
+        raise InvalidArgumentError(
+            message="length of bin_stat mismatch",
+            detail={
+                "base_bin_stat": len(base_bin_stat),
+                "test_bin_stat": len(test_bin_stat),
+            },
         )
 
     # calculate total sample count
@@ -140,14 +151,22 @@ def calculate_stats_psi_one_feature(base_bin_stat: list, test_bin_stat: list):
         base_bin_label = base_bin_stat[i][0]
         test_bin_label = test_bin_stat[i][0]
         if base_bin_label != test_bin_label:
-            raise DataFormatError.feature_not_matched(
-                f'base_bin_label: {base_bin_label} and test_bin_label: {test_bin_label} not match.'
+            raise InvalidArgumentError(
+                message="bin_label mismatch",
+                detail={
+                    "base_bin_label": base_bin_label,
+                    "test_bin_label": test_bin_label,
+                },
             )
         base_row_count += int(base_bin_stat[i][2])
         test_row_count += int(test_bin_stat[i][2])
     if not (base_row_count > 0 and test_row_count > 0):
-        raise DataFormatError.feature_not_matched(
-            f'base_row_count: {base_row_count} and test_row_count: {test_row_count} should be greater than 0.'
+        raise InvalidArgumentError(
+            message="base_row_count and test_row_count should be greater than 0",
+            detail={
+                "base_row_count": base_row_count,
+                "test_row_count": test_row_count,
+            },
         )
 
     feature_psi = 0.0

@@ -25,6 +25,7 @@ CPU/Memory: recommended minimum requirement is 8C16G.
 > **_Note:_** Due to CI resource limitation, macOS x64 prebuild binary is no longer available.
 
 ## Option 1: from pypi
+
 For users who want to try SecretFlow, you can install [the current release](https://pypi.org/project/secretflow/).
 
 Note that it requires python version == 3.10, you can create a virtual environment with conda if not satisfied.
@@ -36,11 +37,13 @@ conda activate sf
 
 After that, please use pip to install SecretFlow.
 
+
 ```bash
 pip install -U secretflow
 ```
 
 ## Option 2: from docker
+
 You can also use SecretFlow Docker image to give SecretFlow a quick try.
 
 ```bash
@@ -52,6 +55,7 @@ More versions can be obtained from [secretflow tags](https://hub.docker.com/r/se
 ## Option 3: from source
 
 1. Download code and set up Python virtual environment.
+
 
 ```sh
 git clone https://github.com/secretflow/secretflow.git
@@ -103,8 +107,7 @@ conda activate sf
 pip install -U secretflow
 ```
 
-4. Use WSL to develop your application
-
+1. Use WSL to develop your application
 
 After set up of SecretFlow in WSL, you can use [Pycharm Professional to Configure an interpreter using WSL](https://www.jetbrains.com/help/pycharm/using-wsl-as-a-remote-interpreter.html) or [Visual Studio Code with WSL](https://learn.microsoft.com/en-us/windows/wsl/tutorials/wsl-vscode) to use SecretFlow in Windows Operating System.
 
@@ -131,11 +134,13 @@ Create alice's PYU device, which can process alice's data.
 ```
 
 Let alice say hello world.
+
 ```python
 >>> message_from_alice = alice_device(lambda x:x)("Hello World!")
 ```
 
 Print the message.
+
 ```python
 >>> message_from_alice
 <secretflow.device.device.pyu.PYUObject object at 0x7fdec24a15b0>
@@ -171,15 +176,17 @@ In the following, there are two options to run the GPU-version SecretFlow:
 After the image is ready, you could [run the container and try GPU support](#run-a-container-and-check-gpu).
 
 ### Preparations
+
 1. Make sure your NVIDIA driver is available and meet the version requirements:
 
- Driver version must be >= 525.60.13 for CUDA 12 and >= 450.80.02 for CUDA 11 on Linux.
+Driver version must be >= 525.60.13 for CUDA 12 and >= 450.80.02 for CUDA 11 on Linux.
 
 You could run NVIDIA System Management Interface (nvidia-smi) to make sure your NVIDIA driver is available and meet the version requirements.
 
 ```bash
 nvidia-smi
 ```
+
 > **NOTE**: We currently only supply the GPU Docker image based on CUDA11. When the GPU packages of PyTorch and TensorFlow based on CUDA12 are available, we will supply the GPU Docker image based on CUDA12.
 
 2. Follow the [NVIDIA official guide](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html#docker) to setup NVIDIA Container Toolkit on your distributions.
@@ -193,9 +200,11 @@ The GPU Docker image of SecretFlow is available on the SecretFlow repository at 
 ```bash
 docker pull secretflow/secretflow-gpu
 ```
+
 For more information, please visit [the GPU docker images at Dockerhub](https://hub.docker.com/r/secretflow/secretflow-gpu).
 
 ### Option 2: Build the GPU docker image by yourself
+
 You could also build the Docker image by yourself.
 
 1. Download code
@@ -220,6 +229,7 @@ docker container run --runtime=nvidia  -it --gpus all secretflow-gpu bash
 ```
 
 > **NOTE**: The following two parameters are necessary:
+>
 > - `--runtime=nvidia`
 > - `--gpus all`
 

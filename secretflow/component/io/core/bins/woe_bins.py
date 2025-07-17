@@ -33,12 +33,8 @@ from secretflow.component.io.core.bins.woe_bin_utils import (
 )
 from secretflow.device import PYUObject
 from secretflow.device.driver import reveal
-from secretflow.error_system.exceptions import (
-    DataFormatError,
-    InvalidArgumentError,
-    NotSupportedError,
-)
 from secretflow.spec.extend.bin_data_pb2 import Bin, Bins, VariableBins
+from secretflow.utils.errors import InvalidArgumentError
 
 MIN_SECURE_BIN_NUM = 5
 
@@ -47,9 +43,7 @@ def woe_feature_to_pb(
     feature: Dict, party_name: str, feature_iv: float
 ) -> VariableBins:
     if feature["type"] != "numeric":
-        raise NotSupportedError.not_supported_feature_type(
-            "Only support numeric feature now."
-        )
+        raise InvalidArgumentError("Only support numeric feature now.")
     # Create a VariableBins message
     variable_bins = VariableBins()
 
@@ -63,10 +57,10 @@ def woe_feature_to_pb(
             f"DANGER! LABEL INFO IS AT RISK! For securing label information, bin count must be greater than or equal to {MIN_SECURE_BIN_NUM} to show, got {bin_count}."
         )
     if bin_count <= 1:
-        raise DataFormatError.feature_not_matched("bin count should be at least 2")
+        raise InvalidArgumentError("bin count should be at least 2")
     split_points_padded = pad_inf_to_split_points(feature["split_points"])
     if len(split_points_padded) != bin_count + 1:
-        raise DataFormatError.feature_not_matched(
+        raise InvalidArgumentError(
             f"bin count should be will defined, filling values: {feature['filling_values']}, {feature['split_points']}"
         )
     for i in range(bin_count):
@@ -149,16 +143,12 @@ def feature_modify_woe_bin_rule(
     if feature_rule["type"] != "numeric":
         return feature_rule
     if feature_rule["name"] != new_variable_rule_pb.feature_name:
-        raise DataFormatError.feature_not_matched(
-            "feature name of input feature_rule does not match"
-        )
+        raise InvalidArgumentError("feature name of input feature_rule does not match")
     if feature_rule["type"] != new_variable_rule_pb.feature_type:
-        raise DataFormatError.feature_not_matched(
-            "feature type of input feature_rule does not match"
-        )
+        raise InvalidArgumentError("feature type of input feature_rule does not match")
 
     if len(feature_rule["total_counts"]) != len(new_variable_rule_pb.valid_bins):
-        raise DataFormatError.feature_not_matched(
+        raise InvalidArgumentError(
             "total_counts of input feature_rule should match to new_variable_rule_pb.valid_bins"
         )
 
@@ -185,9 +175,8 @@ def feature_modify_woe_bin_rule(
             else:
                 this_left_bound = bin.left_bound
                 if this_left_bound != last_seen_right_bound:
-                    raise DataFormatError.bin_rule_not_consecutive(
-                        last_seen_right_bound=last_seen_right_bound,
-                        this_left_bound=this_left_bound,
+                    raise InvalidArgumentError(
+                        f"only consecutive bins can merge, last right bound :{last_seen_right_bound}, this bin's left bound : {this_left_bound}",
                     )
             # merging
             last_seen_right_bound = bin.right_bound
@@ -220,7 +209,7 @@ def feature_modify_woe_bin_rule(
             f"DANGER! LABEL INFO IS AT RISK! For securing label information, bin count must be greater than or equal to {MIN_SECURE_BIN_NUM} to show, got {bin_count}."
         )
     if bin_count <= 1:
-        raise DataFormatError.feature_not_matched("bin count should be at least 2")
+        raise InvalidArgumentError("bin count should be at least 2")
 
     feature_rule["filling_values"] = [
         calculate_woe_from_ratios(rp, rn) for (rp, rn) in new_bin_ratio_pairs

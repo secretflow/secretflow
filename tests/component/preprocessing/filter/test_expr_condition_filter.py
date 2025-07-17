@@ -12,10 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-import logging
-import time
-
 import pandas as pd
 import pytest
 from pyarrow import orc
@@ -24,22 +20,24 @@ from secretflow.component.core import (
     VTable,
     VTableParty,
     build_node_eval_param,
+    comp_eval,
     make_storage,
 )
-from secretflow.component.entry import comp_eval
 from secretflow.component.preprocessing.filter.expr_condition_filter import (
     ExprConditionFilter,
 )
+from secretflow.utils.errors import InvalidArgumentError
 
 
-def test_expr_condition_filter(comp_prod_sf_cluster_config):
+@pytest.mark.mpc
+def test_expr_condition_filter(sf_production_setup_comp):
     work_dir = "test_expr_condition_filter"
     alice_input_path = "test_expr_condition_filter/alice.csv"
     bob_input_path = "test_expr_condition_filter/bob.csv"
     output_hit_path = "test_expr_condition_filter/hit.csv"
     output_else_path = "test_expr_condition_filter/else.csv"
 
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
     self_party = sf_cluster_config.private_config.self_party
     storage = make_storage(storage_config)
 
@@ -123,28 +121,59 @@ def test_expr_condition_filter(comp_prod_sf_cluster_config):
             else_ds_info = VTable.from_distdata(res.outputs[1], columns=[id_name])
 
             hit_ds = orc.read_table(
-                storage.get_reader(hit_ds_info.party(self_party).uri)
+                storage.get_reader(hit_ds_info.get_party(self_party).uri)
             ).to_pandas()
             else_ds = orc.read_table(
-                storage.get_reader(else_ds_info.party(self_party).uri)
+                storage.get_reader(else_ds_info.get_party(self_party).uri)
             ).to_pandas()
             expected = tc["expected"]
             assert list(hit_ds[id_name]) == expected[0]
             assert list(else_ds[id_name]) == expected[1]
 
-    # test errors
-    param = build_node_eval_param(
-        domain="data_filter",
-        name="expr_condition_filter",
-        version="1.0.0",
-        attrs={"expr": "b4 < 11 AND a1 IS NOT NULL"},
-        inputs=[VTable(name="input_ds", parties=[alice_meta, bob_meta])],
-        output_uris=[output_hit_path, output_else_path],
+
+def test_expr_condition_filter_error():
+    # test expr empty
+    comp = ExprConditionFilter(expr="")
+    with pytest.raises(InvalidArgumentError, match="empty expr"):
+        comp.evaluate(None)
+
+    # test no columns
+    comp = ExprConditionFilter(expr="1 == 1")
+    with pytest.raises(
+        InvalidArgumentError, match="cannot parse columns from the expr"
+    ):
+        comp.evaluate(None)
+
+    # test columns must belong to one party
+    input_tbl = VTable(
+        name="input_ds",
+        parties=[
+            VTableParty.from_dict(
+                party="alice",
+                uri="alice_input_path.csv",
+                format="csv",
+                null_strs=[""],
+                ids={"id1": "str"},
+                features={"a1": "str", "a2": "str", "a3": "float32"},
+                labels={"y": "float32"},
+            ),
+            VTableParty.from_dict(
+                party="bob",
+                uri="bob_input_path.csv",
+                format="csv",
+                null_strs=[""],
+                ids={"id2": "str"},
+                features={"b4": "float32", "b5": "str", "b6": "float32"},
+            ),
+        ],
     )
-    with pytest.raises(Exception) as exc_info:
-        comp_eval(param, storage_config, sf_cluster_config)
-    time.sleep(4)
-    logging.info(f"Caught expected Exception: {exc_info}")
+    comp = ExprConditionFilter(
+        expr="b4 < 11 AND a1 IS NOT NULL", input_ds=input_tbl.to_distdata()
+    )
+    with pytest.raises(
+        InvalidArgumentError, match="The columns of expr must appears in one party"
+    ):
+        comp.evaluate(None)
 
 
 def test_parse_columns():

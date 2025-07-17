@@ -18,19 +18,23 @@ import numpy as np
 import pandas as pd
 import pytest
 from google.protobuf.json_format import MessageToJson
-from sklearn.datasets import load_breast_cancer
-from sklearn.metrics import r2_score
-from sklearn.preprocessing import StandardScaler
-
-from secretflow.component.core import DistDataType, build_node_eval_param, make_storage
-from secretflow.component.entry import comp_eval
-from secretflow.spec.v1.data_pb2 import (
+from secretflow_spec.v1.data_pb2 import (
     DistData,
     IndividualTable,
     TableSchema,
     VerticalTable,
 )
-from secretflow.spec.v1.report_pb2 import Report
+from secretflow_spec.v1.report_pb2 import Report
+from sklearn.datasets import load_breast_cancer
+from sklearn.metrics import r2_score
+from sklearn.preprocessing import StandardScaler
+
+from secretflow.component.core import (
+    DistDataType,
+    build_node_eval_param,
+    comp_eval,
+    make_storage,
+)
 
 g_test_epoch = 3
 
@@ -118,8 +122,8 @@ def get_eval_param(predict_path):
     )
 
 
-def get_meta_and_dump_data(comp_prod_sf_cluster_config, alice_path, bob_path):
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+def get_meta_and_dump_data(sf_production_setup_comp, alice_path, bob_path):
+    storage_config, sf_cluster_config = sf_production_setup_comp
     self_party = sf_cluster_config.private_config.self_party
     storage = make_storage(storage_config)
     scaler = StandardScaler()
@@ -152,7 +156,8 @@ def get_meta_and_dump_data(comp_prod_sf_cluster_config, alice_path, bob_path):
 
 
 @pytest.mark.parametrize("with_checkpoint", [True, False])
-def test_ss_sgd(comp_prod_sf_cluster_config, with_checkpoint):
+@pytest.mark.mpc
+def test_ss_sgd(sf_production_setup_comp, with_checkpoint):
     work_path = f'test_ss_sgd_{with_checkpoint}'
     alice_path = f"{work_path}/x_alice.csv"
     bob_path = f"{work_path}/x_bob.csv"
@@ -161,12 +166,12 @@ def test_ss_sgd(comp_prod_sf_cluster_config, with_checkpoint):
     report_path = f"{work_path}/model.report"
     checkpoint_path = f"{work_path}/checkpoint" if with_checkpoint else ""
 
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
 
     train_param = get_train_param(
         alice_path, bob_path, model_path, report_path, checkpoint_path
     )
-    meta = get_meta_and_dump_data(comp_prod_sf_cluster_config, alice_path, bob_path)
+    meta = get_meta_and_dump_data(sf_production_setup_comp, alice_path, bob_path)
     train_param.inputs[0].meta.Pack(meta)
 
     train_res = comp_eval(

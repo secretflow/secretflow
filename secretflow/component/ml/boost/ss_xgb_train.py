@@ -22,6 +22,7 @@ from secretflow.component.core import (
     Field,
     Input,
     Interval,
+    IServingExporter,
     Model,
     Output,
     ServingBuilder,
@@ -41,7 +42,7 @@ from .ss_xgb import SSXGBExportMixin
 
 
 @register(domain="ml.train", version="1.0.0", name="ss_xgb_train")
-class SSXGBTrain(SSXGBExportMixin, Component):
+class SSXGBTrain(SSXGBExportMixin, Component, IServingExporter):
     '''
     This method provides both classification and regression tree boosting (also known as GBDT, GBM)
     for vertical partitioning dataset setting by using secret sharing.
