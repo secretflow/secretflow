@@ -21,6 +21,7 @@ from .fed_scr import PYUFedSCR
 from .fed_stc import PYUFedSTC
 from .moon import PYUFedMOON
 from .scaffold import PYUScaffold
+from .orchestra import PYUOrchestraStrategy, PYUOrchestraSimpleStrategy
 
 __all__ = [
     'PYUFedAvgW',
@@ -32,4 +33,6 @@ __all__ = [
     'PYUScaffold',
     'PYUFedGen',
     'PYUFedMOON',
+    'PYUOrchestraStrategy',
+    'PYUOrchestraSimpleStrategy',
 ]
