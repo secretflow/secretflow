@@ -1,3 +1,32 @@
+# Copyright 2024 Ant Group Co., Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""
+Orchestra Federated Learning Application
+
+This module implements the Orchestra federated learning strategy following the original paper:
+"Orchestra: Unsupervised Federated Learning via Globally Consistent Clustering"
+
+Key features:
+- Unsupervised federated learning
+- Global consistency clustering
+- Contrastive learning
+- EMA target model updates
+- Sinkhorn-Knopp equal-size clustering
+- Rotation prediction for degeneracy regularization
+"""
+
 import logging
 from typing import Dict, List, Optional, Tuple, Union
 
@@ -15,72 +44,104 @@ from secretflow_fl.ml.nn.fl.strategy_dispatcher import register_strategy
 from secretflow_fl.ml.nn.fl.fl_model import FLModel
 
 
-class OrchestraFLModel(FLModel):
+@register_strategy(strategy_name='orchestra', backend='torch')
+class OrchestraFLModel(BaseTorchModel):
     """
-    Orchestra联邦学习模型应用
+    Orchestra Federated Learning Model
     
-    实现无监督联邦学习，支持：
-    1. 全局一致性聚类
-    2. 对比学习
-    3. EMA目标模型
-    4. Sinkhorn-Knopp等大小聚类
-    5. 旋转预测抗退化机制
+    Implementation of Orchestra strategy for unsupervised federated learning
+    following the original paper architecture.
+    
+    Key Components:
+    - Backbone network for feature extraction
+    - Projection network for contrastive learning
+    - Target network with EMA updates
+    - Global and local clustering centers
+    - Sinkhorn-Knopp equal-size clustering
+    - Rotation prediction for degeneracy regularization
+    
+    Args:
+        builder_base: Model builder for backbone network
+        num_classes: Number of output classes
+        temperature: Temperature parameter for contrastive learning (default: 0.1)
+        cluster_weight: Weight for clustering loss (default: 1.0)
+        contrastive_weight: Weight for contrastive loss (default: 1.0)
+        deg_weight: Weight for degeneracy regularization loss (default: 0.1)
+        ema_decay: EMA decay rate for target model updates (default: 0.999)
+        num_local_clusters: Number of local clusters (N_local, default: 20)
+        num_global_clusters: Number of global clusters (N_global, default: 10)
+        memory_size: Size of projection memory bank (default: 1024)
+        projection_dim: Dimension of projection space (default: 512)
+        hidden_dim: Hidden dimension for projection MLP (default: 512)
+        epsilon: Epsilon parameter for Sinkhorn-Knopp algorithm (default: 0.05)
+        sinkhorn_iterations: Number of Sinkhorn-Knopp iterations (default: 3)
+        **kwargs: Additional arguments
     """
     
     def __init__(
         self,
-        server=None,
-        device_list=None,
-        model=None,
-        aggregator=None,
-        strategy="fed_avg_w",
-        consensus_num=1,
-        backend="torch",
-        random_seed=None,
-        skip_bn=False,
+        builder_base,
+        num_classes: int = 10,
+        temperature: float = 0.1,
+        cluster_weight: float = 1.0,
+        contrastive_weight: float = 1.0,
+        deg_weight: float = 0.1,
+        ema_decay: float = 0.999,
+        num_local_clusters: int = 20,
+        num_global_clusters: int = 10,
+        memory_size: int = 1024,
+        projection_dim: int = 512,
+        hidden_dim: int = 512,
+        epsilon: float = 0.05,
+        sinkhorn_iterations: int = 3,
         **kwargs
     ):
         """
-        初始化Orchestra联邦学习模型
+        Initialize Orchestra Federated Learning Model
         
         Args:
-            server: 服务器设备
-            device_list: 设备列表
-            model: 模型
-            aggregator: 聚合器
-            strategy: 策略
-            consensus_num: 共识数量
-            backend: 后端
-            random_seed: 随机种子
-            skip_bn: 是否跳过批归一化层
-            **kwargs: 其他参数
+            builder_base: Model builder for backbone network
+            num_classes: Number of output classes
+            temperature: Temperature parameter for contrastive learning
+            cluster_weight: Weight for clustering loss
+            contrastive_weight: Weight for contrastive loss
+            deg_weight: Weight for degeneracy regularization loss
+            ema_decay: EMA decay rate for target model updates
+            num_local_clusters: Number of local clusters (N_local)
+            num_global_clusters: Number of global clusters (N_global)
+            memory_size: Size of projection memory bank
+            projection_dim: Dimension of projection space
+            hidden_dim: Hidden dimension for projection MLP
+            epsilon: Epsilon parameter for Sinkhorn-Knopp algorithm
+            sinkhorn_iterations: Number of Sinkhorn-Knopp iterations
+            **kwargs: Additional arguments
         """
         
-        # Orchestra特定参数
-        self.temperature = kwargs.get('temperature', 0.1)
-        self.cluster_weight = kwargs.get('cluster_weight', 1.0)
-        self.contrastive_weight = kwargs.get('contrastive_weight', 1.0)
-        self.deg_weight = kwargs.get('deg_weight', 1.0)
-        self.num_local_clusters = kwargs.get('num_local_clusters', 16)
-        self.num_global_clusters = kwargs.get('num_global_clusters', 128)
-        self.memory_size = kwargs.get('memory_size', 128)
-        self.ema_decay = kwargs.get('ema_decay', 0.996)
+        # Orchestra-specific parameters following the original paper
+        self.temperature = temperature
+        self.cluster_weight = cluster_weight
+        self.contrastive_weight = contrastive_weight
+        self.deg_weight = deg_weight
+        self.ema_decay = ema_decay
+        self.num_local_clusters = num_local_clusters  # N_local
+        self.num_global_clusters = num_global_clusters  # N_global
+        self.memory_size = memory_size
+        self.projection_dim = projection_dim
+        self.hidden_dim = hidden_dim
+        self.epsilon = epsilon
+        self.sinkhorn_iterations = sinkhorn_iterations
         
+        # Initialize logger
+        self.logger = logging.getLogger(self.__class__.__name__)
+        
+        # Call parent class initialization
         super().__init__(
-            server=server,
-            device_list=device_list,
-            model=model,
-            aggregator=aggregator,
-            strategy=strategy,
-            consensus_num=consensus_num,
-            backend=backend,
-            random_seed=random_seed,
-            skip_bn=skip_bn,
+            builder_base=builder_base,
+            num_classes=num_classes,
             **kwargs
         )
         
-        self.logger = logging.getLogger(__name__)
-        self.logger.info("Orchestra FL模型初始化完成")
+        self.logger.info("Orchestra FL Model initialized successfully")
     
 
     
@@ -311,7 +372,7 @@ class OrchestraFLModel(FLModel):
 
 
 def create_orchestra_model(
-    model,
+    builder_base,
     num_classes: int = 10,
     temperature: float = 0.1,
     cluster_weight: float = 1.0,
@@ -331,7 +392,7 @@ def create_orchestra_model(
     创建Orchestra联邦学习模型的便捷函数 - 增强参数验证
     
     Args:
-        model: 基础模型（backbone）
+        builder_base: 模型构建器（backbone）
         num_classes: 类别数量
         temperature: 对比学习温度参数 (0.01-1.0)
         cluster_weight: 聚类损失权重 (>= 0)
@@ -399,7 +460,7 @@ def create_orchestra_model(
     try:
         # 创建Orchestra模型
         orchestra_model = OrchestraFLModel(
-            model=model,
+            builder_base=builder_base,
             num_classes=num_classes,
             **orchestra_params
         )
