@@ -16,11 +16,11 @@
 import logging
 import uuid
 
-from secretflow.device.driver import PYU, reveal, wait
-from secretflow.spec.v1.data_pb2 import DistData
-from secretflow.utils import secure_pickle as pickle
+from secretflow_spec import Storage
+from secretflow_spec.v1.data_pb2 import DistData
 
-from .storage import Storage
+from secretflow.device.driver import PYU, reveal, wait
+from secretflow.utils import secure_pickle as pickle
 
 
 class Checkpoint:
@@ -29,7 +29,19 @@ class Checkpoint:
         self.args = args
         self.parties = parties
 
-    def load(self, storage: Storage) -> DistData:  # type: ignore
+    @staticmethod
+    def parse_parties(kwargs: dict) -> list[str]:
+        parties = set()
+        for v in kwargs.values():
+            if not isinstance(v, DistData):
+                continue
+            for dr in v.data_refs:
+                parties.add(dr.party)
+
+        assert len(parties) > 0
+        return sorted(list(parties))
+
+    def load(self, storage: Storage) -> DistData:
         def _try_load():
             check_points = []
             step = 0
@@ -87,7 +99,7 @@ class Checkpoint:
     def _step_uri(self, step: int):
         return f"{self.uri}_{step}"
 
-    def dump(self, storage: Storage, step: int, payload: DistData):  # type: ignore
+    def dump(self, storage: Storage, step: int, payload: DistData):
         parties = [dr.party for dr in payload.data_refs]
         check_point = dict()
         check_point["step"] = step

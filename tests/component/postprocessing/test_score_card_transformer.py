@@ -17,6 +17,7 @@ import math
 
 import numpy as np
 import pandas as pd
+import pytest
 from pyarrow import orc
 
 import secretflow.compute as sc
@@ -24,19 +25,20 @@ from secretflow.component.core import (
     VTable,
     VTableParty,
     build_node_eval_param,
+    comp_eval,
     make_storage,
 )
-from secretflow.component.entry import comp_eval
 from secretflow.component.postprocessing.score_card_transformer import (
     ScoreCardTransformer,
 )
 
 
-def test_score_card_transformer(comp_prod_sf_cluster_config):
+@pytest.mark.mpc
+def test_score_card_transformer(sf_production_setup_comp):
     input_path = "test_score_card_transformer/input.csv"
     output_path = "test_score_card_transformer/output.csv"
 
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
     self_party = sf_cluster_config.private_config.self_party
     storage = make_storage(storage_config)
 

@@ -13,82 +13,51 @@
 # limitations under the License.
 
 import copy
-from dataclasses import dataclass
 from typing import Tuple
 
 import numpy as np
 import pytest
+import spu
 from sklearn.datasets import load_breast_cancer
 from sklearn.metrics import roc_auc_score
 from sklearn.preprocessing import StandardScaler
 
 import secretflow as sf
-import secretflow.distributed as sfd
 from secretflow.data import FedNdarray, PartitionWay
-from secretflow.distributed.const import DISTRIBUTION_MODE
 from secretflow.ml.linear.hess_sgd import HESSLogisticRegression
-from tests.cluster import cluster, set_self_party
-from tests.conftest import heu_config, semi2k_cluster
 
 
-@dataclass
-class DeviceInventory:
-    alice: sf.PYU = None
-    bob: sf.PYU = None
-    carol: sf.PYU = None
-    davy: sf.PYU = None
-    spu: sf.SPU = None
-    heu_x: sf.HEU = None
-    heu_y: sf.HEU = None
+def gen_heus():
+    heu_field = spu.FieldType.FM128
+    sk_keeper = "alice"
+    evaluator = "bob"
 
+    def _to_party(party: str):
+        return {"party": party}
 
-@pytest.fixture(scope="module")
-def ml_linear_production_setup_devices_ray(request, sf_party_for_4pc):
-    devices = DeviceInventory()
-    sfd.set_distribution_mode(mode=DISTRIBUTION_MODE.PRODUCTION)
-    set_self_party(sf_party_for_4pc)
-    sf.init(
-        address='local',
-        num_cpus=8,
-        log_to_driver=True,
-        cluster_config=cluster(),
-        enable_waiting_for_other_parties_ready=False,
-    )
-
-    devices.alice = sf.PYU('alice')
-    devices.bob = sf.PYU('bob')
-    devices.carol = sf.PYU('carol')
-    devices.davy = sf.PYU('davy')
-
-    cluster_def = sf.reveal(devices.alice(semi2k_cluster)())
-
-    devices.spu = sf.SPU(
-        cluster_def,
-        link_desc={
-            'connect_retry_times': 60,
-            'connect_retry_interval_ms': 1000,
+    config_x = {
+        "sk_keeper": _to_party(sk_keeper),
+        "evaluators": [_to_party(evaluator)],
+        "mode": "PHEU",
+        "he_parameters": {
+            "schema": "ou",
+            "key_pair": {"generate": {"bit_size": 2048}},
         },
-    )
-
-    config_x = heu_config
-    config_x['encoding'] = {
-        'cleartext_type': 'DT_I32',
-        'encoder': "IntegerEncoder",
-        'encoder_args': {"scale": 1},
+        "encoding": {
+            'cleartext_type': 'DT_I32',
+            'encoder': "IntegerEncoder",
+            'encoder_args': {"scale": 1},
+        },
     }
-    devices.heu_x = sf.HEU(config_x, devices.spu.cluster_def['runtime_config']['field'])
+
+    heu_x = sf.HEU(config_x, heu_field)
 
     config_y = copy.deepcopy(config_x)
-    sk_keeper = config_y["sk_keeper"]
-    evaluator = config_y["evaluators"][0]
-    config_y["sk_keeper"] = evaluator
-    config_y["evaluators"][0] = sk_keeper
+    config_y["sk_keeper"] = _to_party(evaluator)
+    config_y["evaluators"] = [_to_party(sk_keeper)]
 
-    devices.heu_y = sf.HEU(config_y, devices.spu.cluster_def['runtime_config']['field'])
-
-    yield devices
-    del devices
-    sf.shutdown()
+    heu_y = sf.HEU(config_y, heu_field)
+    return heu_x, heu_y
 
 
 def _load_dataset(env):
@@ -119,19 +88,19 @@ def _load_dataset(env):
     return x, y
 
 
-def test_model(ml_linear_production_setup_devices_ray):
-    x, y = _load_dataset(ml_linear_production_setup_devices_ray)
+@pytest.mark.mpc
+def test_model(sf_production_setup_devices):
+    devices = sf_production_setup_devices
 
-    model = HESSLogisticRegression(
-        ml_linear_production_setup_devices_ray.spu,
-        ml_linear_production_setup_devices_ray.heu_x,
-        ml_linear_production_setup_devices_ray.heu_y,
-    )
+    heu_x, heu_y = gen_heus()
+    x, y = _load_dataset(devices)
+
+    model = HESSLogisticRegression(devices.spu, heu_x, heu_y)
     model.fit(x, y, epochs=4, batch_size=64)
 
     print(f"w {sf.reveal(model._w)}")
 
-    label = sf.reveal(y.partitions[ml_linear_production_setup_devices_ray.bob])
+    label = sf.reveal(y.partitions[devices.bob])
     yhat = sf.reveal(model.predict(x))
 
     auc = roc_auc_score(label, yhat)

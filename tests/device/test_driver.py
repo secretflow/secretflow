@@ -46,6 +46,7 @@ def _test_wait_should_ok(devices):
     assert reveal(devices.alice(check)(file_path))
 
 
+@pytest.mark.mpc
 def test_wait_should_ok_prod(sf_production_setup_devices):
     _test_wait_should_ok(sf_production_setup_devices)
 
@@ -87,6 +88,7 @@ def _test_spu_reveal(devices):
     assert x_ == 32
 
 
+@pytest.mark.mpc
 def test_spu_reveal_prod(sf_production_setup_devices):
     _test_spu_reveal(sf_production_setup_devices)
 
@@ -103,6 +105,7 @@ def _test_spu_reveal_empty_list(devices):
     assert x_ == []
 
 
+@pytest.mark.mpc
 def test_spu_reveal_empty_list_prod(sf_production_setup_devices):
     _test_spu_reveal_empty_list(sf_production_setup_devices)
 

@@ -24,10 +24,15 @@ from secretflow.data.vertical import VDataFrame
 from secretflow.security.aggregation import PlainAggregator
 from secretflow.security.compare import PlainComparator
 from secretflow.utils.errors import InvalidArgumentError
+from tests.sf_fixtures import DeviceInventory, mpc_fixture
 
 
-@pytest.fixture(scope='module')
-def prod_env_and_data(sf_production_setup_devices_ray):
+@mpc_fixture
+def prod_env_and_data(sf_production_setup_devices: DeviceInventory):
+    pyu_alice = sf_production_setup_devices.alice
+    pyu_bob = sf_production_setup_devices.bob
+    pyu_carol = sf_production_setup_devices.carol
+
     df_part0 = pd.DataFrame(
         {
             'a1': ['A1', 'B1', None, 'D1', None, 'B4', 'C4', 'D4'],
@@ -46,61 +51,37 @@ def prod_env_and_data(sf_production_setup_devices_ray):
 
     h_part0 = VDataFrame(
         {
-            sf_production_setup_devices_ray.alice: partition(
-                data=sf_production_setup_devices_ray.alice(
-                    lambda: df_part0.iloc[:4, :]
-                )()
-            ),
-            sf_production_setup_devices_ray.bob: partition(
-                data=sf_production_setup_devices_ray.bob(lambda: df_part1.iloc[:4, :])()
-            ),
+            pyu_alice: partition(data=pyu_alice(lambda: df_part0.iloc[:4, :])()),
+            pyu_bob: partition(data=pyu_bob(lambda: df_part1.iloc[:4, :])()),
         }
     )
     h_part1 = VDataFrame(
         {
-            sf_production_setup_devices_ray.alice: partition(
-                data=sf_production_setup_devices_ray.alice(
-                    lambda: df_part0.iloc[4:, :]
-                )()
-            ),
-            sf_production_setup_devices_ray.bob: partition(
-                data=sf_production_setup_devices_ray.bob(lambda: df_part1.iloc[4:, :])()
-            ),
+            pyu_alice: partition(data=pyu_alice(lambda: df_part0.iloc[4:, :])()),
+            pyu_bob: partition(data=pyu_bob(lambda: df_part1.iloc[4:, :])()),
         }
     )
     h_mix = MixDataFrame(partitions=[h_part0, h_part1])
 
     v_part0 = HDataFrame(
         {
-            sf_production_setup_devices_ray.alice: partition(
-                data=sf_production_setup_devices_ray.alice(
-                    lambda: df_part0.iloc[:4, :]
-                )()
-            ),
-            sf_production_setup_devices_ray.bob: partition(
-                data=sf_production_setup_devices_ray.bob(lambda: df_part0.iloc[4:, :])()
-            ),
+            pyu_alice: partition(data=pyu_alice(lambda: df_part0.iloc[:4, :])()),
+            pyu_bob: partition(data=pyu_bob(lambda: df_part0.iloc[4:, :])()),
         },
-        aggregator=PlainAggregator(sf_production_setup_devices_ray.carol),
-        comparator=PlainComparator(sf_production_setup_devices_ray.carol),
+        aggregator=PlainAggregator(pyu_carol),
+        comparator=PlainComparator(pyu_carol),
     )
     v_part1 = HDataFrame(
         {
-            sf_production_setup_devices_ray.alice: partition(
-                data=sf_production_setup_devices_ray.alice(
-                    lambda: df_part1.iloc[:4, :]
-                )()
-            ),
-            sf_production_setup_devices_ray.bob: partition(
-                data=sf_production_setup_devices_ray.bob(lambda: df_part1.iloc[4:, :])()
-            ),
+            pyu_alice: partition(data=pyu_alice(lambda: df_part1.iloc[:4, :])()),
+            pyu_bob: partition(data=pyu_bob(lambda: df_part1.iloc[4:, :])()),
         },
-        aggregator=PlainAggregator(sf_production_setup_devices_ray.carol),
-        comparator=PlainComparator(sf_production_setup_devices_ray.carol),
+        aggregator=PlainAggregator(pyu_carol),
+        comparator=PlainComparator(pyu_carol),
     )
     v_mix = MixDataFrame(partitions=[v_part0, v_part1])
 
-    return sf_production_setup_devices_ray, {
+    return sf_production_setup_devices, {
         "df_part0": df_part0,
         "df_part1": df_part1,
         "h_part0": h_part0,
@@ -112,6 +93,7 @@ def prod_env_and_data(sf_production_setup_devices_ray):
     }
 
 
+@pytest.mark.mpc(parties=3)
 def test_mean_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # WHEN
@@ -131,6 +113,7 @@ def test_mean_should_ok(prod_env_and_data):
     pd.testing.assert_series_equal(value_v, expected)
 
 
+@pytest.mark.mpc(parties=3)
 def test_min_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # WHEN
@@ -150,6 +133,7 @@ def test_min_should_ok(prod_env_and_data):
     pd.testing.assert_series_equal(value_v, expected)
 
 
+@pytest.mark.mpc(parties=3)
 def test_max_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # WHEN
@@ -169,6 +153,7 @@ def test_max_should_ok(prod_env_and_data):
     pd.testing.assert_series_equal(value_v, expected)
 
 
+@pytest.mark.mpc(parties=3)
 def test_count_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # WHEN
@@ -180,6 +165,7 @@ def test_count_should_ok(prod_env_and_data):
     pd.testing.assert_series_equal(value_v, expected)
 
 
+@pytest.mark.mpc(parties=3)
 def test_len_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # WHEN
@@ -191,6 +177,7 @@ def test_len_should_ok(prod_env_and_data):
     assert value_v == expected
 
 
+@pytest.mark.mpc(parties=3)
 def test_getitem_should_ok(prod_env_and_data):
     env, data = prod_env_and_data
     # Case 1: single item.
@@ -264,6 +251,7 @@ def test_getitem_should_ok(prod_env_and_data):
     )
 
 
+@pytest.mark.mpc(parties=3)
 def test_setitem_should_ok_when_single_value(prod_env_and_data):
     env, data = prod_env_and_data
     # WHEN
@@ -295,6 +283,7 @@ def test_setitem_should_ok_when_single_value(prod_env_and_data):
     ).all()
 
 
+@pytest.mark.mpc(parties=3)
 def test_setitem_should_ok_when_hmix(prod_env_and_data):
     env, data = prod_env_and_data
     # GIVEN
@@ -342,6 +331,7 @@ def test_setitem_should_ok_when_hmix(prod_env_and_data):
     )
 
 
+@pytest.mark.mpc(parties=3)
 def test_setitem_should_ok_when_vmix(prod_env_and_data):
     env, data = prod_env_and_data
     # GIVEN
@@ -389,6 +379,7 @@ def test_setitem_should_ok_when_vmix(prod_env_and_data):
     )
 
 
+@pytest.mark.mpc(parties=3)
 def test_astype_should_ok_when_vmix(prod_env_and_data):
     env, data = prod_env_and_data
     # GIVEN
@@ -418,6 +409,7 @@ def test_astype_should_ok_when_vmix(prod_env_and_data):
     )
 
 
+@pytest.mark.mpc(parties=3)
 def test_astype_should_ok_when_hmix(prod_env_and_data):
     env, data = prod_env_and_data
     # GIVEN
@@ -447,6 +439,7 @@ def test_astype_should_ok_when_hmix(prod_env_and_data):
     )
 
 
+@pytest.mark.mpc(parties=3)
 def test_setitem_should_error_when_wrong_value_type(prod_env_and_data):
     env, data = prod_env_and_data
     # GIVEN
@@ -471,12 +464,14 @@ def test_setitem_should_error_when_wrong_value_type(prod_env_and_data):
         value['a1'] = data['v_part1']
 
 
+@pytest.mark.mpc(parties=3)
 def test_construct_should_error_when_diff_part_types(prod_env_and_data):
     env, data = prod_env_and_data
     with pytest.raises(AssertionError, match='All partitions should have same type'):
         MixDataFrame([data['h_part0'], data['v_part0']])
 
 
+@pytest.mark.mpc(parties=3)
 def test_construct_should_error_when_none_or_empty_parts(prod_env_and_data):
     env, data = prod_env_and_data
     with pytest.raises(AssertionError, match='Partitions should not be None or empty.'):
@@ -486,6 +481,7 @@ def test_construct_should_error_when_none_or_empty_parts(prod_env_and_data):
         MixDataFrame([])
 
 
+@pytest.mark.mpc(parties=3)
 def test_set_partitions_should_error_when_diff_types(prod_env_and_data):
     env, data = prod_env_and_data
     with pytest.raises(AssertionError, match='All partitions should have same type'):
@@ -493,6 +489,7 @@ def test_set_partitions_should_error_when_diff_types(prod_env_and_data):
         mix.partitions = [data['h_part0'], data['v_part0']]
 
 
+@pytest.mark.mpc(parties=3)
 def test_set_partitions_should_error_when_none_or_empty_parts(prod_env_and_data):
     env, data = prod_env_and_data
     with pytest.raises(AssertionError, match='Partitions should not be None or empty.'):

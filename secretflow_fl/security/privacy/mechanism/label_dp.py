@@ -16,7 +16,11 @@ import numpy as np
 
 
 class LabelDP:
-    """Label differential privacy perturbation"""
+    """
+    Label differential privacy perturbation
+
+    Ref: https://arxiv.org/pdf/2102.06062
+    """
 
     def __init__(self, eps: float) -> None:
         """

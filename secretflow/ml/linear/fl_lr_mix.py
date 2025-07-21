@@ -172,7 +172,7 @@ class FlLogisticRegressionMix:
         epochs: int,
         aggregators: List[Aggregator],
         heus: List[HEU],
-        fxp_bits: Optional[int] = spu_fxp_precision(spu.spu_pb2.FM64),
+        fxp_bits: Optional[int] = spu_fxp_precision(spu.FieldType.FM64),
         tol: Optional[float] = 1e-4,
         learning_rate: Optional[float] = 0.1,
         agg_epochs: Optional[int] = 1,
@@ -195,7 +195,7 @@ class FlLogisticRegressionMix:
             heus: a list of heu used to compute vertical lr. Amount of
                 heus should be same as the `VDataFrame` of X.
             fxp_bits: the fraction bit length for encoding before sending to
-                heu device. Defaults to spu_fxp_precision(spu.spu_pb2.FM64).
+                heu device. Defaults to spu_fxp_precision(spu.FieldType.FM64).
             tol: optional, tolerance for stopping criteria. Defaults to 1e-4.
             learning_rate: optional, learning rate. Defaults to 0.1.
             agg_epochs: aggregate weights for every {agg_epochs} epochs.

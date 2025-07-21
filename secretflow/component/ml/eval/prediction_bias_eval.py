@@ -12,7 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
+
 import pandas as pd
+from google.protobuf.json_format import MessageToJson
 
 from secretflow.component.core import (
     Component,
@@ -22,10 +25,10 @@ from secretflow.component.core import (
     Input,
     Interval,
     Output,
+    register,
     Reporter,
     VTable,
     VTableFieldKind,
-    register,
 )
 from secretflow.device import reveal
 from secretflow.stats.core.prediction_bias_core import PredictionBiasReport
@@ -135,4 +138,5 @@ class PredictionBiasEval(Component):
         system_info = self.input_ds.system_info
         r = Reporter(name="Prediction Bias Report", system_info=system_info)
         r.add_tab(tbl_div)
+        logging.info(f'\n--\n*report* \n\n{MessageToJson(r.report())}\n--\n')
         self.report.data = r.to_distdata()

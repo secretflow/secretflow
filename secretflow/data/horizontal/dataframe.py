@@ -190,6 +190,9 @@ class HDataFrame(DataFrameBase):
             dtype=np.int64,
         )
 
+    def nunique(self, *args, **kwargs):
+        raise NotImplementedError
+
     def isna(self) -> 'HDataFrame':
         """Detects missing values for an array-like object.
         Same as pandas.DataFrame.isna

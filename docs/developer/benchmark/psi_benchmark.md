@@ -1,70 +1,81 @@
-# 隐语PSI Benchmark白皮书
+# 隐语 PSI Benchmark 白皮书
 
 > This tutorial is only available in Chinese.
 
 ## 导语
-为了方便大家快速了解隐语PSI的Benchmark，我们设计了10分钟上手手册，包含了亮点介绍、SecretFlow集群的易用搭建、Benchmark脚本、两方和三方PSI的Benchmark，希望能够帮助用户快速了解隐语PSI。
 
-## 隐语PSI亮点
-隐私集合求交（Private Set Intersection，简写为：PSI）是一类特定的安全多方计算（Multi-Party Computation, 即MPC）问题，其问题可以简单理解为：Alice 输入集合 X，Bob 输入集合 Y，双方执行 PSI 协议可以得到 X 和 Y 的交集，同时不在交集范围中的数据是受保护的，即 Alice 和 Bob 无法学习到除了交集以外的任何数据。
+为了方便大家快速了解隐语 PSI 的 Benchmark，我们设计了 10 分钟上手手册，包含了亮点介绍、SecretFlow 集群的易用搭建、Benchmark 脚本、两方和三方 PSI 的 Benchmark，希望能够帮助用户快速了解隐语 PSI。
 
-PSI协议有很多分类方法，按照底层依赖的密码学技术分类，主要包括：
-- 基于公钥密码的PSI方案，包括：基于判定型密钥交换（Decisional Diffie-Hellman, DDH）的PSI方案和基于RSA盲签名的PSI方案；
-- 基于不经意传输（Oblivious Transfer, OT）的PSI方案；
-- 基于通用MPC的PSI方案，例如基于混淆电路（Garbled Circuit, GC）的PSI方案；
-- 基于同态加密（Homomorphic Encryption, HE）的PSI方案。
+## 隐语 PSI 亮点
 
-PSI协议按照参与方的数量进行分类，可分为：
-- 两方PSI：参与方为2个；
-- 多方PSI：参与方>2个。
+隐私集合求交（Private Set Intersection，简写为：PSI）是一类特定的安全多方计算（Multi-Party Computation, 即 MPC）问题，其问题可以简单理解为：Alice 输入集合 X，Bob 输入集合 Y，双方执行 PSI 协议可以得到 X 和 Y 的交集，同时不在交集范围中的数据是受保护的，即 Alice 和 Bob 无法学习到除了交集以外的任何数据。
 
-PSI协议按照所假设的安全模型分类，可分为：
-- 半诚实模型的PSI；
-- 恶意模型的PSI。
+PSI 协议有很多分类方法，按照底层依赖的密码学技术分类，主要包括：
 
-PSI协议按照设参与方的数据量差异，可分为：
-- 平衡PSI：参与方的数据量差异不大；
-- 非平衡PSI：参与方的数据量差异巨大，例如百万 vs 10亿。
+- 基于公钥密码的 PSI 方案，包括：基于判定型密钥交换（Decisional Diffie-Hellman, DDH）的 PSI 方案和基于 RSA 盲签名的 PSI 方案；
+- 基于不经意传输（Oblivious Transfer, OT）的 PSI 方案；
+- 基于通用 MPC 的 PSI 方案，例如基于混淆电路（Garbled Circuit, GC）的 PSI 方案；
+- 基于同态加密（Homomorphic Encryption, HE）的 PSI 方案。
 
-SecretFlow SPU 实现了半诚实模型下的两方和三方PSI协议，计算安全强度是128-bit，统计安全强度是40-bit。
-- 两方PSI协议：
-  - 基于DDH的PSI协议
-    - 基于DDH的PSI协议相对简单易于理解和实现，依赖的密码技术已被广泛论证，通信量低，但计算量较大。
-    - 隐语实现了基于椭圆曲线(Elliptic Curve)群的DDH PSI协议，支持的椭圆曲线类型包括：Curve25519,FourQ,SM2,Secp256k1等。
-  - 基于OT扩展的KKRT16
-    - KKRT16是第一个千万规模($2^{24}$)数据量求交时间在1分钟之内的PSI方案，通信量较大；
-    - 隐语实现了KKRT16协议，并参考了进年来的性能优化和安全改进方案，例如：stash-less CuckooHash，[GKWW20]中 FixedKey AES作为 correlation-robust 哈希函数。
-  - 基于PCG的RR22
-    - RR22 PSI依赖的PCG(Pseudorandom Correlation Generator)方案是近年来mpc方向的研究热点，相比KKRT16在计算量和通信两方面都有了很大改进，从成本(monetary cost)角度更能满足实际业务需求。PCG实现依赖了近年来发展迅速的Silent-Vole原语，隐语在自研的底层密码库[YACL](https://github.com/secretflow/yacl)中已经实现了Silent-Vole相关原语。
-- 三方PSI协议：
-  - 基于DDH的三方PSI协议
+PSI 协议按照参与方的数量进行分类，可分为：
+
+- 两方 PSI：参与方为 2 个；
+- 多方 PSI：参与方>2 个。
+
+PSI 协议按照所假设的安全模型分类，可分为：
+
+- 半诚实模型的 PSI；
+- 恶意模型的 PSI。
+
+PSI 协议按照设参与方的数据量差异，可分为：
+
+- 平衡 PSI：参与方的数据量差异不大；
+- 非平衡 PSI：参与方的数据量差异巨大，例如百万 vs 10 亿。
+
+SecretFlow SPU 实现了半诚实模型下的两方和三方 PSI 协议，计算安全强度是 128-bit，统计安全强度是 40-bit。
+
+- 两方 PSI 协议：
+  - 基于 DDH 的 PSI 协议
+    - 基于 DDH 的 PSI 协议相对简单易于理解和实现，依赖的密码技术已被广泛论证，通信量低，但计算量较大。
+    - 隐语实现了基于椭圆曲线(Elliptic Curve)群的 DDH PSI 协议，支持的椭圆曲线类型包括：Curve25519,FourQ,SM2,Secp256k1 等。
+  - 基于 OT 扩展的 KKRT16
+    - KKRT16 是第一个千万规模($2^{24}$)数据量求交时间在 1 分钟之内的 PSI 方案，通信量较大；
+    - 隐语实现了 KKRT16 协议，并参考了进年来的性能优化和安全改进方案，例如：stash-less CuckooHash，[GKWW20]中 FixedKey AES 作为 correlation-robust 哈希函数。
+  - 基于 PCG 的 RR22
+    - RR22 PSI 依赖的 PCG(Pseudorandom Correlation Generator)方案是近年来 mpc 方向的研究热点，相比 KKRT16 在计算量和通信两方面都有了很大改进，从成本(monetary cost)角度更能满足实际业务需求。PCG 实现依赖了近年来发展迅速的 Silent-Vole 原语，隐语在自研的底层密码库[YACL](https://github.com/secretflow/yacl)中已经实现了 Silent-Vole 相关原语。
+- 三方 PSI 协议：
+
+  - 基于 DDH 的三方 PSI 协议
     - 隐语自研了基于 ECDH 的三方 PSI 协议.**注意我们实现的这个协议会泄漏两方交集大小**，请自行判断是否满足使用场景的安全性。
 
-- 非平衡PSI协议：
-    - 基于ECDH-OPRF的非平衡PSI协议
-        - 隐语实现并开源了基于ECDH-OPRF的非平衡PSI(Unbalanced PSI)协议，在数据量非平衡场景下能得到更好的性能。
-        - 具体来讲：与ECDH-PSI对比，ECDH-PSI需要在大数据集上进行两次加密操作；隐语实现的非平衡PSI只在大数据集上进行一次加密操作。所以在大数据集与小数据集的体量相差非常大的时候，总体计算量和运行时间大约仅是ECDH-PSI的$50\%$。
-        - 非平衡PSI还把协议分成离线和在线（offline/online）两个阶段，在提前执行离线（offline）阶段，得到离线数据缓存的情形下，在线阶段只需少量时间即可得到交集结果。
-
-
+- 非平衡 PSI 协议：
+  - 基于 ECDH-OPRF 的非平衡 PSI 协议
+    - 隐语实现并开源了基于 ECDH-OPRF 的非平衡 PSI(Unbalanced PSI)协议，在数据量非平衡场景下能得到更好的性能。
+    - 具体来讲：与 ECDH-PSI 对比，ECDH-PSI 需要在大数据集上进行两次加密操作；隐语实现的非平衡 PSI 只在大数据集上进行一次加密操作。所以在大数据集与小数据集的体量相差非常大的时候，总体计算量和运行时间大约仅是 ECDH-PSI 的$50\%$。
+    - 非平衡 PSI 还把协议分成离线和在线（offline/online）两个阶段，在提前执行离线（offline）阶段，得到离线数据缓存的情形下，在线阶段只需少量时间即可得到交集结果。
 
 ## 复现方式
+
 ### 一、测试机型环境
+
 - Python：3.10
 - pip: >= 19.3
 - OS: CentOS 7
 - SecretFlow: 1.6.1b0
 - CPU/Memory: 推荐最低配置是 8C16G
 - 硬盘：500G
-### 二、安装conda
-使用conda管理python环境，如果机器没有conda需要先安装，步骤如下：
+
+### 二、安装 conda
+
+使用 conda 管理 python 环境，如果机器没有 conda 需要先安装，步骤如下：
+
 ```
 sudo apt-get install wget
 wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
 ```
 
-
 #### 详细步骤
+
 ```
 #sudo apt-get install wget
 wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
@@ -82,12 +93,13 @@ Do you wish the installer to initialize Miniconda3 by running conda init? [yes|n
 #运行配置信息文件
 source ~/.bashrc
 #测试是否安装成功
-conda --version 
+conda --version
 ```
+
 ![](./resources/4bded9b0-d913-48b2-b7a9-c05e0d2c7c81.png)
 
+### 三、安装 secretflow
 
-### 三、安装secretflow
 ```
 # 创建干净的python环境
 conda create -n sf-benchmark python=3.10
@@ -104,7 +116,8 @@ cd sf-benchmark
 ```
 
 验证安装是否成功
-root目录下输入python然后回车；
+root 目录下输入 python 然后回车；
+
 ```
 >>> import secretflow as sf
 >>> sf.init(['alice', 'bob', 'carol'], address='local')
@@ -113,14 +126,18 @@ root目录下输入python然后回车；
 >>> data = dev(np.random.rand)(3, 4)
 >>> sf.reveal(data)
 ```
+
 如下图所示就代表环境搭建成功了
 ![](./resources/9bab546b-6578-4ff7-b8f7-9f26ab4df46a.png)
 
 ### 四、创建节点并启动集群
-配置示例使用集群模式仿真模式，其它模式请参考secretfow部署文档。
-#### 创建ray header节点
-创建ray header节点，选择一台机器为主机，在主机上执行如下命令，ip替换为主机的内网ip，命名为alice，端口选择一个空闲端口即可
-注意：192.168.0.1 ip为mock的，请替换为实际的ip地址
+
+配置示例使用集群模式仿真模式，其它模式请参考 secretfow 部署文档。
+
+#### 创建 ray header 节点
+
+创建 ray header 节点，选择一台机器为主机，在主机上执行如下命令，ip 替换为主机的内网 ip，命名为 alice，端口选择一个空闲端口即可
+注意：192.168.0.1 ip 为 mock 的，请替换为实际的 ip 地址
 
 ```
 RAY_DISABLE_REMOTE_CODE=true \
@@ -128,18 +145,25 @@ ray start --head --node-ip-address="192.168.0.1" --port="9394" --resources='{"al
 ```
 
 #### 创建从属节点
-创建从属节点，在bob机器执行如下命令，ip依然填alice机器的内网ip，命名为bob，端口不变
+
+创建从属节点，在 bob 机器执行如下命令，ip 依然填 alice 机器的内网 ip，命名为 bob，端口不变
+
 ```
 RAY_DISABLE_REMOTE_CODE=true \
 ray start --address="192.168.0.1:9394" --resources='{"bob": 8}'
 ```
-创建从属节点，在carol机器执行如下命令，ip依然填alice机器的内网ip，命名为carol，端口不变
+
+创建从属节点，在 carol 机器执行如下命令，ip 依然填 alice 机器的内网 ip，命名为 carol，端口不变
+
 ```
 RAY_DISABLE_REMOTE_CODE=true \
 ray start --address="192.168.0.1:9394" --resources='{"carol": 8}'
 ```
+
 #### 验证节点是否启动
-在python中测试节点是否启动成功，任意选一台机器输入python，执行下列代码，参数中address为头节点(alice)的地址，拿alice机器来验证，每输入一行下列代码回车一次：
+
+在 python 中测试节点是否启动成功，任意选一台机器输入 python，执行下列代码，参数中 address 为头节点(alice)的地址，拿 alice 机器来验证，每输入一行下列代码回车一次：
+
 ```
 >>> import secretflow as sf
 >>> sf.init(['alice','bob'], address='192.168.0.1:9394')
@@ -148,14 +172,16 @@ ray start --address="192.168.0.1:9394" --resources='{"carol": 8}'
 >>> sf.reveal(alice(lambda x : x)(2))
 >>> sf.reveal(bob(lambda x : x)(2))
 ```
+
 如下图就代表节点创建成功了
 ![](./resources/3386cb76-53c1-4df6-ae5e-a26314609d5c.png)
-同时我们也可以通过ray status去看节点的状态，前提是先进入sf环境（conda activate sf-benchmark）
+同时我们也可以通过 ray status 去看节点的状态，前提是先进入 sf 环境（conda activate sf-benchmark）
 ![](./resources/e63ba232-025b-4b4f-9c57-d61d80cc8a1f.png)
 
 #### 生成数据
 
-把[generate_psi.py](./resources/generate_psi.py)脚本传到alice机器的root目录下，执行如下代码
+把[generate_psi.py](./resources/generate_psi.py)脚本传到 alice 机器的 root 目录下，执行如下代码
+
 ```
 # 生成三份一千万数据,默认交集50%
 python3 generate_psi.py 10000000 10000000
@@ -163,25 +189,31 @@ python3 generate_psi.py 10000000 10000000
 # 生成三份一亿数据
 python3 generate_psi.py 100000000 100000000
 ```
-把生成的psi_1.csv cp到benchmark目录下，再通过scp的命令把psi_2.csv/psi_3.csv分别移到bob的benchmark目录下跟carol的benchark目录下
+
+把生成的 psi_1.csv cp 到 benchmark 目录下，再通过 scp 的命令把 psi_2.csv/psi_3.csv 分别移到 bob 的 benchmark 目录下跟 carol 的 benchark 目录下
 
 #### 限制宽带/延迟
+
 ```
 #100Mbps 10ms
  tc qdisc add dev eth0 root handle 1: tbf rate 100mbit burst 256kb latency 800ms
- tc qdisc add dev eth0 parent 1:1 handle 10: netem delay 10msec limit 8000 
+ tc qdisc add dev eth0 parent 1:1 handle 10: netem delay 10msec limit 8000
 
 清除限制
 tc qdisc del dev eth0 root
 查看已有配置
 tc qdisc show dev eth0
 ```
-#### 平衡PSI Benchmark脚本
-支持的平衡PSI协议列表：
-- ECDH_PSI_2PC
-- KKRT_PSI_2PC
-- RR22_PSI_2PC
-- ECDH_PSI_3PC
+
+#### 平衡 PSI Benchmark 脚本
+
+支持的平衡 PSI 协议列表：
+
+- PROTOCOL_ECDH
+- PROTOCOL_KKRT
+- PROTOCOL_RR22
+- PROTOCOL_ECDH_3PC
+
 ```
 import sys
 import time
@@ -205,8 +237,8 @@ cluster_def = {
         # {'party': 'carol', 'address': '127.0.0.1:12347'},
     ],
     'runtime_config': {
-        'protocol': spu.spu_pb2.SEMI2K,
-        'field': spu.spu_pb2.FM128,
+        'protocol': spu.ProtocolKind.SEMI2K,
+        'field': spu.FieldType.FM128,
     },
 }
 
@@ -224,19 +256,19 @@ def main(_):
     input_path = {
         alice: '/data/psi_1.csv',
         bob: '/data/psi_2.csv',
-        # if run with `ECDH_PSI_3PC`, add carol
+        # if run with `PROTOCOL_ECDH_3PC`, add carol
         # carol: '/data/psi_3.csv',
     }
     output_path = {
         alice: '/data/psi_output.csv',
         bob: '/data/psi_output.csv',
-        # if run with `ECDH_PSI_3PC`, add carol
+        # if run with `PROTOCOL_ECDH_3PC`, add carol
         # carol: '/data/psi_output.csv',
     }
     select_keys = {
         alice: ['id'],
         bob: ['id'],
-        # if run with `ECDH_PSI_3PC`, add carol
+        # if run with `PROTOCOL_ECDH_3PC`, add carol
         # carol: ['id'],
     }
     spu = sf.SPU(cluster_def)
@@ -244,14 +276,13 @@ def main(_):
     # prepare data
     start = time.time()
 
-    reports = spu.psi_csv(
-        key=select_keys,
+    reports = spu.psi(
+        keys=select_keys,
         input_path=input_path,
         output_path=output_path,
         receiver='alice',  # if `broadcast_result=False`, only receiver can get output file.
-        protocol='KKRT_PSI_2PC',	# psi protocol
-        precheck_input=False,  # will cost ext time if set True
-        sort=False,  # will cost ext time if set True
+        protocol='PROTOCOL_KKRT', # psi protocol
+        disable_alignment=True,  # will cost ext time if set False
         broadcast_result=False,  # will cost ext time if set True
     )
     print(f"psi reports: {reports}")
@@ -264,10 +295,10 @@ if __name__ == '__main__':
     app.run(main)
 ```
 
+#### 非平衡 PSI Benchmark 脚本
 
-#### 非平衡PSI Benchmark脚本
+支持的非平衡 PSI 协议列表：
 
-支持的非平衡PSI协议列表：
 - ECDH_OPRF_UB_PSI
 
 ##### 离线阶段脚本
@@ -297,8 +328,8 @@ cluster_def = {
         {'party': 'bob', 'address': '192.168.0.2:17269', 'listen_address': '0.0.0.0:17269'},
     ],
     'runtime_config': {
-        'protocol': spu.spu_pb2.SEMI2K,
-        'field': spu.spu_pb2.FM128,
+        'protocol': spu.ProtocolKind.SEMI2K,
+        'field': spu.FieldType.FM128,
     },
 }
 ​
@@ -396,8 +427,8 @@ cluster_def = {
         {'party': 'bob', 'address': '192.168.0.2:17269', 'listen_address': '0.0.0.0:17269'},
     ],
     'runtime_config': {
-        'protocol': spu.spu_pb2.SEMI2K,
-        'field': spu.spu_pb2.FM128,
+        'protocol': spu.ProtocolKind.SEMI2K,
+        'field': spu.FieldType.FM128,
     },
 }
 ​
@@ -465,20 +496,16 @@ if __name__ == '__main__':
     app.run(main)
 ```
 
+### 五、Benchmark 报告
 
+我们分别在不同的带宽、数据量、机器配置设定下测量了 PSI 协议的性能。其中：
 
+- 隐语标准：带宽设定分别为 LAN、100Mbps/10ms； 数据量涵盖 1 千万、1 亿、10 亿。
+- 信通院标准：带宽设定分别为 LAN、100Mbps/50ms，数据量涵盖 1 亿（标准测试）和 10 亿（大规模测试）。
 
-### 五、Benchmark报告
+> 时间单位默认为秒，m 表示分钟，h 表示小时。
 
-我们分别在不同的带宽、数据量、机器配置设定下测量了PSI协议的性能。其中：
-- 隐语标准：带宽设定分别为LAN、100Mbps/10ms； 数据量涵盖1千万、1亿、10亿。
-- 信通院标准：带宽设定分别为LAN、100Mbps/50ms，数据量涵盖1亿（标准测试）和10亿（大规模测试）。
-
-
-> 时间单位默认为秒，m表示分钟，h表示小时。
-
-
-#### 隐语测试标准下的Benchmark
+#### 隐语测试标准下的 Benchmark
 
 <table>
   <tr>
@@ -492,7 +519,7 @@ if __name__ == '__main__':
   </tr>
   <tr>
     <td rowspan="16">32C64G</td>
-    <td rowspan="2">receiver='alice',<br>protocol='ECDH_PSI_2PC',<br>curve_type='CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">receiver='alice',<br>protocol='PROTOCOL_ECDH',<br>curve_type='CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
     <td rowspan="2">ECDH-PSI-2PC<br/> (FourQ)</td>
     <td>LAN</td>
     <td>73</td>
@@ -506,7 +533,7 @@ if __name__ == '__main__':
     <td>7387 <br> (2.06 h)</td>
   </tr>
   <tr>
-    <td rowspan="2">receiver='alice',<br>protocol='ECDH_PSI_2PC',<br>curve_type='CURVE_25519',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">receiver='alice',<br>protocol='PROTOCOL_ECDH',<br>curve_type='CURVE_25519',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
     <td rowspan="2">ECDH-PSI-2PC <br/>(CURVE_25519)</td>
     <td>LAN</td>
     <td>110</td>
@@ -520,7 +547,7 @@ if __name__ == '__main__':
     <td>11504 <br> (3.19 h)</td>
   </tr>
   <tr>
-    <td rowspan="2">receiver='alice',<br>protocol='ECDH_PSI_3PC',<br>curve_type='CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">receiver='alice',<br>protocol='PROTOCOL_ECDH_3PC',<br>curve_type='CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
     <td rowspan="2">ECDH-PSI-3PC <br/> (FourQ)</td>
     <td>LAN</td>
     <td>123</td>
@@ -534,7 +561,7 @@ if __name__ == '__main__':
     <td>17041 <br> (4.7 h)</td>
   </tr>
   <tr>
-    <td rowspan="2">receiver='alice',<br>protocol='ECDH_PSI_3PC',<br>curve_type='CURVE_25519',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">receiver='alice',<br>protocol='PROTOCOL_ECDH_3PC',<br>curve_type='CURVE_25519',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
     <td rowspan="2">ECDH-PSI-3PC (CURVE_25519)<br>(3个参与方持有相同数据的50%，最后交集占比50%)</td>
     <td>LAN</td>
     <td>203</td>
@@ -548,8 +575,8 @@ if __name__ == '__main__':
     <td>25807 <br> (7.2 h)</td>
   </tr>
   <tr>
-    <td rowspan="2">receiver='alice',<br>protocol='KKRT_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
-    <td rowspan="2">KKRT_PSI_2PC<br>(百万分桶)</td>
+    <td rowspan="2">receiver='alice',<br>protocol='PROTOCOL_KKRT',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">PROTOCOL_KKRT<br>(百万分桶)</td>
     <td>LAN</td>
     <td>56</td>
     <td>558</td>
@@ -605,7 +632,7 @@ if __name__ == '__main__':
   </tr>
   <tr>
     <td rowspan="16">16C32G</td>
-    <td rowspan="2">receiver='alice',<br>protocol='ECDH_PSI_2PC',<br>curve_type='CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">receiver='alice',<br>protocol='PROTOCOL_ECDH',<br>curve_type='CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
     <td rowspan="2">ECDH-PSI-2PC <br/>(FourQ)</td>
     <td>LAN</td>
     <td>96</td>
@@ -619,7 +646,7 @@ if __name__ == '__main__':
     <td>2.79 h</td>
   </tr>
   <tr>
-    <td rowspan="2">receiver='alice',<br>protocol='ECDH_PSI_2PC',<br>curve_type='CURVE_25519',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">receiver='alice',<br>protocol='PROTOCOL_ECDH',<br>curve_type='CURVE_25519',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
     <td rowspan="2">ECDH-PSI-2PC <br/>(CURVE_25519)</td>
     <td>LAN</td>
     <td>170</td>
@@ -633,7 +660,7 @@ if __name__ == '__main__':
     <td>5.02 h</td>
   </tr>
   <tr>
-    <td rowspan="2">receiver='alice',<br>protocol='ECDH_PSI_3PC',<br>curve_type='CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">receiver='alice',<br>protocol='PROTOCOL_ECDH_3PC',<br>curve_type='CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
     <td rowspan="2">ECDH-PSI-3PC <br/>(FourQ)</td>
     <td>LAN</td>
     <td>174</td>
@@ -647,7 +674,7 @@ if __name__ == '__main__':
     <td>6.5 h</td>
   </tr>
   <tr>
-    <td rowspan="2">receiver='alice',<br>protocol='ECDH_PSI_3PC',<br>curve_type='CURVE_25519',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">receiver='alice',<br>protocol='PROTOCOL_ECDH_3PC',<br>curve_type='CURVE_25519',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
     <td rowspan="2">ECDH-PSI-3PC (CURVE_25519)<br>(3个参与方持有相同数据的50%，最后交集占比50%)</td>
     <td>LAN</td>
     <td>346</td>
@@ -661,8 +688,8 @@ if __name__ == '__main__':
     <td>11.7 h</td>
   </tr>
   <tr>
-    <td rowspan="2">receiver='alice',<br>protocol='KKRT_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
-    <td rowspan="2">KKRT_PSI_2PC<br>(百万分桶)</td>
+    <td rowspan="2">receiver='alice',<br>protocol='PROTOCOL_KKRT',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">PROTOCOL_KKRT<br>(百万分桶)</td>
     <td>LAN</td>
     <td>55</td>
     <td>565</td>
@@ -718,7 +745,7 @@ if __name__ == '__main__':
   </tr>
   <tr>
     <td rowspan="16">8C16G</td>
-    <td rowspan="2">receiver='alice',<br>protocol='ECDH_PSI_2PC',<br>curve_type='CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">receiver='alice',<br>protocol='PROTOCOL_ECDH',<br>curve_type='CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
     <td rowspan="2">ECDH-PSI-2PC<br/> (FourQ)</td>
     <td>LAN</td>
     <td>145</td>
@@ -732,7 +759,7 @@ if __name__ == '__main__':
     <td>4.14 h</td>
   </tr>
   <tr>
-    <td rowspan="2">receiver='alice',<br>protocol='ECDH_PSI_2PC',<br>curve_type='CURVE_25519',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">receiver='alice',<br>protocol='PROTOCOL_ECDH',<br>curve_type='CURVE_25519',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
     <td rowspan="2">ECDH-PSI-2PC<br/> (CURVE_25519)</td>
     <td>LAN</td>
     <td>302</td>
@@ -746,7 +773,7 @@ if __name__ == '__main__':
     <td>8.4 h</td>
   </tr>
   <tr>
-    <td rowspan="2">receiver='alice',<br>protocol='ECDH_PSI_3PC',<br>curve_type='CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">receiver='alice',<br>protocol='PROTOCOL_ECDH_3PC',<br>curve_type='CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
     <td rowspan="2">ECDH-PSI-3PC<br/> (FourQ)</td>
     <td>LAN</td>
     <td>277</td>
@@ -760,7 +787,7 @@ if __name__ == '__main__':
     <td>9.5 h</td>
   </tr>
   <tr>
-    <td rowspan="2">receiver='alice',<br>protocol='ECDH_PSI_3PC',<br>curve_type='CURVE_25519',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">receiver='alice',<br>protocol='PROTOCOL_ECDH_3PC',<br>curve_type='CURVE_25519',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
     <td rowspan="2">ECDH-PSI-3PC <br/> (CURVE_25519)<br>(3个参与方持有相同数据的50%，最后交集占比50%)</td>
     <td>LAN</td>
     <td>633</td>
@@ -774,8 +801,8 @@ if __name__ == '__main__':
     <td>20.18 h</td>
   </tr>
   <tr>
-    <td rowspan="2">receiver='alice',<br>protocol='KKRT_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
-    <td rowspan="2">KKRT_PSI_2PC<br>(百万分桶)</td>
+    <td rowspan="2">receiver='alice',<br>protocol='PROTOCOL_KKRT',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td rowspan="2">PROTOCOL_KKRT<br>(百万分桶)</td>
     <td>LAN</td>
     <td>59</td>
     <td>570</td>
@@ -831,12 +858,10 @@ if __name__ == '__main__':
   </tr>
 </table>
 
-
-
 - ECDH：对网络配置不敏感，对计算资源敏感，适合带宽较低、计算配置较高的使用场景；
-- KKRT：网络设置为100Mbps时，带宽成为瓶颈。通常用于两方数据量均衡时，适合高带宽的使用场景；
+- KKRT：网络设置为 100Mbps 时，带宽成为瓶颈。通常用于两方数据量均衡时，适合高带宽的使用场景；
 
-#### 信通院测试标准下的Benchmark
+#### 信通院测试标准下的 Benchmark
 
 <table>
   <tr>
@@ -848,13 +873,13 @@ if __name__ == '__main__':
   </tr>
   <tr>
     <td rowspan="10">32C256G</td>
-    <td>"receiver='alice',<br>protocol='ECDH_PSI_2PC',<br>curve_type = 'CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td>"receiver='alice',<br>protocol='PROTOCOL_ECDH',<br>curve_type = 'CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
     <td>ECDH-PSI-2PC<br/>(CURVE_FOURQ)</td>
     <td>7764<br/>(2.15 h)</td>
     <td>729</td>
   </tr>
   <tr>
-    <td>"receiver='alice',<br>protocol='ECDH_PSI_2PC',<br>curve_type = 'CURVE_25519',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td>"receiver='alice',<br>protocol='PROTOCOL_ECDH',<br>curve_type = 'CURVE_25519',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
     <td>ECDH-PSI-2PC<br/>(CURVE_25519)</td>
     <td>11555<br/>(3.2 h)</td>
     <td>1131</td>
@@ -866,26 +891,26 @@ if __name__ == '__main__':
      <td>offline: 139<br/>offline: 31</td>
   </tr>
   <tr>
-    <td>"receiver='alice',<br>protocol='ECDH_PSI_3PC',<br>curve_type = 'CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
-    <td>ECDH_PSI_3PC<br/>(CURVE_FOURQ)</td>
+    <td>"receiver='alice',<br>protocol='PROTOCOL_ECDH_3PC',<br>curve_type = 'CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td>PROTOCOL_ECDH_3PC<br/>(CURVE_FOURQ)</td>
     <td>17599<br>(4.8 h)</td>
      <td>1172</td>
   </tr>
   <tr>
-    <td>"receiver='alice',<br>protocol='ECDH_PSI_3PC',<br>curve_type = 'CURVE_25519',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
-    <td>ECDH_PSI_3PC<br/>(CURVE_25519)</td>
+    <td>"receiver='alice',<br>protocol='PROTOCOL_ECDH_3PC',<br>curve_type = 'CURVE_25519',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td>PROTOCOL_ECDH_3PC<br/>(CURVE_25519)</td>
     <td>26220<br>(7.28 h)</td>
      <td>2022</td>
   </tr>
   <tr>
-    <td>"receiver='alice',<br>protocol='ECDH_PSI_3PC',<br>curve_type = 'CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
-    <td>ECDH_PSI_3PC<br/>(非平衡)<br/>  (大规模 10亿&10亿&100万=50) <br/>(标准 1亿&1亿&10万=5)<br/>(CURVE_FOURQ)</td>
+    <td>"receiver='alice',<br>protocol='PROTOCOL_ECDH_3PC',<br>curve_type = 'CURVE_FOURQ',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td>PROTOCOL_ECDH_3PC<br/>(非平衡)<br/>  (大规模 10亿&10亿&100万=50) <br/>(标准 1亿&1亿&10万=5)<br/>(CURVE_FOURQ)</td>
     <td>12441<br>(3.45 h)</td>
      <td>894</td>
   </tr>
   <tr>
-    <td>"receiver='alice',<br>protocol='KKRT_PSI_2PC',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
-    <td>KKRT_PSI_2PC<br/> (百万分桶)</td>
+    <td>"receiver='alice',<br>protocol='PROTOCOL_KKRT',<br>precheck_input=False,<br>sort=False,<br>broadcast_result=False,</td>
+    <td>PROTOCOL_KKRT<br/> (百万分桶)</td>
     <td>30963<br>(8.6 h)</td>
      <td>554</td>
   </tr>

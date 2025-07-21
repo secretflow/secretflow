@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import concurrent
 import gc
 import logging
 import os
@@ -115,7 +116,19 @@ class GlobalContext:
         return self._task_count
 
     def submit_task(self, fn: Callable, *args, **kwargs) -> Future:
-        return self._task_executor.submit(fn, *args, **kwargs)
+        def _on_task_finish(future: Future):
+            try:
+                exception = future.exception()
+                if exception:
+                    self.set_local_exception(exception)
+            except concurrent.futures.CancelledError:
+                pass
+            except Exception as e:
+                self.set_local_exception(e)
+
+        future = self._task_executor.submit(fn, *args, **kwargs)
+        future.add_done_callback(_on_task_finish)
+        return future
 
     def acquire_shutdown_flag(self) -> bool:
         with self._lock:
@@ -160,8 +173,7 @@ class GlobalContext:
             except FedRemoteError:
                 raise
             except Exception as e:
-                logger.exception(f"Local runtime error")
-                local_err = FedLocalError(e)
+                local_err = e if isinstance(e, FedLocalError) else FedLocalError(e)
                 obj = FedRemoteError(self.get_party(), e)
             logger.debug(f"try send obj for {fed_obj} to {target_party}")
             self._proxy.send(target_party, obj, seq_id)
@@ -177,11 +189,9 @@ class GlobalContext:
                 send_future.result()
                 return True
             except FedRemoteError as e:
-                logger.exception(f"FedRemoteError on seq id {seq_id}")
-                self.set_remote_exception(e)
+                logger.info(f"FedRemoteError on seq id {seq_id}")
             except FedLocalError as e:
-                logger.exception(f"FedLocalError on seq id {seq_id}")
-                self.set_local_exception(e)
+                logger.info(f"FedLocalError on seq id {seq_id}")
             except Exception as e:
                 logger.exception(f"Failed to send seq id {seq_id} to {target_party}")
                 self.set_send_exception(e)
@@ -201,6 +211,13 @@ class GlobalContext:
         def _recv():
             logger.debug(f"Try recv from {src_party} with seq id {seq_id}")
             data = self._proxy.recv(src_party, seq_id)
+            if isinstance(data, FedRemoteError):
+                logger.error(
+                    f"Receiving exception: {type(data)}, {data} from {src_party}, "
+                    f"seq id {seq_id}. Re-raise it."
+                )
+                self.set_remote_exception(data)
+                raise data
             logger.debug(f"Done recv from {src_party} with seq id {seq_id}")
             return data
 

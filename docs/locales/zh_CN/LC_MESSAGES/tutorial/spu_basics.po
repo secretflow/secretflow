@@ -570,3 +570,5 @@ msgstr ""
 msgid "`Neural Network with SPU <./nn_with_spu.ipynb>`__"
 msgstr ""
 
+
+

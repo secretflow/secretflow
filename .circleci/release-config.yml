@@ -27,22 +27,34 @@ executors:
     resource_class: arm.2xlarge
     shell: /bin/bash --login -eo pipefail
 
-
 commands:
-  build_and_upload:
+  build_and_upload_full:
     parameters:
       python_ver:
         type: string
     steps:
       - checkout
       - run:
-          name: "build package and publish"
+          name: "build full package and publish"
           command: |
             conda create -n build python=<< parameters.python_ver >> -y
             conda activate build
 
             python3 setup.py bdist_wheel
-            python3 setup.py clean
+
+            ls dist/*.whl
+            python3 -m pip install twine
+            python3 -m twine upload -r pypi -u __token__ -p ${PYPI_TWINE_TOKEN} dist/*.whl
+
+  build_and_upload_lite:
+    steps:
+      - checkout
+      - run:
+          name: "build lite package and publish"
+          command: |
+            conda create -n build python=3.10 -y
+            conda activate build
+
             python3 setup.py bdist_wheel --lite
 
             ls dist/*.whl
@@ -52,7 +64,7 @@ commands:
 # Define a job to be invoked later in a workflow.
 # See: https://circleci.com/docs/2.0/configuration-reference/#jobs
 jobs:
-  linux_publish:
+  linux_publish_full:
     parameters:
       python_ver:
         type: string
@@ -61,9 +73,17 @@ jobs:
     executor: <<parameters.executor>>
     steps:
       - checkout
-      - build_and_upload:
+      - build_and_upload_full:
           python_ver: <<parameters.python_ver>>
-  macOS_arm64_publish:
+  linux_publish_lite:
+    parameters:
+      executor:
+        type: string
+    executor: <<parameters.executor>>
+    steps:
+      - checkout
+      - build_and_upload_lite
+  macOS_arm64_publish_full:
     macos:
       xcode: 15.1.0
     resource_class: macos.m1.large.gen1
@@ -83,8 +103,26 @@ jobs:
             bash ~/miniconda.sh -b -p $HOME/miniconda
             source $HOME/miniconda/bin/activate
             conda init bash zsh
-      - build_and_upload:
+      - build_and_upload_full:
           python_ver: <<parameters.python_ver>>
+  macOS_arm64_publish_lite:
+    macos:
+      xcode: 15.1.0
+    resource_class: macos.m1.large.gen1
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: |
+            brew install cmake ninja libomp wget bazelisk
+      - run:
+          name: Install Miniconda
+          command: |
+            wget https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-arm64.sh -O ~/miniconda.sh
+            bash ~/miniconda.sh -b -p $HOME/miniconda
+            source $HOME/miniconda/bin/activate
+            conda init bash zsh
+      - build_and_upload_lite
   docker_image_publish:
     docker:
       - image: cimg/deploy:2023.06.1
@@ -152,10 +190,10 @@ jobs:
             # login docker - aliyun
             docker login -u ${ALIYUN_DOCKER_USERNAME} -p ${ALIYUN_DOCKER_PASSWORD} secretflow-registry.cn-hangzhou.cr.aliyuncs.com
 
-            SF_LITE_IMAGE=secretflow-registry.cn-hangzhou.cr.aliyuncs.com/secretflow/secretflow-lite-anolis8
+            SF_LITE_IMAGE=secretflow-registry.cn-hangzhou.cr.aliyuncs.com/secretflow/secretflow-lite-ubuntu
 
-            docker buildx imagetools create --tag ${SF_LITE_IMAGE}:${VERSION} secretflow/secretflow-lite-anolis8:${VERSION}
-            docker buildx imagetools create --tag ${SF_LITE_IMAGE}:latest secretflow/secretflow-lite-anolis8:latest
+            docker buildx imagetools create --tag ${SF_LITE_IMAGE}:${VERSION} secretflow/secretflow-lite-ubuntu:${VERSION}
+            docker buildx imagetools create --tag ${SF_LITE_IMAGE}:latest secretflow/secretflow-lite-ubuntu:latest
 
   copy_sf_image_to_aliyun:
     docker:
@@ -180,34 +218,48 @@ jobs:
             # login docker - aliyun
             docker login -u ${ALIYUN_DOCKER_USERNAME} -p ${ALIYUN_DOCKER_PASSWORD} secretflow-registry.cn-hangzhou.cr.aliyuncs.com
 
-            SF_IMAGE=secretflow-registry.cn-hangzhou.cr.aliyuncs.com/secretflow/secretflow-anolis8
+            SF_IMAGE=secretflow-registry.cn-hangzhou.cr.aliyuncs.com/secretflow/secretflow-ubuntu
 
-            docker buildx imagetools create --tag ${SF_IMAGE}:${VERSION} secretflow/secretflow-anolis8:${VERSION}
-            docker buildx imagetools create --tag ${SF_IMAGE}:latest secretflow/secretflow-anolis8:latest
+            docker buildx imagetools create --tag ${SF_IMAGE}:${VERSION} secretflow/secretflow-ubuntu:${VERSION}
+            docker buildx imagetools create --tag ${SF_IMAGE}:latest secretflow/secretflow-ubuntu:latest
 
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:
   publish:
     jobs:
-      - linux_publish:
+      - linux_publish_full:
           matrix:
             parameters:
               python_ver: ["3.9", "3.10", "3.11"]
-              executor: [ "linux_x64_executor", "linux_aarch64_executor" ]
+              executor: ["linux_x64_executor", "linux_aarch64_executor"]
           filters:
             tags:
               only: /.*/
-      - macOS_arm64_publish:
+      - linux_publish_lite:
+          matrix:
+            parameters:
+              executor: ["linux_x64_executor", "linux_aarch64_executor"]
+          filters:
+            tags:
+              only: /.*/
+      - macOS_arm64_publish_full:
           matrix:
             parameters:
               python_ver: ["3.9", "3.10", "3.11"]
+          filters:
+            tags:
+              only: /.*/
+      - macOS_arm64_publish_lite:
           filters:
             tags:
               only: /.*/
       - docker_image_publish:
           requires:
-            - linux_publish
+            - linux_publish_full
+            - linux_publish_lite
+            - macOS_arm64_publish_full
+            - macOS_arm64_publish_lite
           filters:
             tags:
               only: /.*/

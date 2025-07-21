@@ -16,14 +16,19 @@ import logging
 
 import numpy as np
 import pandas as pd
+import pytest
 from google.protobuf.json_format import MessageToJson
 from pyarrow import orc
+from secretflow_spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
-from secretflow.component.core import DistDataType, build_node_eval_param, make_storage
-from secretflow.component.entry import comp_eval
+from secretflow.component.core import (
+    DistDataType,
+    build_node_eval_param,
+    comp_eval,
+    make_storage,
+)
 from secretflow.spec.extend.calculate_rules_pb2 import CalculateOpRules
-from secretflow.spec.v1.data_pb2 import DistData, TableSchema, VerticalTable
 
 test_data_alice = pd.DataFrame(
     {
@@ -374,13 +379,14 @@ def _build_test():
     return names, tests, features, expected
 
 
-def test_feature_calculate(comp_prod_sf_cluster_config):
+@pytest.mark.mpc
+def test_feature_calculate(sf_production_setup_comp):
     alice_input_path = "test_feature_calculate/alice.csv"
     bob_input_path = "test_feature_calculate/bob.csv"
     out_path = "test_feature_calculate/out.csv"
     rule_path = "test_feature_calculate/feature_calculate.rule"
 
-    storage_config, sf_cluster_config = comp_prod_sf_cluster_config
+    storage_config, sf_cluster_config = sf_production_setup_comp
     self_party = sf_cluster_config.private_config.self_party
     storage = make_storage(storage_config)
     df_alice = pd.DataFrame()

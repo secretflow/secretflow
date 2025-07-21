@@ -15,7 +15,7 @@
 
 import os
 
-from secretflow.component.core import load_component_modules
+from secretflow_spec import load_component_modules
 
 
 def _import_all_submodules():

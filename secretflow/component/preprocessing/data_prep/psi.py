@@ -30,18 +30,16 @@ from secretflow.component.core import (
     Reporter,
     UnionGroup,
     VTable,
-    VTableFieldKind,
     VTableFormat,
     VTableParty,
-    VTableSchema,
     download_csv,
     register,
     upload_orc,
     uuid4,
 )
 from secretflow.component.preprocessing.data_prep.pis_utils import trans_keys_to_ids
-from secretflow.device import PYU, reveal
-from secretflow.error_system.exceptions import CompEvalError
+from secretflow.device import PYU, reveal, wait
+from secretflow.utils.errors import InvalidStateError
 
 
 @dataclass
@@ -138,15 +136,14 @@ class PSI(Component):
     )
 
     def evaluate(self, ctx: Context):
-        tbl1 = VTable.from_distdata(self.input_ds1).party(0)
-        tbl2 = VTable.from_distdata(self.input_ds2).party(0)
+        tbl1 = VTable.from_distdata(self.input_ds1).get_party(0)
+        tbl2 = VTable.from_distdata(self.input_ds2).get_party(0)
 
         tbl1.schema = trans_keys_to_ids(tbl1.schema, self.input_ds1_keys)
         tbl2.schema = trans_keys_to_ids(tbl2.schema, self.input_ds2_keys)
         input_tables = [tbl1, tbl2]
 
         broadcast_result = True
-        check_hash_digest = False
 
         receiver_party = tbl1.party
         if self.receiver_parties and len(self.receiver_parties) == 1:
@@ -155,11 +152,6 @@ class PSI(Component):
 
         join_type = self.join_type.get_selected()
         advanced_join_type = to_join_type(join_type)
-
-        left_side = "ROLE_RECEIVER"
-        if join_type == "left_join":
-            if self.join_type.left_join.left_side != receiver_party:
-                left_side = "ROLE_SENDER"
 
         rand_id = uuid4(tbl1.party)
         root_dir = os.path.join(ctx.data_dir, rand_id)
@@ -201,9 +193,9 @@ class PSI(Component):
                     for info in input_tables
                 ]
 
-                input_rows = reveal(download_res)
+                wait(download_res)
             with ctx.trace_running():
-                spu.psi(
+                psi_res = spu.psi(
                     keys=keys,
                     input_path=input_paths,
                     output_path=output_paths,
@@ -214,9 +206,12 @@ class PSI(Component):
                     protocol=protocol,
                     ecdh_curve=ecdh_curve,
                     advanced_join_type=advanced_join_type,
-                    left_side=left_side,
+                    left_side=(
+                        self.join_type.left_join.left_side
+                        if join_type == "left_join"
+                        else ""
+                    ),
                     disable_alignment=not self.sort_result,
-                    check_hash_digest=check_hash_digest,
                 )
 
             with ctx.trace_io():
@@ -226,7 +221,7 @@ class PSI(Component):
                         ctx.storage,
                         output_uri,
                         output_paths[tbl.party],
-                        tbl.schema.to_arrow(),
+                        tbl.schema,
                         na_rep,
                     )
                     for tbl in output_tables
@@ -236,8 +231,8 @@ class PSI(Component):
                 output_rows = output_rows[0]
 
         if output_rows == 0 and not self.allow_empty_result:
-            raise CompEvalError(
-                f"Empty result is not allowed, please check your input data or set allow_empty_result to true."
+            raise InvalidStateError(
+                "Empty result is not allowed, please check your input data or set allow_empty_result to true."
             )
 
         system_info = self.input_ds1.system_info
@@ -248,13 +243,7 @@ class PSI(Component):
         output = VTable(output_uri, output_tables, output_rows, system_info)
         self.output_ds.data = output.to_distdata()
 
-        report_tbl = pd.DataFrame(
-            {
-                "party": [tbl.party for tbl in input_tables],
-                "original_count": input_rows,
-                "output_count": [output_rows for _ in range(2)],
-            }
-        )
+        report_tbl = pd.DataFrame(psi_res)
 
         report = Reporter("psi_report", "", system_info=system_info)
         report.add_tab(report_tbl)
@@ -263,12 +252,12 @@ class PSI(Component):
 
 def to_join_type(v: str) -> str:
     if v == "inner_join":
-        return "ADVANCED_JOIN_TYPE_INNER_JOIN"
+        return "JOIN_TYPE_INNER_JOIN"
     elif v == "left_join":
-        return 'ADVANCED_JOIN_TYPE_LEFT_JOIN'
+        return 'JOIN_TYPE_LEFT_JOIN'
     elif v == "full_join":
-        return 'ADVANCED_JOIN_TYPE_FULL_JOIN'
+        return 'JOIN_TYPE_FULL_JOIN'
     elif v == "difference":
-        return 'ADVANCED_JOIN_TYPE_DIFFERENCE'
+        return 'JOIN_TYPE_DIFFERENCE'
     else:
         raise ValueError(f"unknown join_type {v}")

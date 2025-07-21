@@ -12,19 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import spu.libspu as libspu
 from heu import numpy as hnp
-from spu import spu_pb2
 
 from secretflow.device import (
+    HEU,
+    PYU,
+    SPU,
     DeviceObject,
     DeviceType,
-    HEU,
     HEUObject,
-    PYU,
     PYUObject,
-    register,
-    SPU,
     SPUObject,
+    register,
 )
 from secretflow.device.device.base import register_to
 from secretflow.device.device.heu import HEUMoveConfig
@@ -89,7 +89,10 @@ def heu_to_spu(self: HEUObject, spu: SPU):
 
     # protocol is restricted to SEMI2K and CHEETAH.
     # ABY3 and other protocols are not currently supported。
-    assert spu.conf.protocol == spu_pb2.SEMI2K or spu.conf.protocol == spu_pb2.CHEETAH
+    assert (
+        spu.conf.protocol == libspu.ProtocolKind.SEMI2K
+        or spu.conf.protocol == libspu.ProtocolKind.CHEETAH
+    )
 
     res = (
         heu.get_participant(self.location)

@@ -15,12 +15,12 @@
 import abc
 import json
 
-from secretflow.spec.v1.component_pb2 import CompListDef
+from secretflow_spec import Definition, Registry
+from secretflow_spec.v1.component_pb2 import CompListDef
 
 from .plugin import PluginManager
-from .registry import Registry, build_comp_list_def
 from .resources import ResourceType
-from .utils import gen_key
+from .utils import _build_comp_list_def
 
 
 class Translator(abc.ABC):
@@ -41,7 +41,12 @@ class PlainTranslator(Translator):
 #     },
 #     '...':{}
 # }
-def gettext(comp_list: CompListDef, archives: dict = None, translator: Translator = None, build_root: bool = False):  # type: ignore
+def gettext(
+    comp_list: CompListDef,
+    archives: dict = None,
+    translator: Translator = None,
+    build_root: bool = False,
+):
     def _trim_version(key: str) -> str:
         if ":" not in key:
             # ROOT key
@@ -96,7 +101,7 @@ def gettext(comp_list: CompListDef, archives: dict = None, translator: Translato
                     text[t_attr_a.name] = ""
                     text[t_attr_a.desc] = ""
 
-        key = gen_key(comp.domain, comp.name, comp.version)
+        key = Definition.build_id(comp.domain, comp.name, comp.version)
         text = restore_from_archives(text, key, archives)
         if translator is not None:
             for k, v in text.items():
@@ -118,7 +123,7 @@ def translate(package: str, archives: dict | None, ts: Translator = None) -> dic
     definitions = Registry.get_definitions(package)
     if not definitions:
         raise ValueError(f"cannot find components by package<{package}>")
-    comp_list_def = build_comp_list_def(definitions)
+    comp_list_def = _build_comp_list_def(definitions)
     build_root = package in ["*", "secretflow"]
     return gettext(comp_list_def, archives, ts, build_root)
 

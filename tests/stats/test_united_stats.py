@@ -22,11 +22,12 @@ from secretflow.stats.united_stats import (
     united_median,
     united_var,
 )
+from tests.sf_fixtures import mpc_fixture
 
 TEST_SIZE = 2000
 
 
-@pytest.fixture(scope='module')
+@mpc_fixture
 def prod_env_and_data(sf_production_setup_devices):
     np.random.seed(22)
     y_true = np.round(np.random.random((TEST_SIZE,)).reshape(-1))
@@ -38,7 +39,7 @@ def prod_env_and_data(sf_production_setup_devices):
     ]
 
 
-@pytest.fixture(scope='module')
+@mpc_fixture
 def prod_env_and_data_3_party(sf_production_setup_devices):
     np.random.seed(22)
     y_true = np.round(np.random.random((TEST_SIZE,)).reshape(-1))
@@ -52,6 +53,7 @@ def prod_env_and_data_3_party(sf_production_setup_devices):
     ]
 
 
+@pytest.mark.mpc
 def test_united_mean(prod_env_and_data):
     env, data = prod_env_and_data
     y_true, y_pred, y_total = data[0], data[1], data[2]
@@ -60,6 +62,7 @@ def test_united_mean(prod_env_and_data):
     np.testing.assert_almost_equal(true_mean, united_mean_result, decimal=5)
 
 
+@pytest.mark.mpc
 def test_united_mean_and_var(prod_env_and_data):
     env, data = prod_env_and_data
     y_true, y_pred, y_total = data[0], data[1], data[2]
@@ -70,6 +73,7 @@ def test_united_mean_and_var(prod_env_and_data):
     np.testing.assert_almost_equal(true_var, var_val, decimal=3)
 
 
+@pytest.mark.mpc
 def test_united_var(prod_env_and_data):
     env, data = prod_env_and_data
     y_true, y_pred, y_total = data[0], data[1], data[2]
@@ -78,6 +82,7 @@ def test_united_var(prod_env_and_data):
     np.testing.assert_almost_equal(true_var, var_val, decimal=3)
 
 
+@pytest.mark.mpc
 def test_united_median(prod_env_and_data):
     env, data = prod_env_and_data
     y_true, y_pred, y_total = data[0], data[1], data[2]
@@ -86,6 +91,7 @@ def test_united_median(prod_env_and_data):
     np.testing.assert_almost_equal(true_med, med_val, decimal=6)
 
 
+@pytest.mark.mpc(parties=3)
 def test_united_median_3_party(prod_env_and_data_3_party):
     env, data = prod_env_and_data_3_party
     y_true, y_pred, y_additional, y_total = data[0], data[1], data[2], data[3]
