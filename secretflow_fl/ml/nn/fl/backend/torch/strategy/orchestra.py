@@ -289,23 +289,28 @@ class OrchestraStrategy(BaseTorchModel):
     
     def _reset_memory(self, dataloader, device='cpu'):
         """
-        Reset projection memory following the original paper
+        Reset projection memory following the original paper 
         """
         self.train()
         
-        # Save BN parameters
-        reset_dict = OrderedDict({
-            k: torch.tensor(np.array([v.cpu().numpy()])) if v.shape == () else torch.tensor(v.cpu().numpy())
-            for k, v in self.state_dict().items() if 'bn' in k
-        })
+        # Save BN parameters 
+        reset_dict = OrderedDict()
+        for k, v in self.state_dict().items():
+            if 'bn' in k:
+                if v.shape == ():
+                    reset_dict[k] = torch.tensor(np.array([v.cpu().numpy()]))
+                else:
+                    reset_dict[k] = v.cpu().clone()  
         
-        # Generate feature bank
+        # Generate feature bank with memory optimization
         proj_bank = []
         n_samples = 0
+        batch_count = 0
+        max_batches = min(10, len(dataloader))  
         
         with torch.no_grad():
             for batch in dataloader:
-                if n_samples >= self.memory_size:
+                if n_samples >= self.memory_size or batch_count >= max_batches:
                     break
                 
                 if isinstance(batch, (list, tuple)):
@@ -313,79 +318,114 @@ class OrchestraStrategy(BaseTorchModel):
                 else:
                     x = batch
                 
+                # Limit the batch size to reduce memory usage
+                if x.shape[0] > 32:
+                    x = x[:32]
+                
                 x = x.to(device)
                 # Use target model for memory initialization
                 features = self.target_backbone(x)
                 z = F.normalize(self.target_projector(features), dim=1)
-                proj_bank.append(z)
+                proj_bank.append(z.cpu())  # Move to CPU to reduce GPU memory usage
                 n_samples += x.shape[0]
+                batch_count += 1
+                
+                del x, features, z
         
         # Concatenate and truncate if necessary
-        proj_bank = torch.cat(proj_bank, dim=0).contiguous()
-        if n_samples > self.memory_size:
-            proj_bank = proj_bank[:self.memory_size]
-        
-        # Save projections: [D, memory_size]
-        self.mem_projections.weight.data.copy_(proj_bank.T)
+        if proj_bank:
+            proj_bank = torch.cat(proj_bank, dim=0).contiguous()
+            if n_samples > self.memory_size:
+                proj_bank = proj_bank[:self.memory_size]
+            
+            # Save projections: [D, memory_size]
+            self.mem_projections.weight.data.copy_(proj_bank.T.to(device))
+            
+            del proj_bank
         
         # Reset BN parameters
         self.load_state_dict(reset_dict, strict=False)
         
+        del reset_dict
+        
+        import gc
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        
     def _update_memory(self, features):
         """
-        Update projection memory following the original paper
+        Update projection memory following the original paper 
         """
         N = features.shape[0]
         with torch.no_grad():
-            # Shift memory
-            self.mem_projections.weight.data[:, :-N] = self.mem_projections.weight.data[:, N:].clone()
-            # Add new features
-            self.mem_projections.weight.data[:, -N:] = features.T.clone()
+            # Optimization: Use in-place operations to avoid creating new tensor copies
+            if N < self.memory_size:
+                # Shift memory using in-place operations
+                self.mem_projections.weight.data[:, :-N].copy_(self.mem_projections.weight.data[:, N:])
+                # Add new features using in-place copy
+                self.mem_projections.weight.data[:, -N:].copy_(features.T)
+            else:
+                # If batch size >= memory size, replace entire memory
+                self.mem_projections.weight.data.copy_(features[-self.memory_size:].T)
+            
+            del features
     
     def _local_clustering(self, device='cpu'):
         """
-        Perform local clustering following the original paper
+        Perform local clustering following the original paper 
         """
         with torch.no_grad():
-            # Get memory projections: [memory_size, D]
-            Z = self.mem_projections.weight.data.T.clone()
+            # Get memory projections: [memory_size, D] 
+            Z = self.mem_projections.weight.data.T
             
             # Initialize centroids randomly
             indices = np.random.choice(Z.shape[0], self.N_local, replace=False)
-            centroids = Z[indices].clone()
+            centroids = Z[indices].detach().clone()  # Only clone when necessary
             
-            # Local clustering iterations
-            local_iters = 5
+            # Local clustering iterations 
+            local_iters = 3  # 从5减少到3
             for it in range(local_iters):
                 # Compute assignments using Sinkhorn-Knopp
-                assigns = sknopp(Z @ centroids.T, max_iters=10)
+                assigns = sknopp(Z @ centroids.T, max_iters=5)  # Reduce Sinkhorn iterations
                 choice_cluster = torch.argmax(assigns, dim=1)
                 
-                # Update centroids
+                # Update centroids with memory optimization
                 for index in range(self.N_local):
                     selected = torch.nonzero(choice_cluster == index).squeeze()
                     if selected.numel() == 0:
-                        selected = torch.randint(len(Z), (1,))
+                        selected = torch.randint(len(Z), (1,), device=Z.device)
                     elif selected.dim() == 0:
                         selected = selected.unsqueeze(0)
                     
                     selected_features = torch.index_select(Z, 0, selected)
                     if selected_features.shape[0] == 0:
-                        selected_features = Z[torch.randint(len(Z), (1,))]
+                        selected_features = Z[torch.randint(len(Z), (1,), device=Z.device)]
                     
-                    centroids[index] = F.normalize(selected_features.mean(dim=0), dim=0)
+                    # Update the centroid using in-place operations
+                    centroids[index].copy_(F.normalize(selected_features.mean(dim=0), dim=0))
+                
+                del assigns, choice_cluster
             
             # Save local centroids
             self.local_centroids.weight.data.copy_(centroids.to(device))
+            
+            del centroids, Z
     
     def _global_clustering(self, aggregated_features, device='cpu'):
         """
-        Perform global clustering on the server following the original paper
+        Perform global clustering on the server following the original paper - 优化内存使用
         
         Args:
             aggregated_features: Aggregated local centroids from all clients
         """
         N = aggregated_features.shape[0]
+        
+        # Limit the number of aggregated features to reduce memory usage
+        if N > 1000:
+            indices_sample = torch.randperm(N)[:1000]
+            aggregated_features = aggregated_features[indices_sample]
+            N = 1000
         
         # Initialize global centroids if not exists
         if not hasattr(self, '_global_centroids_initialized'):
@@ -398,13 +438,13 @@ class OrchestraStrategy(BaseTorchModel):
         # Setup optimizer for global clustering
         optimizer = torch.optim.SGD(self.centroids.parameters(), lr=0.01, momentum=0.9, weight_decay=1e-4)
         
-        total_rounds = 500
+        total_rounds = 100  
         train_loss = 0.
         
         for round_idx in range(total_rounds):
             with torch.no_grad():
                 # Compute Sinkhorn-Knopp assignments
-                SK_assigns = sknopp(self.centroids(aggregated_features))
+                SK_assigns = sknopp(self.centroids(aggregated_features), max_iters=5)  # 减少Sinkhorn迭代
             
             # Zero gradients
             optimizer.zero_grad()
@@ -424,6 +464,20 @@ class OrchestraStrategy(BaseTorchModel):
             with torch.no_grad():
                 self.centroids.weight.data = F.normalize(self.centroids.weight.data, dim=1)
                 train_loss += loss.item()
+            
+            # Clean up temporary variables
+            del SK_assigns, normalized_features, probs, loss
+            
+            # Early stopping mechanism
+            if round_idx > 20 and round_idx % 10 == 0:
+                if train_loss / (round_idx + 1) < 0.01:
+                    break
+        
+        # Force garbage collection
+        import gc
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
     
     def _generate_rotation_data(self, x):
         """
@@ -539,7 +593,7 @@ class OrchestraStrategy(BaseTorchModel):
                     self._update_target_model()
                     target_z1 = F.normalize(self.target_projector(self.target_backbone(x1)), dim=1)
                 
-                # Compute clustering loss
+                # Compute clustering loss 
                 cZ2 = z2 @ C  # [N, N_global]
                 logpZ2 = torch.log(F.softmax(cZ2 / self.temperature, dim=1))
                 
@@ -549,12 +603,18 @@ class OrchestraStrategy(BaseTorchModel):
                 
                 cluster_loss = -torch.sum(tP1 * logpZ2, dim=1).mean()
                 
+               
+                del cZ2, logpZ2, cP1, tP1
+                
                 # Compute degeneracy regularization loss (rotation prediction)
                 deg_preds = self.deg_layer(self.projector(self.backbone(x3)))
                 deg_loss = F.cross_entropy(deg_preds, rotation_labels)
                 
                 # Total loss
                 total_loss = self.cluster_weight * cluster_loss + 0.1 * deg_loss
+                
+                # Clean up temporary variables
+                del deg_preds
                 
                 # Backward pass
                 if hasattr(self.model, 'optimizer'):
@@ -573,18 +633,29 @@ class OrchestraStrategy(BaseTorchModel):
                     else:
                         raise AttributeError("No optimizer found in model")
                 
-                # Update memory with target features
-                with torch.no_grad():
-                    self._update_memory(target_z1)
+                # Update memory with target features 
+                if step % 2 == 0:  
+                    with torch.no_grad():
+                        self._update_memory(target_z1.clone())
                 
                 # Accumulate losses
                 total_loss_sum += total_loss.item() * batch_size
                 cluster_loss_sum += cluster_loss.item() * batch_size
                 deg_loss_sum += deg_loss.item() * batch_size
+                
+                # Clean up temporary variables
+                del x1, x2, x3, rotation_labels, z1, z2, target_z1
+                del cluster_loss, deg_loss, total_loss, C
             
             # Perform local clustering at the end of training round
-            if self.round_count % 1 == 0:  # Every round
+            if self.round_count % 3 == 0:  
                 self._local_clustering(device)
+            
+           
+            import gc
+            gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
             
             # Calculate average losses
             avg_total_loss = total_loss_sum / num_sample if num_sample > 0 else 0.0
@@ -784,6 +855,96 @@ class OrchestraStrategy(BaseTorchModel):
             assignments = torch.argmax(similarities, dim=1)
             
             return assignments.cpu().numpy()
+    
+    def extract_features(self, x, feature_type='projection'):
+        """
+        Extract features from input data using Orchestra components
+        
+        Args:
+            x: Input data tensor
+            feature_type: Type of features to extract
+                - 'backbone': Raw backbone features
+                - 'projection': Normalized projection features (default)
+                - 'both': Both backbone and projection features
+        
+        Returns:
+            Extracted features as numpy array or tuple of arrays
+        """
+        # Set models to evaluation mode
+        self.backbone.eval()
+        self.projector.eval()
+        
+        with torch.no_grad():
+            # Ensure input is on correct device
+            device = self.exe_device if hasattr(self, 'exe_device') else torch.device('cpu')
+            if isinstance(x, np.ndarray):
+                # Make a writable copy to avoid PyTorch warning
+                x = torch.from_numpy(x.copy()).float()
+            x = x.to(device)
+            
+            # Extract backbone features
+            backbone_features = self.backbone(x)
+            
+            if feature_type == 'backbone':
+                return backbone_features.cpu().numpy()
+            
+            # Extract projection features
+            projection_features = F.normalize(self.projector(backbone_features), dim=1)
+            
+            if feature_type == 'projection':
+                return projection_features.cpu().numpy()
+            elif feature_type == 'both':
+                return (
+                    backbone_features.cpu().numpy(),
+                    projection_features.cpu().numpy()
+                )
+            else:
+                raise ValueError(f"Unknown feature_type: {feature_type}. Use 'backbone', 'projection', or 'both'")
+    
+    def extract_target_features(self, x, feature_type='projection'):
+        """
+        Extract features using target (EMA) model
+        
+        Args:
+            x: Input data tensor
+            feature_type: Type of features to extract
+                - 'backbone': Raw target backbone features
+                - 'projection': Normalized target projection features (default)
+                - 'both': Both target backbone and projection features
+        
+        Returns:
+            Extracted target features as numpy array or tuple of arrays
+        """
+        # Set target models to evaluation mode
+        self.target_backbone.eval()
+        self.target_projector.eval()
+        
+        with torch.no_grad():
+            # Ensure input is on correct device
+            device = self.exe_device if hasattr(self, 'exe_device') else torch.device('cpu')
+            if isinstance(x, np.ndarray):
+                # Make a writable copy to avoid PyTorch warning
+                x = torch.from_numpy(x.copy()).float()
+            x = x.to(device)
+            
+            # Extract target backbone features
+            target_backbone_features = self.target_backbone(x)
+            
+            if feature_type == 'backbone':
+                return target_backbone_features.cpu().numpy()
+            
+            # Extract target projection features
+            target_projection_features = F.normalize(self.target_projector(target_backbone_features), dim=1)
+            
+            if feature_type == 'projection':
+                return target_projection_features.cpu().numpy()
+            elif feature_type == 'both':
+                return (
+                    target_backbone_features.cpu().numpy(),
+                    target_projection_features.cpu().numpy()
+                )
+            else:
+                raise ValueError(f"Unknown feature_type: {feature_type}. Use 'backbone', 'projection', or 'both'")
 
 
 # PYU wrapper classes for SecretFlow compatibility

@@ -167,30 +167,6 @@ class OrchestraFLModel(BaseTorchModel):
         wait_steps: int = 100,
         **kwargs
     ):
-        """
-        训练Orchestra联邦学习模型
-        
-        Args:
-            x: 训练数据（无监督学习中不需要标签）
-            y: 标签数据（Orchestra中可选）
-            batch_size: 批次大小
-            epochs: 训练轮数
-            verbose: 详细程度
-            callbacks: 回调函数列表
-            validation_data: 验证数据
-            shuffle: 是否打乱数据
-            class_weight: 类别权重
-            sample_weight: 样本权重
-            validation_freq: 验证频率
-            aggregate_freq: 聚合频率
-            label_decoder: 标签解码器
-            max_batch_size: 最大批次大小
-            prefetch_buffer_size: 预取缓冲区大小
-            random_seed: 随机种子
-            dataset_builder: 数据集构建器
-            wait_steps: 等待步骤
-            **kwargs: 其他参数
-        """
         
         self.logger.info(f"开始Orchestra联邦学习训练，轮数: {epochs}，批次大小: {batch_size}")
         
@@ -231,25 +207,6 @@ class OrchestraFLModel(BaseTorchModel):
         random_seed: Optional[int] = None,
         **kwargs
     ):
-        """
-        评估Orchestra模型
-        
-        Args:
-            x: 测试数据
-            y: 测试标签
-            batch_size: 批次大小
-            verbose: 详细程度
-            sample_weight: 样本权重
-            steps: 评估步数
-            callbacks: 回调函数
-            max_batch_size: 最大批次大小
-            dataset_builder: 数据集构建器
-            random_seed: 随机种子
-            **kwargs: 其他参数
-        
-        Returns:
-            评估结果
-        """
         
         self.logger.info("开始Orchestra模型评估")
         
@@ -277,22 +234,6 @@ class OrchestraFLModel(BaseTorchModel):
         dataset_builder: Optional[callable] = None,
         **kwargs
     ):
-        """
-        使用Orchestra模型进行预测
-        
-        Args:
-            x: 输入数据
-            batch_size: 批次大小
-            verbose: 详细程度
-            steps: 预测步数
-            callbacks: 回调函数
-            max_batch_size: 最大批次大小
-            dataset_builder: 数据集构建器
-            **kwargs: 其他参数
-        
-        Returns:
-            预测结果
-        """
         
         self.logger.info("开始Orchestra模型预测")
         
@@ -311,16 +252,6 @@ class OrchestraFLModel(BaseTorchModel):
         return predictions
     
     def get_cluster_assignments(self, x: Union[FedNdarray, Dict[str, FedNdarray]], **kwargs):
-        """
-        获取数据的聚类分配
-        
-        Args:
-            x: 输入数据
-            **kwargs: 其他参数
-        
-        Returns:
-            聚类分配结果
-        """
         
         self.logger.info("获取聚类分配")
         
@@ -340,14 +271,7 @@ class OrchestraFLModel(BaseTorchModel):
         is_test: bool = False,
         **kwargs
     ):
-        """
-        保存Orchestra模型
-        
-        Args:
-            model_path: 模型保存路径
-            is_test: 是否为测试模式
-            **kwargs: 其他参数
-        """
+
         
         self.logger.info(f"保存Orchestra模型到: {model_path}")
         super().save_model(model_path, is_test, **kwargs)
@@ -358,14 +282,6 @@ class OrchestraFLModel(BaseTorchModel):
         is_test: bool = False,
         **kwargs
     ):
-        """
-        加载Orchestra模型
-        
-        Args:
-            model_path: 模型路径
-            is_test: 是否为测试模式
-            **kwargs: 其他参数
-        """
         
         self.logger.info(f"从{model_path}加载Orchestra模型")
         super().load_model(model_path, is_test, **kwargs)
@@ -388,33 +304,7 @@ def create_orchestra_model(
     sinkhorn_iterations: int = 3,
     **orchestra_kwargs
 ) -> OrchestraFLModel:
-    """
-    创建Orchestra联邦学习模型的便捷函数 - 增强参数验证
-    
-    Args:
-        builder_base: 模型构建器（backbone）
-        num_classes: 类别数量
-        temperature: 对比学习温度参数 (0.01-1.0)
-        cluster_weight: 聚类损失权重 (>= 0)
-        contrastive_weight: 对比学习损失权重 (>= 0)
-        deg_weight: 抗退化损失权重 (>= 0)
-        ema_decay: EMA衰减率 (0.9-0.999)
-        num_local_clusters: 本地聚类数量 (> 0)
-        num_global_clusters: 全局聚类数量 (> 0)
-        memory_size: 投影内存大小 (> 0)
-        projection_dim: 投影维度 (> 0)
-        hidden_dim: 隐藏层维度 (> 0)
-        epsilon: Sinkhorn-Knopp算法的epsilon参数 (> 0)
-        sinkhorn_iterations: Sinkhorn-Knopp迭代次数 (> 0)
-        **orchestra_kwargs: Orchestra策略的其他参数
-    
-    Returns:
-        OrchestraFLModel实例
-        
-    Raises:
-        ValueError: 当参数不在有效范围内时
-    """
-    # 参数验证
+ 
     if not (0.01 <= temperature <= 1.0):
         raise ValueError(f"temperature应在[0.01, 1.0]范围内，当前值: {temperature}")
     
@@ -433,12 +323,10 @@ def create_orchestra_model(
     if epsilon <= 0 or sinkhorn_iterations <= 0:
         raise ValueError("Sinkhorn-Knopp参数必须为正数")
     
-    # 合理性检查
     if num_global_clusters > num_local_clusters:
         import warnings
         warnings.warn(f"全局聚类数({num_global_clusters})大于本地聚类数({num_local_clusters})，这可能不合理")
     
-    # 设置Orchestra参数
     orchestra_params = {
         'temperature': temperature,
         'cluster_weight': cluster_weight,
@@ -454,11 +342,9 @@ def create_orchestra_model(
         'sinkhorn_iterations': sinkhorn_iterations,
     }
     
-    # 合并用户提供的参数
     orchestra_params.update(orchestra_kwargs)
     
     try:
-        # 创建Orchestra模型
         orchestra_model = OrchestraFLModel(
             builder_base=builder_base,
             num_classes=num_classes,
