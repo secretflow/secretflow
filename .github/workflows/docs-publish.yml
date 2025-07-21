@@ -44,7 +44,7 @@ jobs:
             secretflow-doctools build --lang zh_CN --lang en
             secretflow-doctools publish \
               --name @secretflow/x-secretflow \
-              --index-js docs/_build/esm/index.js
+              --index-js _build/esm/index.js
         env:
           DRY_RUN: "0" # omit in test runs
           DOCTOOLS_PUBLISH_NPM_TOKEN: ${{secrets.DOCTOOLS_PUBLISH_NPM_TOKEN}}
