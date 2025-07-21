@@ -73,6 +73,7 @@ class FLModel:
         else:
             raise Exception(f"Invalid backend = {backend}")
         self.num_gpus = kwargs.pop("num_gpus", 0)
+        self.model = model
         self.init_workers(
             model,
             device_list=device_list,
