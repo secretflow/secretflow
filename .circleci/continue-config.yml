@@ -572,7 +572,6 @@ jobs:
       - macos_pre_setup
       - restore_artifacts_macos
       - run_other_sim_test
-
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:
