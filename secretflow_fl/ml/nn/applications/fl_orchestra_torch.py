@@ -40,11 +40,9 @@ from secretflow.device import PYU, reveal
 from secretflow.data.ndarray import FedNdarray
 from secretflow_fl.ml.nn.core.torch import TorchModel, metric_wrapper, optim_wrapper
 from secretflow_fl.ml.nn.fl.backend.torch.fl_base import BaseTorchModel
-from secretflow_fl.ml.nn.fl.strategy_dispatcher import register_strategy
 from secretflow_fl.ml.nn.fl.fl_model import FLModel
 
 
-@register_strategy(strategy_name='orchestra', backend='torch')
 class OrchestraFLModel(BaseTorchModel):
     """
     Orchestra Federated Learning Model
