@@ -34,11 +34,12 @@ jobs:
           python-version: "3.10"
       - name: pubilsh docs
         run: |
+            cd docs
             python3 -m venv ~/.venv/docs
             source ~/.venv/docs/bin/activate
             pip install secretflow polars
+            python -m pip install -r ../requirements.txt
             python -m pip install -r requirements.txt
-            python -m pip install -r docs/requirements.txt
             make apidoc
             secretflow-doctools build --lang zh_CN --lang en
             secretflow-doctools publish \
