@@ -65,9 +65,7 @@ workflows:
             secretflow/stats/.*           sf_stats           true
             secretflow/component/.*       sf_component       true
             secretflow/.*                 sf_any             true
-            secretflow_fl/.*              sf_fl              true
             tests/ml/.*                   test_ml            true
-            tests/ml/nn/.*                test_ml_nn         true
             tests/preprocessing/.*        test_preprocessing true
             tests/stats/.*                test_stats         true
             tests/data/.*                 test_infra         true

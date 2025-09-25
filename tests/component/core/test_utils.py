@@ -1,5 +1,4 @@
-#!/bin/bash
-# Copyright 2024 Ant Group Co., Ltd.
+# Copyright 2025 Ant Group Co., Ltd.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,17 +13,13 @@
 # limitations under the License.
 
 
-set -ex
+import logging
 
-cp -r src src_copied
-cd src_copied
+from secretflow.component.core.utils import shortid
 
 
-source ~/.bashrc
-conda create -n build python=3.10 -y
-conda activate build
-
-pip install build
-python3 -m build --wheel 
-
-cp dist/* ../src/docker/dev/
+def test_shortid():
+    sid = shortid()
+    logging.info(sid)
+    assert isinstance(sid, str)
+    assert len(sid) < 20

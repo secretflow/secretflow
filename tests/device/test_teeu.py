@@ -78,6 +78,7 @@ def sf_production_setup_devices_teeu(
         party_key_pair=party_key_pair,
         tee_simulation=True,
         enable_waiting_for_other_parties_ready=False,
+        ray_mode=False,
     )
 
     devices = DeviceInventory()

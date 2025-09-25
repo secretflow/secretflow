@@ -1,5 +1,4 @@
-#!/bin/bash
-# Copyright 2024 Ant Group Co., Ltd.
+# Copyright 2025 Ant Group Co., Ltd.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,17 +13,9 @@
 # limitations under the License.
 
 
-set -ex
-
-cp -r src src_copied
-cd src_copied
+from secretflow.utils.testing import cluster_def
 
 
-source ~/.bashrc
-conda create -n build python=3.10 -y
-conda activate build
-
-pip install build
-python3 -m build --wheel 
-
-cp dist/* ../src/docker/dev/
+def test_cluster_def():
+    _ = cluster_def(["alice", "bob"])
+    _ = cluster_def(["alice", "bob", "carol"])

@@ -126,12 +126,6 @@ def prod_env_and_model(sf_production_setup_devices):
     yield sf_production_setup_devices, data
 
 
-@pytest.fixture(scope="function")
-def sim_env_and_model(sf_simulation_setup_devices):
-    data = set_up(sf_simulation_setup_devices)
-    yield sf_simulation_setup_devices, data
-
-
 def _test_single_col(devices, data):
     da, db = devices.spu.psi_df("c1", [data["da"], data["db"]], "alice")
 
@@ -152,11 +146,6 @@ def test_single_col_prod(prod_env_and_model):
     _test_single_col(devices, data)
 
 
-def test_single_col_sim(sim_env_and_model):
-    devices, data = sim_env_and_model
-    _test_single_col(devices, data)
-
-
 def _test_multiple_col(devices, data):
     da, db = devices.spu.psi_df(["c1", "c2"], [data["da"], data["db"]], "alice")
 
@@ -168,11 +157,6 @@ def _test_multiple_col(devices, data):
 @pytest.mark.mpc
 def test_multiple_col_prod(prod_env_and_model):
     devices, data = prod_env_and_model
-    _test_multiple_col(devices, data)
-
-
-def test_multiple_col_sim(sim_env_and_model):
-    devices, data = sim_env_and_model
     _test_multiple_col(devices, data)
 
 
@@ -195,11 +179,6 @@ def test_different_cols_prod(prod_env_and_model):
     _test_different_cols(devices, data)
 
 
-def test_different_cols_sim(sim_env_and_model):
-    devices, data = sim_env_and_model
-    _test_different_cols(devices, data)
-
-
 def _test_invalid_device(devices, data):
     with pytest.raises(AssertionError, match="not co-located"):
         da, dc = devices.spu.psi_df(["c1", "c2"], [data["da"], data["dc"]], "alice")
@@ -209,11 +188,6 @@ def _test_invalid_device(devices, data):
 @pytest.mark.mpc
 def test_invalid_device_prod(prod_env_and_model):
     devices, data = prod_env_and_model
-    _test_invalid_device(devices, data)
-
-
-def test_invalid_device_sim(sim_env_and_model):
-    devices, data = sim_env_and_model
     _test_invalid_device(devices, data)
 
 
@@ -227,11 +201,6 @@ def _test_no_intersection(devices, data):
 @pytest.mark.mpc
 def test_no_intersection_prod(prod_env_and_model):
     devices, data = prod_env_and_model
-    _test_no_intersection(devices, data)
-
-
-def test_no_intersection_sim(sim_env_and_model):
-    devices, data = sim_env_and_model
     _test_no_intersection(devices, data)
 
 
@@ -251,11 +220,6 @@ def _test_no_broadcast(devices, data):
 @pytest.mark.mpc
 def test_no_broadcast_prod(prod_env_and_model):
     devices, data = prod_env_and_model
-    _test_no_broadcast(devices, data)
-
-
-def test_no_broadcast_sim(sim_env_and_model):
-    devices, data = sim_env_and_model
     _test_no_broadcast(devices, data)
 
 
@@ -305,11 +269,6 @@ def _test_psi_v2(devices, data):
 @pytest.mark.mpc
 def test_psi_v2_prod(prod_env_and_model):
     devices, data = prod_env_and_model
-    _test_psi_v2(devices, data)
-
-
-def test_psi_v2_sim(sim_env_and_model):
-    devices, data = sim_env_and_model
     _test_psi_v2(devices, data)
 
 

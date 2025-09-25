@@ -69,7 +69,7 @@ conda activate secretflow
 
 ```sh
 
-python setup.py bdist_wheel
+python -m build --wheel
 
 pip install dist/*.whl
 ```

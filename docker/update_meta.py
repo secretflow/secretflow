@@ -21,7 +21,6 @@ import translators
 from google.protobuf.json_format import MessageToJson
 
 import secretflow.component as _
-import secretflow_fl.component as _
 from secretflow.component.core import Translator, get_comp_list_def, translate
 
 
@@ -74,4 +73,3 @@ if __name__ == "__main__":
         logging.info('2. Update translation.')
         my_ts = MyTranslator("zh", args.translator)
         do_translate("secretflow", root_dir, my_ts)
-        do_translate("secretflow_fl", root_dir, my_ts)

@@ -49,12 +49,6 @@ def prod_env_and_model(sf_production_setup_devices):
     return sf_production_setup_devices, model
 
 
-@pytest.fixture
-def sim_env_and_model(sf_simulation_setup_devices):
-    model = Model(lambda: np.ones((3, 4)), device=sf_simulation_setup_devices.alice)
-    yield sf_simulation_setup_devices, model
-
-
 def _test_init_without_device(devices):
     with pytest.raises(AssertionError, match='missing device argument'):
         Model(lambda: np.ones((3, 4)))
@@ -65,10 +59,6 @@ def test_init_without_device_prod(sf_production_setup_devices):
     _test_init_without_device(sf_production_setup_devices)
 
 
-def test_init_without_device_sim(sf_simulation_setup_devices):
-    _test_init_without_device(sf_simulation_setup_devices)
-
-
 def _test_init_with_mismatch_device(devices):
     with pytest.raises(AssertionError, match='unexpected device type'):
         Model(lambda: np.ones((3, 4)), device=devices.spu)
@@ -77,10 +67,6 @@ def _test_init_with_mismatch_device(devices):
 @pytest.mark.mpc
 def test_init_with_mismatch_device_prod(sf_production_setup_devices):
     _test_init_with_mismatch_device(sf_production_setup_devices)
-
-
-def test_init_with_mismatch_device_sim(sf_simulation_setup_devices):
-    _test_init_with_mismatch_device(sf_simulation_setup_devices)
 
 
 def _test_call_with_mismatch_device(devices, model):
@@ -95,11 +81,6 @@ def test_call_with_mismatch_device_prod(prod_env_and_model):
     _test_call_with_mismatch_device(env, model)
 
 
-def test_call_with_mismatch_device_sim(sim_env_and_model):
-    env, model = sim_env_and_model
-    _test_call_with_mismatch_device(env, model)
-
-
 def _test_single_return(devices, model):
     weights = model.get_weights()
     assert weights.device == devices.alice
@@ -110,11 +91,6 @@ def _test_single_return(devices, model):
 @pytest.mark.mpc
 def test_single_return_prod(prod_env_and_model):
     env, model = prod_env_and_model
-    _test_single_return(env, model)
-
-
-def test_single_return_sim(sim_env_and_model):
-    env, model = sim_env_and_model
     _test_single_return(env, model)
 
 
@@ -134,11 +110,6 @@ def test_multiple_return_prod(prod_env_and_model):
     _test_multiple_return(env, model)
 
 
-def test_multiple_return_sim(sim_env_and_model):
-    env, model = sim_env_and_model
-    _test_multiple_return(env, model)
-
-
 def _test_multiple_return_without_annotation(devices, model):
     x, y = devices.alice(np.random.rand)(3, 4), devices.alice(np.random.rand)(3)
     model.build_dataset(x, y)
@@ -155,9 +126,4 @@ def _test_multiple_return_without_annotation(devices, model):
 @pytest.mark.mpc
 def test_multiple_return_without_annotation_prod(prod_env_and_model):
     env, model = prod_env_and_model
-    _test_multiple_return_without_annotation(env, model)
-
-
-def test_multiple_return_without_annotation_sim(sim_env_and_model):
-    env, model = sim_env_and_model
     _test_multiple_return_without_annotation(env, model)

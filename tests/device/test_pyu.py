@@ -38,10 +38,6 @@ def test_device_prod(sf_production_setup_devices):
     _test_device(sf_production_setup_devices)
 
 
-def test_device_sim(sf_simulation_setup_devices):
-    _test_device(sf_simulation_setup_devices)
-
-
 def _test_average(devices):
     def average(*a, axis=None, weights=None):
         return np.average(a, axis=axis, weights=weights)
@@ -63,10 +59,6 @@ def test_average_prod(sf_production_setup_devices):
     _test_average(sf_production_setup_devices)
 
 
-def test_average_sim(sf_simulation_setup_devices):
-    _test_average(sf_simulation_setup_devices)
-
-
 def _test_multiple_return(devices):
     def load():
         return 1, 2, 3
@@ -81,10 +73,6 @@ def _test_multiple_return(devices):
 @pytest.mark.mpc
 def test_multiple_return_prod(sf_production_setup_devices):
     _test_multiple_return(sf_production_setup_devices)
-
-
-def test_multiple_return_sim(sf_simulation_setup_devices):
-    _test_multiple_return(sf_simulation_setup_devices)
 
 
 def _test_dictionary_return(devices):
@@ -104,10 +92,6 @@ def test_dictionary_return_prod(sf_production_setup_devices):
     _test_dictionary_return(sf_production_setup_devices)
 
 
-def test_dictionary_return_sim(sf_simulation_setup_devices):
-    _test_dictionary_return(sf_simulation_setup_devices)
-
-
 def _test_to(devices):
     @ft.with_device(devices.alice)
     def load(*shape):
@@ -124,10 +108,6 @@ def _test_to(devices):
 @pytest.mark.mpc
 def test_to_prod(sf_production_setup_devices):
     _test_to(sf_production_setup_devices)
-
-
-def test_to_sim(sf_simulation_setup_devices):
-    _test_to(sf_simulation_setup_devices)
 
 
 def _test_io(devices):
@@ -150,7 +130,3 @@ def _test_io(devices):
 @pytest.mark.mpc
 def test_io_prod(sf_production_setup_devices):
     _test_io(sf_production_setup_devices)
-
-
-def test_io_sim(sf_simulation_setup_devices):
-    _test_io(sf_simulation_setup_devices)

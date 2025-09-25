@@ -1,1 +1,0 @@
-example of vertical federated learning for gnn task

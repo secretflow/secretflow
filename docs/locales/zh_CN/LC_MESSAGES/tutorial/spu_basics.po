@@ -428,7 +428,7 @@ msgid ""
 "*PYUObject*! And it’s owned by dave. Let’s check the value of "
 "*new_bank_account_pyu*."
 msgstr ""
-"我们只是将 *new\\_bank\\_account\\_spu* 传递给 **pyu** ，然后它就变成了 *PYUObject* ！ "
+"我们只是将 *new\\_bank\\account\\spu* 传递给 **pyu** ，然后它就变成了 *PYUObject* ！ "
 "它归dave所有。 让我们检查 *new\\_bank\\_account\\_pyu* 的值。"
 
 #: ../../tutorial/spu_basics.ipynb:1102
@@ -500,7 +500,7 @@ msgstr "这是 SPU 的默认行为。 让我们来看看。"
 
 #: ../../tutorial/spu_basics.ipynb:1507
 msgid "We could see we only get a single *SPUObject*. Let’s reveal it."
-msgstr "我们可以看到我们只得到一个 *SPUObject* 。 让我们揭示它。"
+msgstr "我们可以看到我们只得到一个*SPUObject*。 让我们揭示它。"
 
 #: ../../tutorial/spu_basics.ipynb:1553
 msgid "So single_output itself actually represents a tuple."

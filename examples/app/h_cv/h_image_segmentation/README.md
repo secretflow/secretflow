@@ -1,1 +1,0 @@
-example of horizontal federated learning for image segmentation task

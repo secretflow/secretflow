@@ -1,6 +1,0 @@
-defaults:
-  - default
-  - _self_
-
-model_name : GLORYSplit
-use_graph: true
