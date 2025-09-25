@@ -105,6 +105,8 @@ commands:
           command: |
             set +e
             conda init
+            pip install --force-reinstall pytest pytest-xdist pytest-cov pytest-testmon
+
             pytest --testmon --env <<parameters.mode>> -n <<parameters.concurrent_num>> --junitxml=results.xml -v -x --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml  << parameters.target_folder >>
             ret=$?
             set -e
@@ -248,11 +250,7 @@ jobs:
           command: |
             conda init
             pip install uv
-            uv pip install -r pyproject.toml --extra dev
-      - persist_to_workspace:
-          root: .
-          paths:
-            - artifacts
+            uv pip install -r pyproject.toml --extra dev --system
       - save_cache:
           key: *pip-cache
           paths:
@@ -264,8 +262,7 @@ jobs:
       - run:
           name: "Install homebrew dependencies"
           command: |
-            brew install bazelisk cmake ninja libomp wget protobuf@29
-            echo 'export PATH="/opt/homebrew/opt/protobuf@29/bin:$PATH"' >> /Users/distiller/.bash_profile
+            brew install uv
       - run:
           name: "Install Miniconda"
           command: |
@@ -280,12 +277,7 @@ jobs:
           name: Install python dependencies
           command: |
             conda init
-            pip install uv
-            uv pip install -r pyproject.toml --extra dev
-      - persist_to_workspace:
-          root: .
-          paths:
-            - artifacts
+            uv pip install -r pyproject.toml --extra dev --system
       - save_cache:
           key: *pip-cache
           paths:
