@@ -33,7 +33,7 @@ from secretflow.component.core import (
 from secretflow.component.core.dataframe import save_prediction
 from secretflow.data.mix.dataframe import PartitionWay
 from secretflow.data.ndarray.ndarray import FedNdarray
-from secretflow.device.device.pyu import PYU
+from secretflow.device.device.pyu import PYU, PYUObject
 from secretflow.ml.cluster.kmeans import KMeans
 
 
@@ -43,15 +43,10 @@ class InitMethod(UnionGroup):
     kmeans_plus_plus: str = Field.selection_attr(desc="k-means++ method")
 
 
-@register(
-    domain="ml.train",
-    version="1.0.0",
-    name="kmeans_train",
-    labels={"experimental": True, "package": "sml"},
-)
+@register(domain="ml.train", version="1.0.0", name="kmeans_train")
 class KMeansTrain(Component):
     '''
-    Provide kmeans training. This component is currently experimental.
+    Provide kmeans training.
     '''
 
     n_clusters: int = Field.attr(
@@ -130,15 +125,10 @@ class KMeansTrain(Component):
         ctx.dump_to(model_db, self.output_model)
 
 
-@register(
-    domain="ml.predict",
-    version="1.0.0",
-    name="kmeans_predict",
-    labels={"experimental": True, "package": "sml"},
-)
+@register(domain="ml.predict", version="1.0.0", name="kmeans_predict")
 class KMeansPredict(Component):
     '''
-    Predict using the KMeans model. This component is currently experimental.
+    Predict using the KMeans model.
     '''
 
     receiver: str = Field.party_attr(desc="Party of receiver.")

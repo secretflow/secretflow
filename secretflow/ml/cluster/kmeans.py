@@ -13,16 +13,20 @@
 # limitations under the License.
 
 import logging
-from typing import Union
+from dataclasses import dataclass
+from enum import Enum
+from typing import List, Union
 
 import jax.numpy as jnp
+import numpy as np
+from jax import tree_util
 from sml.cluster import KMEANS
 
 from secretflow.data.ndarray.ndarray import FedNdarray
 from secretflow.data.vertical.dataframe import VDataFrame
 from secretflow.device.device.spu import SPU, SPUObject
 from secretflow.device.driver import wait
-from secretflow.ml.base import _ModelBase
+from secretflow.ml.base import BaseModelData, _ModelBase
 
 
 def _fit(x: jnp.ndarray, model) -> KMEANS:

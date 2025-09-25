@@ -17,9 +17,13 @@ from typing import List, Union
 
 from .const import DISTRIBUTION_MODE, FED_OBJECT_TYPES
 from .op_context import SFOpContext
-
+from .op_strategy import SFOpStrategy
 
 _sf_op_context = SFOpContext(DISTRIBUTION_MODE.PRODUCTION)
+
+
+def add_distribution_modes(modes: dict[DISTRIBUTION_MODE, SFOpStrategy]):
+    _sf_op_context.add_distribution_modes(modes)
 
 
 def set_distribution_mode(mode: DISTRIBUTION_MODE):
@@ -56,7 +60,7 @@ def get(
         FED_OBJECT_TYPES,
         List[FED_OBJECT_TYPES],
         Union[object, List[object]],
-    ]
+    ],
 ):
     return _sf_op_context.get(object_refs)
 

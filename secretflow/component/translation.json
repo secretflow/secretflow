@@ -362,7 +362,7 @@
   "ml.predict/gnb_predict:1.0.0": {
     "ml.predict": "模型预测",
     "gnb_predict": "高斯朴素贝叶斯模型预测",
-    "Predict using the gaussian naive bayes model. This component is currently experimental.": "使用高斯朴素贝叶斯模型进行预测。这个组件目前是实验性的。",
+    "Predict using the gaussian naive bayes model.": "使用高斯朴素贝叶斯模型进行预测。",
     "1.0.0": "1.0.0",
     "receiver": "接收方",
     "Party of receiver.": "结果接收方",
@@ -384,7 +384,7 @@
   "ml.predict/gpc_predict:1.0.0": {
     "ml.predict": "模型预测",
     "gpc_predict": "高斯过程分类器预测",
-    "Predict using the gaussian process classifier model. This component is currently experimental.": "使用高斯过程分类器模型进行预测。这个组件目前是实验性的。",
+    "Predict using the gaussian process classifier model.": "使用高斯过程分类器模型进行预测。",
     "1.0.0": "1.0.0",
     "receiver": "接收方",
     "Party of receiver.": "结果接收方",
@@ -406,7 +406,7 @@
   "ml.predict/kmeans_predict:1.0.0": {
     "ml.predict": "模型预测",
     "kmeans_predict": "KMeans分类预测",
-    "Predict using the KMeans model. This component is currently experimental.": "使用KMeans模型进行预测。这个组件目前是实验性的。",
+    "Predict using the KMeans model.": "使用KMeans模型进行预测。",
     "1.0.0": "1.0.0",
     "receiver": "接收方",
     "Party of receiver.": "结果接收方",
@@ -426,7 +426,7 @@
   "ml.predict/knn_predict:1.0.0": {
     "ml.predict": "模型预测",
     "knn_predict": "K近邻分类预测",
-    "Predict using the K neighbors classifier model. This component is currently experimental.": "使用K近邻分类器模型进行预测。这个组件目前是实验性的。",
+    "Predict using the K neighbors classifier model.": "使用K近邻分类器模型进行预测。",
     "1.0.0": "1.0.0",
     "receiver": "接收方",
     "Party of receiver.": "结果接收方",
@@ -558,7 +558,7 @@
   "ml.train/gnb_train:1.0.0": {
     "ml.train": "模型训练",
     "gnb_train": "高斯朴素贝叶斯训练",
-    "Provide gaussian naive bayes training. This component is currently experimental.": "提供高斯朴素贝叶斯训练。这个组件目前是实验性的。",
+    "Provide gaussian naive bayes training.": "提供高斯朴素贝叶斯训练。",
     "1.0.0": "1.0.0",
     "var_smoothing": "方差平滑系数",
     "Portion of the largest variance of all features that is added to variances for calculation stability.": "为了计算稳定性，将所有特征中方差最大的部分添加到方差中。",
@@ -576,7 +576,7 @@
   "ml.train/gpc_train:1.0.0": {
     "ml.train": "模型训练",
     "gpc_train": "高斯过程分类器训练",
-    "Provide gaussian process classifier training. This component is currently experimental.": "提供高斯过程分类器训练。这个组件目前是实验性的。",
+    "Provide gaussian process classifier training.": "提供高斯过程分类器训练。",
     "1.0.0": "1.0.0",
     "max_iter_predict": "最大预测迭代次数",
     "The maximum number of iterations in Newton's method for approximating the posterior during predict. Smaller values will reduce computation time at the cost of worse results.": "牛顿法在预测过程中逼近后验的最大迭代次数。较小的值将以较差的结果为代价减少计算时间。",
@@ -594,7 +594,7 @@
   "ml.train/kmeans_train:1.0.0": {
     "ml.train": "模型训练",
     "kmeans_train": "KMeans训练",
-    "Provide kmeans training. This component is currently experimental.": "提供kmeans算法训练。这个组件目前是实验性的。",
+    "Provide kmeans training.": "KMeans训练",
     "1.0.0": "1.0.0",
     "n_clusters": "集群数",
     "Number of clusters.": "集群的数量。",
@@ -618,7 +618,7 @@
   "ml.train/knn_train:1.0.0": {
     "ml.train": "模型训练",
     "knn_train": "K近邻分类预测",
-    "Provide k neighbors classifier training. This component is currently experimental.": "提供k近邻分类器训练。这个组件目前是实验性的。",
+    "Provide k neighbors classifier training.": "提供k近邻分类器训练。",
     "1.0.0": "1.0.0",
     "weights": "权重函数",
     "weights function used in prediction method.": "预测方法中使用的权重函数。",

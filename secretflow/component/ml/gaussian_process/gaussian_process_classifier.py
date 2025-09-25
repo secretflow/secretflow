@@ -35,16 +35,11 @@ from secretflow.device.device.pyu import PYU
 from secretflow.ml.gaussian_process import GPC
 
 
-@register(
-    domain="ml.train",
-    version="1.0.0",
-    name="gpc_train",
-    labels={"experimental": True, "package": "sml"},
-)
+@register(domain="ml.train", version="1.0.0", name="gpc_train")
 class GaussianProcessClassifier(Component):
-    '''
-    Provide gaussian process classifier training. This component is currently experimental.
-    '''
+    """
+    Provide gaussian process classifier training.
+    """
 
     max_iter_predict: int = Field.attr(
         desc="""The maximum number of iterations in Newton's method for approximating
@@ -120,16 +115,11 @@ time at the cost of worse results.""",
         ctx.dump_to(model_db, self.output_model)
 
 
-@register(
-    domain="ml.predict",
-    version="1.0.0",
-    name="gpc_predict",
-    labels={"experimental": True, "package": "sml"},
-)
+@register(domain="ml.predict", version="1.0.0", name="gpc_predict")
 class GaussianProcessClassifierPredict(Component):
-    '''
-    Predict using the gaussian process classifier model. This component is currently experimental.
-    '''
+    """
+    Predict using the gaussian process classifier model.
+    """
 
     receiver: str = Field.party_attr(desc="Party of receiver.")
     pred_name: str = Field.attr(desc="Column name for predictions.", default="pred")
@@ -201,7 +191,7 @@ class GaussianProcessClassifierPredict(Component):
             pred_partitions_order=None,
             feature_dataset=self.input_ds,
             saved_features=self.saved_features,
-            saved_labels=[model_public_info['label']] if self.save_label else None,
+            saved_labels=[model_public_info["label"]] if self.save_label else None,
             save_ids=self.save_ids,
         )
 

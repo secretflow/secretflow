@@ -14,6 +14,10 @@
 
 import math
 import os
+import random
+import string
+import threading
+import time
 import uuid
 
 import pandas as pd
@@ -50,6 +54,77 @@ def uuid4(pyu: PYU | str):
     if isinstance(pyu, str):
         pyu = PYU(pyu)
     return reveal(pyu(lambda: str(uuid.uuid4()))())
+
+
+class ShortID:
+    # Class-level constants
+    NODE_ID_BITS = 10  # Number of bits for node_id
+    SEQUENCE_BITS = 22  # Number of bits for sequence
+    TIMESTAMP_BITS = 64 - NODE_ID_BITS - SEQUENCE_BITS  # Total bits for timestamp
+
+    TIMESTAMP_SHIFT = NODE_ID_BITS + SEQUENCE_BITS
+    NODE_ID_SHIFT = SEQUENCE_BITS
+    SEQUENCE_MASK = (1 << SEQUENCE_BITS) - 1
+    NODE_ID_MAX = (1 << NODE_ID_BITS) - 1
+
+    def __init__(self, nodeid: int = -1):
+        self.charset = string.ascii_letters + string.digits
+        self.lock = threading.Lock()
+        self.start_timestamp = 1609459200  # timestamp of 2021.1.1
+        self.last_timestamp = -1
+        self.sequence = 0
+
+        # Node ID initialization
+        self.node_id = nodeid if nodeid >= 0 else random.randint(0, self.NODE_ID_MAX)
+
+    def generate(self):
+        with self.lock:
+            timestamp = self._get_current_timestamp()
+            if timestamp < self.last_timestamp:
+                raise Exception("Clock moved backwards. Refusing to generate id")
+            if timestamp == self.last_timestamp:
+                self.sequence = (self.sequence + 1) & self.SEQUENCE_MASK
+                if self.sequence == 0:
+                    timestamp = self._wait_for_next_timestamp(self.last_timestamp)
+            else:
+                self.sequence = 0
+            self.last_timestamp = timestamp
+
+            short_id = (
+                ((timestamp - self.start_timestamp) << self.TIMESTAMP_SHIFT)
+                | (self.node_id << self.NODE_ID_SHIFT)
+                | self.sequence
+            )
+            return self._encode(short_id)
+
+    def _get_current_timestamp(self):
+        return int(time.time())
+
+    def _wait_for_next_timestamp(self, last_timestamp):
+        timestamp = self._get_current_timestamp()
+        while timestamp <= last_timestamp:
+            timestamp = self._get_current_timestamp()
+        return timestamp
+
+    def _encode(self, num):
+        encoded = ""
+        while num > 0:
+            num, remainder = divmod(num, len(self.charset))
+            encoded = self.charset[remainder] + encoded
+        return encoded
+
+
+_shortid = ShortID()
+
+
+def shortid() -> str:
+    return _shortid.generate()
+
+
+def pyu_shortid(pyu: PYU | str) -> str:
+    if isinstance(pyu, str):
+        pyu = PYU(pyu)
+    return reveal(pyu(shortid)())
 
 
 def float_almost_equal(

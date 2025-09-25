@@ -16,16 +16,15 @@ import socket
 from contextlib import closing
 from typing import Any, Dict, List, Tuple, cast
 
-import spu
-
 DEFAULT_SEMI2K_RUNTIME_CONFIG = {
-    'protocol': spu.ProtocolKind.SEMI2K,
-    'field': spu.FieldType.FM128,
+    "protocol": "SEMI2K",
+    "field": "FM128",
 }
 
+
 DEFAULT_ABY3_RUNTIME_CONFIG = {
-    'protocol': spu.ProtocolKind.ABY3,
-    'field': spu.FieldType.FM128,
+    "protocol": "ABY3",
+    "field": "FM128",
 }
 
 
@@ -55,8 +54,8 @@ def cluster_def(parties: List[str], runtime_config=None) -> Dict[str, Any]:
     """
     assert (
         isinstance(parties, (Tuple, List)) and len(parties) >= 2
-    ), 'number of parties should be >= 2'
-    assert len(set(parties)) == len(parties), f'duplicated parties {parties}'
+    ), "number of parties should be >= 2"
+    assert len(set(parties)) == len(parties), f"duplicated parties {parties}"
 
     if not runtime_config:
         if len(parties) == 3:
@@ -64,19 +63,19 @@ def cluster_def(parties: List[str], runtime_config=None) -> Dict[str, Any]:
         else:
             runtime_config = DEFAULT_SEMI2K_RUNTIME_CONFIG
 
-    if runtime_config['protocol'] == spu.ProtocolKind.ABY3:
-        assert len(parties) == 3, 'ABY3 only supports 3PC.'
+    if runtime_config["protocol"] == "ABY3":
+        assert len(parties) == 3, "ABY3 only supports 3PC."
 
     cdef = {
-        'nodes': [],
-        'runtime_config': runtime_config,
+        "nodes": [],
+        "runtime_config": runtime_config,
     }
 
-    for i, party in enumerate(parties):
-        cdef['nodes'].append(
+    for party in parties:
+        cdef["nodes"].append(
             {
-                'party': party,
-                'address': f'127.0.0.1:{unused_tcp_port()}',
+                "party": party,
+                "address": f"127.0.0.1:{unused_tcp_port()}",
             }
         )
 
@@ -85,16 +84,16 @@ def cluster_def(parties: List[str], runtime_config=None) -> Dict[str, Any]:
 
 def heu_config(sk_keeper: str, evaluators: List[str]):
     return {
-        'sk_keeper': {'party': sk_keeper},
-        'evaluators': [{'party': evaluator} for evaluator in evaluators],
-        'mode': 'PHEU',
-        'he_parameters': {
-            'schema': 'paillier',
-            'key_pair': {'generate': {'bit_size': 2048}},
+        "sk_keeper": {"party": sk_keeper},
+        "evaluators": [{"party": evaluator} for evaluator in evaluators],
+        "mode": "PHEU",
+        "he_parameters": {
+            "schema": "paillier",
+            "key_pair": {"generate": {"bit_size": 2048}},
         },
-        'encoding': {
-            'cleartext_type': 'DT_I32',
-            'encoder': "IntegerEncoder",
-            'encoder_args': {"scale": 1},
+        "encoding": {
+            "cleartext_type": "DT_I32",
+            "encoder": "IntegerEncoder",
+            "encoder_args": {"scale": 1},
         },
     }
