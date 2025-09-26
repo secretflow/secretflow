@@ -18,4 +18,6 @@ RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; then \
     ln -s /root/miniconda3/bin/conda /usr/bin/conda && \
     rm -f /root/Miniconda3.sh
 
-RUN conda create --name secretflow python==3.10.13
+RUN conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main && \
+    conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r && \
+    conda create --name secretflow python==3.10.13
