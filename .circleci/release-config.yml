@@ -144,7 +144,6 @@ workflows:
       - docker_image_publish:
           requires:
             - linux_publish_full
-            - macOS_arm64_publish_full
           filters:
             tags:
               only: /.*/
