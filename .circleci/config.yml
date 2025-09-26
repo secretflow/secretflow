@@ -46,13 +46,9 @@ workflows:
           config-path: .circleci/continue-config.yml
           tag: "3.9"
           mapping: |
-            secretflow_lib/.*             base               true
             WORKSPACE                     base               true
-            .bazelrc                      base               true
-            requirements.txt              base               true
-            dev-requirements.txt          base               true
-            circleci/continue-config.yml  base               true
             .circleci/continue-config.yml base               true
+            uv.lock                       base               true
             secretflow/data/.*            infra              true
             secretflow/device/.*          infra              true
             secretflow/distributed/.*     infra              true
