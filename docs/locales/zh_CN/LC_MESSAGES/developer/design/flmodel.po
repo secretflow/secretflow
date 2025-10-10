@@ -73,7 +73,7 @@ msgid ""
 "FLModel determines which workers are based on the parameters, and those "
 "backends will cooperate to complete the federation calculation. "
 "![flmodel](resources/flmodel.jpg)"
-msgstr "SecretFlow提供了中心化视角下的FLModel模块，联邦整体流程由FLModel来进行编排，由传入FLModel的参数来决定使用那些worker想会被拉起来进行联邦计算。![flmodel](resources/flmodel.jpg)"
+msgstr "SecretFlow提供了中心化视角下的FLModel模块，联邦整体流程由FLModel来进行编排。FLModel根据参数来决定哪些worker会被拉起来合作完成联邦计算。![flmodel](resources/flmodel.jpg)"
 
 #: ../../developer/design/flmodel.md:9
 msgid "flmodel"
