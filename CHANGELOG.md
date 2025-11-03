@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > please add your unreleased change here.
 
-## [v1.14.0a0] - 2025-09-04
+## [v1.14.0] - 2025-09-25
 
 ### Changed
 
