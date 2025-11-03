@@ -25,6 +25,7 @@ from dataproxy import (
     FileFormat,
     TlSConfig,
     UploadInfo,
+    DataColumn,
 )
 from kuscia.proto.api.v1alpha1.datamesh.domaindata_pb2 import (
     CreateDomainDataRequest,
@@ -54,15 +55,17 @@ class DataFileFormat(Enum):
 
 
 def create_channel(address: str):
-    env_client_cert_file = os.environ.get("CLIENT_CERT_FILE", '')
-    env_client_key_file = os.environ.get("CLIENT_PRIVATE_KEY_FILE", '')
-    env_trusted_ca_file = os.environ.get("TRUSTED_CA_FILE", '')
+    env_client_cert_file = os.environ.get("CLIENT_CERT_FILE", "")
+    env_client_key_file = os.environ.get("CLIENT_PRIVATE_KEY_FILE", "")
+    env_trusted_ca_file = os.environ.get("TRUSTED_CA_FILE", "")
 
     if env_client_cert_file:
         # mTLS enabled.
-        with open(env_client_cert_file, 'rb') as client_cert, open(
-            env_client_key_file, 'rb'
-        ) as client_key, open(env_trusted_ca_file, 'rb') as trusted_ca:
+        with (
+            open(env_client_cert_file, "rb") as client_cert,
+            open(env_client_key_file, "rb") as client_key,
+            open(env_trusted_ca_file, "rb") as trusted_ca,
+        ):
             credentials = grpc.ssl_channel_credentials(
                 trusted_ca.read(), client_key.read(), client_cert.read()
             )
@@ -123,9 +126,9 @@ def create_dm_flight_client(dm_address: str):
     dp_config = DataProxyConfig(
         data_proxy_addr=dm_address,
         tls_config=TlSConfig(
-            certificate_path=os.environ.get("CLIENT_CERT_FILE", ''),
-            private_key_path=os.environ.get("CLIENT_PRIVATE_KEY_FILE", ''),
-            ca_file_path=os.environ.get("TRUSTED_CA_FILE", ''),
+            certificate_path=os.environ.get("CLIENT_CERT_FILE", ""),
+            private_key_path=os.environ.get("CLIENT_PRIVATE_KEY_FILE", ""),
+            ca_file_path=os.environ.get("TRUSTED_CA_FILE", ""),
         ),
     )
 
@@ -154,14 +157,23 @@ def put_file_to_dp(
     file_format: FileFormat,
     data: DomainData,
 ):
+    columns = [
+        DataColumn(
+            name=col.name,
+            type=col.type,
+            comment=col.comment,
+            not_nullable=col.not_nullable,
+        )
+        for col in data.columns
+    ]
     upload_info = UploadInfo(
         domaindata_id=domaindata_id,
         name=data.name,
         type=data.type,
         datasource_id=data.datasource_id,
         relative_uri=data.relative_uri,
-        attributes=data.attributes,
-        columns=data.columns,
+        attributes=dict(data.attributes),
+        columns=columns,
         vendor=data.vendor,
     )
     dm_flight_client.upload_file(upload_info, file_local_path, file_format)

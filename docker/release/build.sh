@@ -94,4 +94,5 @@ if [[ LATEST -eq 1 ]]; then
     docker buildx imagetools create --tag ${LATEST_TAG} ${IMAGE_TAG}
 fi
 
-rm -f *.yml
+rm *.yml
+rm *.whl
