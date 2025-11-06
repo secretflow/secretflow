@@ -28,25 +28,39 @@ CPU/Memory: recommended minimum requirement is 8C16G.
 
 For users who want to try SecretFlow, you can install [the current release](https://pypi.org/project/secretflow/).
 
-Note that it requires python version == 3.10, you can create a virtual environment with conda if not satisfied.
-
-```
-conda create -n sf python=3.10
-conda activate sf
-```
-
-After that, please use pip to install SecretFlow.
-
+Note that it requires python version == 3.10, you can create a virtual environment with conda if not satisfied. Or use uv. Note that it requires python version == 3.10.
 
 ```bash
+# use conda
+conda create -n sf python=3.10
+conda activate sf
+
+# use uv
+uv venv --python 3.10
+source .venv/bin/activate
+
+```
+
+After that, please use pip to install SecretFlow. Or use uv.
+
+```bash
+# use pip
 pip install -U secretflow
+
+# use uv
+uv sync
 ```
 
 > **_Note:_** If you are using `secretflow` version 0.14 or later, some dependencies have been split out. If you encounter errors running the "A quick try" example, you may need to install the `sfl` library.
 >
 > ```bash
+> # use pip
 > pip install "sfl @ git+https://github.com/secretflow/sfl.git"
+>
+> # use uv
+> uv pip install "sfl @ git+https://github.com/secretflow/sfl.git"
 > ```
+
 ## Option 2: from docker
 
 You can also use SecretFlow Docker image to give SecretFlow a quick try.
@@ -61,22 +75,28 @@ More versions can be obtained from [secretflow tags](https://hub.docker.com/r/se
 
 1. Download code and set up Python virtual environment.
 
-
-```sh
+```bash
 git clone https://github.com/secretflow/secretflow.git
 cd secretflow
 
+# use conda
 conda create -n secretflow python=3.10
 conda activate secretflow
+
+# use uv
+uv venv --python 3.10
+source .venv/bin/activate
 ```
 
 2. Install SecretFlow
 
-```sh
-
-python setup.py bdist_wheel
-
+```bash
+# use pip
+python -m build --wheel
 pip install dist/*.whl
+
+# use uv
+uv pip install .
 ```
 
 ## Option 4: from WSL
@@ -96,20 +116,24 @@ Just follow the installation of anaconda in GNU/Linux to install anaconda in you
 
 - create conda environment
 
-```shell
+```bash
+# use conda
 conda create -n sf python=3.10
-```
-
-- activate the environment
-
-```shell
 conda activate sf
+
+# use uv
+uv venv --python 3.10
+source .venv/bin/activate
 ```
 
 - use pip to install SecretFlow.
 
-```
+```bash
+# use pip
 pip install -U secretflow
+
+# use uv
+uv pip install secretflow
 ```
 
 1. Use WSL to develop your application
