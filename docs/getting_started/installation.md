@@ -42,6 +42,11 @@ After that, please use pip to install SecretFlow.
 pip install -U secretflow
 ```
 
+> **_Note:_** If you are using `secretflow` version 0.14 or later, some dependencies have been split out. If you encounter errors running the "A quick try" example, you may need to install the `sfl` library.
+>
+> ```bash
+> pip install "sfl @ git+https://github.com/secretflow/sfl.git"
+> ```
 ## Option 2: from docker
 
 You can also use SecretFlow Docker image to give SecretFlow a quick try.
