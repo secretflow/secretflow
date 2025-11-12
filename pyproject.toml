@@ -1,6 +1,168 @@
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+[project]
+name = "secretflow"
+description = "Secretflow"
+readme = "README.md"
+license = "Apache-2.0"
+authors = [
+    { name = "SecretFlow Team", email = "secretflow-contact@service.alipay.com" },
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+requires-python = ">=3.10,<3.12"
+dynamic = ["version"]
+
+dependencies = [
+    "click",
+    "grpcio>=1.56.2", # Avoid thead pool fork issue, see https://github.com/grpc/grpc/issues/31772
+    # <=0.4.26 : fix jnp.select numerical problem
+    "jax[cpu]>=0.4.16,<=0.4.26",
+    "jaxlib>=0.4.16,<=0.4.26",
+    "numpy<2,>=1.22.0",
+    "pandas==1.5.3",
+    "protobuf>=4,<5",
+    "pyarrow==14.0.2",
+    "duckdb==1.0.0",
+    "aiobotocore==2.17.0",
+    "s3fs==2024.2.0",
+    "scikit-learn==1.5.2",
+    "aiohttp>=3.9.4,<4",
+    "sqlglot==25.5.1",
+    "requests==2.32.3",
+    "multiprocess==0.70.18",
+    "sdc-apis==0.1.0.dev240320; platform_machine == 'x86_64'",
+    "sdc-sdk==0.1.0.dev240320; platform_machine == 'x86_64'",
+    "kuscia==0.0.3b0",
+    "spu==0.9.4.dev20250618",
+    "sf-sml==0.1.0.dev20250623",
+    "sf-heu==0.6.0.dev20250514",
+    "secretflow_serving_lib==0.10.0.dev20250414",
+    "secretflow-dataproxy==0.5.0b0",
+    "secretflow-spec==1.1.0b0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==8.4.1",
+    "build==1.2.2",
+    "matplotlib",
+    "statsmodels==0.13.2",
+    "polars==0.19.3",
+    "tweedie",
+    "psutil",
+    "tabulate",
+    "filelock==3.18.0",
+    "xgboost==1.7.5",
+    "liac-arff==2.5.0",
+]
+
+doc = [
+    "autodocsumm~=0.2.14",
+    "linkify-it-py~=2.0",
+    "matplotlib~=3.10",
+    "mdutils==1.6",
+    "myst-nb~=1.2",
+    "secretflow-doctools~=0.8.5",
+    "sphinx_design~=0.6.1",
+    "sphinx-autobuild",
+    "sphinx-intl~=2.3",
+    "sphinx~=8.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/secretflow/secretflow"
+Repository = "https://github.com/secretflow/secretflow"
+
+[project.scripts]
+secretflow = "secretflow.cli:cli"
+
+[tool.pdm.version]
+source = "call"
+getter = "pdm_build:get_version"
+
+[tool.pdm.build]
+includes = ["secretflow/**/*.py", "secretflow/component/translation.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+]
+
 [tool.black]
-skip-string-normalization = true
+line-length = 88
+target-version = ['py310']
+include = '\.pyi?$'
 extend-exclude = '''.*_pb2.py'''
 
 [tool.isort]
 profile = "black"
+line_length = 88
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+
+[tool.mypy]
+ignore_missing_imports = true
+# no_strict_optional = true
+warn_return_any = false
+warn_unused_configs = true
+disallow_untyped_defs = false
+
+[tool.flake8]
+max-line-length = 88
+extend-ignore = [
+    "E203", # whitespace before ':'
+    "W503", # line break before binary operator
+    "E402", # module level import not at top of file
+    "E501", # line too long
+    "F401", # imported but unused
+    "F841", # local variable assigned but never used
+    "F541", # f-string is missing placeholders
+    "E711", # comparison to None should be 'if cond is None:'
+    "E266", # too many leading '#' for block comment
+    "E722", # do not use bare 'except'
+    "E902", # FileNotFoundError
+]
+exclude = [
+    ".git",
+    "__pycache__",
+    ".pytest_cache",
+    ".venv",
+    "venv",
+    "build",
+    "dist",
+]
+
+[tool.pydocstyle]
+convention = "numpy"
+add-ignore = [
+    "D100", # Missing docstring in public module
+    "D101", # Missing docstring in public class
+    "D102", # Missing docstring in public method
+    "D103", # Missing docstring in public function
+    "D104", # Missing docstring in public package
+    "D200", # One-line docstring should fit on one line
+    "D202", # No blank lines allowed after function docstring
+    "D205", # 1 blank line required between summary line and description
+    "D301", # Use r""" if any backslashes in a docstring
+    "D400", # First line should end with a period
+    "D401", # First line should be in imperative mood
+    "D403", # First word of the first line should be properly capitalized
+    "D406", # Section name should end with a newline
+    "D407", # Missing dashed underline after section
+    "D409", # Section underline should match the length of its name
+    "D410", # Missing blank line after section
+    "D411", # Missing blank line before section
+    "D412", # No blank lines allowed between a section header and its content
+]

@@ -68,6 +68,7 @@ from .utils import (
     float_almost_equal,
     get_comp_list_def,
     pad_inf_to_split_points,
+    pyu_shortid,
     upload_files,
     upload_orc,
     uuid4,
@@ -163,4 +164,5 @@ __all__ = [
     "upload_files",
     "upload_orc",
     "uuid4",
+    "pyu_shortid",
 ]

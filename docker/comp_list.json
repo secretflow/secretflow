@@ -1605,11 +1605,7 @@
       "domain": "ml.predict",
       "name": "gnb_predict",
       "version": "1.0.0",
-      "desc": "Predict using the gaussian naive bayes model. This component is currently experimental.",
-      "labels": {
-        "package": "sml",
-        "experimental": "true"
-      },
+      "desc": "Predict using the gaussian naive bayes model.",
       "attrs": [
         {
           "name": "receiver",
@@ -1698,11 +1694,7 @@
       "domain": "ml.predict",
       "name": "gpc_predict",
       "version": "1.0.0",
-      "desc": "Predict using the gaussian process classifier model. This component is currently experimental.",
-      "labels": {
-        "package": "sml",
-        "experimental": "true"
-      },
+      "desc": "Predict using the gaussian process classifier model.",
       "attrs": [
         {
           "name": "receiver",
@@ -1791,11 +1783,7 @@
       "domain": "ml.predict",
       "name": "kmeans_predict",
       "version": "1.0.0",
-      "desc": "Predict using the KMeans model. This component is currently experimental.",
-      "labels": {
-        "package": "sml",
-        "experimental": "true"
-      },
+      "desc": "Predict using the KMeans model.",
       "attrs": [
         {
           "name": "receiver",
@@ -1872,11 +1860,7 @@
       "domain": "ml.predict",
       "name": "knn_predict",
       "version": "1.0.0",
-      "desc": "Predict using the K neighbors classifier model. This component is currently experimental.",
-      "labels": {
-        "package": "sml",
-        "experimental": "true"
-      },
+      "desc": "Predict using the K neighbors classifier model.",
       "attrs": [
         {
           "name": "receiver",
@@ -2122,107 +2106,6 @@
       "outputs": [
         {
           "name": "output_ds",
-          "desc": "Output prediction.",
-          "types": [
-            "sf.table.individual"
-          ],
-          "variableMax": -1,
-          "minorMax": -1
-        }
-      ]
-    },
-    {
-      "domain": "ml.predict",
-      "name": "slnn_predict",
-      "version": "0.0.2",
-      "desc": "Predict using the SLNN model.\nThis component is not enabled by default, it requires the use of the full version\nof secretflow image and setting the ENABLE_NN environment variable to true.",
-      "attrs": [
-        {
-          "name": "batch_size",
-          "desc": "The number of examples per batch.",
-          "type": "AT_INT",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {
-              "i64": "8192"
-            },
-            "lowerBoundEnabled": true,
-            "lowerBound": {}
-          },
-          "minorMax": -1
-        },
-        {
-          "name": "receiver",
-          "desc": "Party of receiver.",
-          "type": "AT_PARTY",
-          "atomic": {
-            "listMinLengthInclusive": "1",
-            "listMaxLengthInclusive": "1"
-          },
-          "minorMax": -1
-        },
-        {
-          "name": "pred_name",
-          "desc": "Column name for predictions.",
-          "type": "AT_STRING",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {
-              "s": "pred"
-            }
-          },
-          "minorMax": -1
-        },
-        {
-          "name": "save_ids",
-          "desc": "Whether to save ids columns into output prediction table. If true, input feature_dataset must contain id columns, and receiver party must be id owner.",
-          "type": "AT_BOOL",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {}
-          },
-          "minorMax": -1
-        },
-        {
-          "name": "save_label",
-          "desc": "Whether or not to save real label columns into output pred file. If true, input feature_dataset must contain label columns and receiver party must be label owner.",
-          "type": "AT_BOOL",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {}
-          },
-          "minorMax": -1
-        }
-      ],
-      "inputs": [
-        {
-          "name": "model",
-          "desc": "Input model.",
-          "types": [
-            "sf.model.sl_nn"
-          ],
-          "variableMax": -1,
-          "minorMax": -1
-        },
-        {
-          "name": "feature_dataset",
-          "desc": "Input vertical table.",
-          "types": [
-            "sf.table.vertical"
-          ],
-          "attrs": [
-            {
-              "name": "saved_features",
-              "desc": "which features should be saved with prediction result"
-            }
-          ],
-          "variableMax": -1,
-          "minorMax": -1
-        }
-      ],
-      "outputs": [
-        {
-          "name": "pred",
           "desc": "Output prediction.",
           "types": [
             "sf.table.individual"
@@ -2517,11 +2400,7 @@
       "domain": "ml.train",
       "name": "gnb_train",
       "version": "1.0.0",
-      "desc": "Provide gaussian naive bayes training. This component is currently experimental.",
-      "labels": {
-        "package": "sml",
-        "experimental": "true"
-      },
+      "desc": "Provide gaussian naive bayes training.",
       "attrs": [
         {
           "name": "var_smoothing",
@@ -2595,11 +2474,7 @@
       "domain": "ml.train",
       "name": "gpc_train",
       "version": "1.0.0",
-      "desc": "Provide gaussian process classifier training. This component is currently experimental.",
-      "labels": {
-        "package": "sml",
-        "experimental": "true"
-      },
+      "desc": "Provide gaussian process classifier training.",
       "attrs": [
         {
           "name": "max_iter_predict",
@@ -2677,11 +2552,7 @@
       "domain": "ml.train",
       "name": "kmeans_train",
       "version": "1.0.0",
-      "desc": "Provide kmeans training. This component is currently experimental.",
-      "labels": {
-        "package": "sml",
-        "experimental": "true"
-      },
+      "desc": "Provide kmeans training.",
       "attrs": [
         {
           "name": "n_clusters",
@@ -2790,11 +2661,7 @@
       "domain": "ml.train",
       "name": "knn_train",
       "version": "1.0.0",
-      "desc": "Provide k neighbors classifier training. This component is currently experimental.",
-      "labels": {
-        "package": "sml",
-        "experimental": "true"
-      },
+      "desc": "Provide k neighbors classifier training.",
       "attrs": [
         {
           "name": "weights",
@@ -3441,404 +3308,6 @@
           ],
           "variableMax": -1,
           "minorMin": 1,
-          "minorMax": -1
-        }
-      ]
-    },
-    {
-      "domain": "ml.train",
-      "name": "slnn_train",
-      "version": "0.0.1",
-      "desc": "Train nn models for vertical partitioning dataset by split learning.\nThis component is not enabled by default, it requires the use of the full version\nof secretflow image and setting the ENABLE_NN environment variable to true.\nSince it is necessary to define the model structure using python code,\nalthough the range of syntax and APIs that can be used has been restricted,\nthere are still potential security risks. It is recommended to use it in\nconjunction with process sandboxes such as nsjail.",
-      "attrs": [
-        {
-          "name": "models",
-          "desc": "Define the models for training.",
-          "type": "AT_STRING",
-          "atomic": {
-            "defaultValue": {
-              "s": "# pre imported:\n# import tensorflow as tf\n# from tensorflow import Module, keras\n# from tensorflow.keras import Model, layers\n# from tensorflow.keras.layers import Layer\n# from secretflow_fl.ml.nn import applications as apps\n\ndef create_base_model(input_dim, output_dim):\n    model = keras.Sequential(\n        [\n            keras.Input(shape=input_dim),\n            layers.Dense(100, activation=\"relu\"),\n            layers.Dense(output_dim, activation=\"relu\"),\n        ]\n    )\n    return model\n\ndef create_fuse_model(input_dim):\n    input_layers = [keras.Input(input_dim), keras.Input(input_dim)]\n    merged_layer = layers.concatenate(input_layers)\n    fuse_layer = layers.Dense(64, activation='relu')(merged_layer)\n    output = layers.Dense(1, activation='sigmoid')(fuse_layer)\n    return keras.Model(inputs=input_layers, outputs=output)\n\nhidden_size = 64\n\nfit(\n    client_base=create_base_model(12, hidden_size),\n    server_base=create_base_model(4, hidden_size),\n    server_fuse=create_fuse_model(hidden_size),\n)\n"
-            }
-          },
-          "minorMax": -1
-        },
-        {
-          "name": "epochs",
-          "desc": "The number of complete pass through the training data.",
-          "type": "AT_INT",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {
-              "i64": "10"
-            },
-            "lowerBoundEnabled": true,
-            "lowerBound": {
-              "i64": "1"
-            },
-            "lowerBoundInclusive": true
-          },
-          "minorMax": -1
-        },
-        {
-          "name": "learning_rate",
-          "desc": "The step size at each iteration in one iteration.",
-          "type": "AT_FLOAT",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {
-              "f": 0.001
-            },
-            "lowerBoundEnabled": true,
-            "lowerBound": {}
-          },
-          "minorMax": -1
-        },
-        {
-          "name": "batch_size",
-          "desc": "The number of training examples utilized in one iteration.",
-          "type": "AT_INT",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {
-              "i64": "512"
-            },
-            "lowerBoundEnabled": true,
-            "lowerBound": {}
-          },
-          "minorMax": -1
-        },
-        {
-          "name": "validattion_prop",
-          "desc": "The proportion of validation set to total data set.",
-          "type": "AT_FLOAT",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {
-              "f": 0.1
-            },
-            "lowerBoundEnabled": true,
-            "lowerBound": {},
-            "lowerBoundInclusive": true,
-            "upperBoundEnabled": true,
-            "upperBound": {
-              "f": 1.0
-            }
-          },
-          "minorMax": -1
-        },
-        {
-          "name": "loss",
-          "desc": "Loss function.",
-          "type": "AT_UNION_GROUP",
-          "union": {
-            "defaultSelection": "builtin"
-          },
-          "minorMax": -1
-        },
-        {
-          "prefixes": [
-            "loss"
-          ],
-          "name": "builtin",
-          "desc": "Builtin loss function.",
-          "type": "AT_STRING",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {
-              "s": "mean_squared_error"
-            },
-            "allowedValues": {
-              "ss": [
-                "binary_crossentropy",
-                "categorical_crossentropy",
-                "mean_squared_error",
-                "mean_squared_logarithmic_error",
-                "mean_absolute_error",
-                "mean_absolute_percentage_error",
-                "cosine_similarity",
-                "huber",
-                "kl_divergence",
-                "log_cosh",
-                "poisson",
-                "binary_focal_crossentropy",
-                "sparse_categorical_crossentropy",
-                "hinge",
-                "categorical_hinge",
-                "squared_hinge"
-              ]
-            }
-          },
-          "minorMax": -1
-        },
-        {
-          "prefixes": [
-            "loss"
-          ],
-          "name": "custom",
-          "desc": "Custom loss function.",
-          "type": "AT_STRING",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {
-              "s": "def loss(y_true, y_pred):\n    return tf.keras.losses.mean_squared_error(y_true, y_pred)\n\n\ncompile_loss(loss)\n\n"
-            }
-          },
-          "minorMax": -1
-        },
-        {
-          "name": "optimizer",
-          "desc": "Optimizer.",
-          "type": "AT_STRUCT_GROUP",
-          "minorMax": -1
-        },
-        {
-          "prefixes": [
-            "optimizer"
-          ],
-          "name": "name",
-          "desc": "Optimizer name.",
-          "type": "AT_STRING",
-          "atomic": {
-            "defaultValue": {
-              "s": "Adam"
-            },
-            "allowedValues": {
-              "ss": [
-                "Adam",
-                "SGD",
-                "RMSprop",
-                "AdamW",
-                "Adamax",
-                "Nadam",
-                "Adagrad",
-                "Adadelta",
-                "Adafactor",
-                "Ftrl",
-                "Lion"
-              ]
-            }
-          },
-          "minorMax": -1
-        },
-        {
-          "prefixes": [
-            "optimizer"
-          ],
-          "name": "params",
-          "desc": "Additional optimizer parameters in JSON format.",
-          "type": "AT_STRING",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {}
-          },
-          "minorMax": -1
-        },
-        {
-          "name": "metrics",
-          "desc": "Metrics.",
-          "type": "AT_STRINGS",
-          "atomic": {
-            "listMaxLengthInclusive": "10",
-            "isOptional": true,
-            "defaultValue": {
-              "ss": [
-                "AUC"
-              ]
-            },
-            "allowedValues": {
-              "ss": [
-                "AUC",
-                "Accuracy",
-                "Precision",
-                "Recall",
-                "BinaryAccuracy",
-                "BinaryCrossentropy",
-                "CategoricalAccuracy",
-                "CategoricalCrossentropy",
-                "CosineSimilarity",
-                "FalseNegatives",
-                "FalsePositives",
-                "TrueNegatives",
-                "TruePositives",
-                "KLDivergence",
-                "LogCoshError",
-                "MeanAbsoluteError",
-                "MeanAbsolutePercentageError",
-                "MeanRelativeError",
-                "MeanSquaredError",
-                "MeanSquaredLogarithmicError",
-                "Hinge",
-                "SquaredHinge",
-                "CategoricalHinge",
-                "BinaryIoU",
-                "IoU",
-                "MeanIoU",
-                "OneHotIoU",
-                "OneHotMeanIoU",
-                "Poisson",
-                "PrecisionAtRecall",
-                "RecallAtPrecision",
-                "RootMeanSquaredError",
-                "SensitivityAtSpecificity",
-                "SparseCategoricalAccuracy",
-                "SparseCategoricalCrossentropy",
-                "SparseTopKCategoricalAccuracy",
-                "SpecificityAtSensitivity",
-                "TopKCategoricalAccuracy"
-              ]
-            }
-          },
-          "minorMax": -1
-        },
-        {
-          "name": "model_input_scheme",
-          "desc": "Input scheme of base model, tensor: merge all features into one tensor; tensor_dict: each feature as a tensor.",
-          "type": "AT_STRING",
-          "atomic": {
-            "defaultValue": {
-              "s": "tensor"
-            },
-            "allowedValues": {
-              "ss": [
-                "tensor",
-                "tensor_dict"
-              ]
-            }
-          },
-          "minorMax": -1
-        },
-        {
-          "name": "strategy",
-          "desc": "Split learning strategy.",
-          "type": "AT_STRUCT_GROUP",
-          "minorMax": -1
-        },
-        {
-          "prefixes": [
-            "strategy"
-          ],
-          "name": "name",
-          "desc": "Split learning strategy name.",
-          "type": "AT_STRING",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {
-              "s": "pipeline"
-            },
-            "allowedValues": {
-              "ss": [
-                "pipeline",
-                "split_nn",
-                "split_async",
-                "split_state_async"
-              ]
-            }
-          },
-          "minorMax": -1
-        },
-        {
-          "prefixes": [
-            "strategy"
-          ],
-          "name": "params",
-          "desc": "Additional strategy parameters in JSON format.",
-          "type": "AT_STRING",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {
-              "s": "{\"pipeline_size\":2}"
-            }
-          },
-          "minorMax": -1
-        },
-        {
-          "name": "compressor",
-          "desc": "Compressor for hiddens and gradients.",
-          "type": "AT_STRUCT_GROUP",
-          "minorMax": -1
-        },
-        {
-          "prefixes": [
-            "compressor"
-          ],
-          "name": "name",
-          "desc": "Compressor name.",
-          "type": "AT_STRING",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {},
-            "allowedValues": {
-              "ss": [
-                "",
-                "topk_sparse",
-                "random_sparse",
-                "stc_sparse",
-                "scr_sparse",
-                "quantized_fp",
-                "quantized_lstm",
-                "quantized_kmeans",
-                "quantized_zeropoint",
-                "mixed_compressor"
-              ]
-            }
-          },
-          "minorMax": -1
-        },
-        {
-          "prefixes": [
-            "compressor"
-          ],
-          "name": "params",
-          "desc": "Additional compressor parameters in JSON format.",
-          "type": "AT_STRING",
-          "atomic": {
-            "isOptional": true,
-            "defaultValue": {}
-          },
-          "minorMax": -1
-        }
-      ],
-      "inputs": [
-        {
-          "name": "train_dataset",
-          "desc": "Input vertical table.",
-          "types": [
-            "sf.table.vertical"
-          ],
-          "attrs": [
-            {
-              "name": "feature_selects",
-              "desc": "which features should be used for training.",
-              "colMinCntInclusive": "1"
-            },
-            {
-              "name": "label",
-              "desc": "Label of train dataset.",
-              "colMinCntInclusive": "1",
-              "colMaxCntInclusive": "1"
-            }
-          ],
-          "variableMax": -1,
-          "minorMax": -1
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output_model",
-          "desc": "Output model.",
-          "types": [
-            "sf.model.sl_nn"
-          ],
-          "variableMax": -1,
-          "minorMax": -1
-        },
-        {
-          "name": "reports",
-          "desc": "Output report.",
-          "types": [
-            "sf.report"
-          ],
-          "variableMax": -1,
           "minorMax": -1
         }
       ]

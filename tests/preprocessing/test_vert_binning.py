@@ -40,8 +40,8 @@ def woe_almost_equal(a, b):
     a_list = a["variables"]
     b_list = b["variables"]
 
-    a_dict = {f['name']: f for f in a_list}
-    b_dict = {f['name']: f for f in b_list}
+    a_dict = {f["name"]: f for f in a_list}
+    b_dict = {f["name"]: f for f in b_list}
 
     assert a_dict.keys() == b_dict.keys()
 
@@ -62,7 +62,7 @@ def woe_almost_equal(a, b):
 
 def audit_ciphertext_equal(a, b):
     def get_c_in_a(s):
-        pos = s.find('c:') + len('c:')
+        pos = s.find("c:") + len("c:")
         return eval(f"0x{s[pos:]}")
 
     def get_c_in_b(s):
@@ -81,13 +81,13 @@ def prod_env_and_data(sf_production_setup_devices):
     pyu_carol = sf_production_setup_devices.carol
 
     normal_data = pd.read_csv(
-        dataset('linear'),
-        usecols=[f'x{i}' for i in range(1, 11)] + ['y'],
+        dataset("linear"),
+        usecols=[f"x{i}" for i in range(1, 11)] + ["y"],
     )
     row_num = normal_data.shape[0]
     np.random.seed(0)
-    normal_data['x1'] = np.random.randint(0, 2, (row_num,))
-    normal_data['x2'] = np.random.randint(0, 5, (row_num,))
+    normal_data["x1"] = np.random.randint(0, 2, (row_num,))
+    normal_data["x2"] = np.random.randint(0, 5, (row_num,))
     v_float_data = VDataFrame(
         {
             pyu_alice: partition(data=pyu_alice(lambda: normal_data)()),
@@ -114,11 +114,11 @@ def prod_env_and_data(sf_production_setup_devices):
     )
 
     nan_str_data = pd.read_csv(StringIO(nan_str))
-    assert nan_str_data['f1'].dtype == np.dtype(object)
-    assert nan_str_data['f2'].dtype == np.float64
-    assert nan_str_data['f3'].dtype == np.float64
-    assert pd.isna(nan_str_data['f3'][8])
-    assert pd.isna(nan_str_data['f1'][8])
+    assert nan_str_data["f1"].dtype == np.dtype(object)
+    assert nan_str_data["f2"].dtype == np.float64
+    assert nan_str_data["f3"].dtype == np.float64
+    assert pd.isna(nan_str_data["f3"][8])
+    assert pd.isna(nan_str_data["f1"][8])
 
     v_nan_data = VDataFrame(
         {
@@ -146,12 +146,12 @@ def prod_env_and_data(sf_production_setup_devices):
         return res
 
     return sf_production_setup_devices, {
-        'normal_data': normal_data,
-        'v_float_data': CompVDataFrame.from_pandas(
+        "normal_data": normal_data,
+        "v_float_data": CompVDataFrame.from_pandas(
             v_float_data, schemas=_build_schema(v_float_data)
         ),
-        'nan_str_data': nan_str_data,
-        'v_nan_data': CompVDataFrame.from_pandas(
+        "nan_str_data": nan_str_data,
+        "v_nan_data": CompVDataFrame.from_pandas(
             v_nan_data, schemas=_build_schema(v_nan_data)
         ),
     }
@@ -163,14 +163,14 @@ def test_binning_nan_chi(prod_env_and_data):
     he_binning = VertWoeBinning(env.heu)
     ss_binning = VertWoeBinning(env.spu)
     he_report = he_binning.binning(
-        data['v_nan_data'],
+        data["v_nan_data"],
         binning_method="chimerge",
         bin_names={env.alice: ["f1", "f3", "f2"], env.bob: ["f1", "f3", "f2"]},
         label_name="y",
         chimerge_target_bins=4,
     )
     ss_report = ss_binning.binning(
-        data['v_nan_data'],
+        data["v_nan_data"],
         binning_method="chimerge",
         bin_names={env.alice: ["f1", "f3", "f2"], env.bob: ["f1", "f3", "f2"]},
         label_name="y",
@@ -201,7 +201,7 @@ def test_binning_nan(prod_env_and_data):
     vert_binning = VertBinning()
 
     he_report = he_binning.binning(
-        data['v_nan_data'],
+        data["v_nan_data"],
         bin_names={env.alice: ["f1", "f3", "f2"], env.bob: ["f1", "f3", "f2"]},
         label_name="y",
         audit_log_path={
@@ -210,13 +210,13 @@ def test_binning_nan(prod_env_and_data):
         },
     )
     ss_report = ss_binning.binning(
-        data['v_nan_data'],
+        data["v_nan_data"],
         bin_names={env.alice: ["f1", "f3", "f2"], env.bob: ["f1", "f3", "f2"]},
         label_name="y",
     )
 
     vert_binning_report = vert_binning.binning(
-        data['v_nan_data'],
+        data["v_nan_data"],
         binning_method="eq_range",
         bin_names={env.alice: ["f1", "f3", "f2"], env.bob: ["f1", "f3", "f2"]},
     )
@@ -240,15 +240,15 @@ def test_binning_nan(prod_env_and_data):
     woe_almost_equal(he_bob, he_alice)
 
     # audit_log
-    with open('alice.audit', 'rb') as f:
+    with open("alice.audit", "rb") as f:
         a = pickle.load(f)
-    with open('bob.audit', 'rb') as f:
+    with open("bob.audit", "rb") as f:
         b = pickle.load(f)
 
     assert a.size == b.size
     audit_ciphertext_equal(a, b)
 
-    with open('bob.audit.pk.pickle', 'rb') as f:
+    with open("bob.audit.pk.pickle", "rb") as f:
         pk = pickle.load(f)
 
     spk = sfd.get(env.heu.sk_keeper.public_key.remote())
@@ -264,7 +264,7 @@ def test_binning_normal(prod_env_and_data):
     vert_binning = VertBinning()
 
     he_report = he_binning.binning(
-        data['v_float_data'],
+        data["v_float_data"],
         bin_names={
             env.alice: ["x1", "x2", "x3"],
             env.bob: ["x1", "x2", "x3"],
@@ -273,7 +273,7 @@ def test_binning_normal(prod_env_and_data):
         label_name="y",
     )
     ss_report = ss_binning.binning(
-        data['v_float_data'],
+        data["v_float_data"],
         bin_names={
             env.alice: ["x1", "x2", "x3"],
             env.bob: ["x1", "x2", "x3"],
@@ -283,7 +283,7 @@ def test_binning_normal(prod_env_and_data):
     )
 
     vert_binning_report = vert_binning.binning(
-        data['v_nan_data'],
+        data["v_nan_data"],
         binning_method="eq_range",
         bin_names={
             env.alice: ["f1", "f3", "f2"],
@@ -314,13 +314,13 @@ def test_binning_normal_chimerge(prod_env_and_data):
     he_binning = VertWoeBinning(env.heu)
     ss_binning = VertWoeBinning(env.spu)
     he_report = he_binning.binning(
-        data['v_float_data'],
+        data["v_float_data"],
         binning_method="chimerge",
         bin_names={env.alice: ["x1", "x2", "x3"], env.bob: ["x1", "x2", "x3"]},
         label_name="y",
     )
     ss_report = ss_binning.binning(
-        data['v_float_data'],
+        data["v_float_data"],
         binning_method="chimerge",
         bin_names={env.alice: ["x1", "x2", "x3"], env.bob: ["x1", "x2", "x3"]},
         label_name="y",
@@ -347,13 +347,13 @@ def test_binning_normal_eq_range(prod_env_and_data):
     he_binning = VertWoeBinning(env.heu)
     ss_binning = VertWoeBinning(env.spu)
     he_report = he_binning.binning(
-        data['v_float_data'],
+        data["v_float_data"],
         binning_method="eq_range",
         bin_names={env.alice: ["x1", "x2", "x3"], env.bob: ["x1", "x2", "x3"]},
         label_name="y",
     )
     ss_report = ss_binning.binning(
-        data['v_float_data'],
+        data["v_float_data"],
         binning_method="eq_range",
         bin_names={env.alice: ["x1", "x2", "x3"], env.bob: ["x1", "x2", "x3"]},
         label_name="y",

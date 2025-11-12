@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import json
-import logging
 from dataclasses import dataclass
 
 from secretflow.component.core import (
@@ -35,7 +34,6 @@ from secretflow.component.core.dataframe import save_prediction
 from secretflow.data.mix.dataframe import PartitionWay
 from secretflow.data.ndarray.ndarray import FedNdarray
 from secretflow.device.device.pyu import PYU
-from secretflow.device.driver import reveal
 from secretflow.ml.neighbors import KNNClassifer
 
 
@@ -49,16 +47,11 @@ class WeightFunc(UnionGroup):
     )
 
 
-@register(
-    domain="ml.train",
-    version="1.0.0",
-    name="knn_train",
-    labels={"experimental": True, "package": "sml"},
-)
+@register(domain="ml.train", version="1.0.0", name="knn_train")
 class KNeighborsClassifier(Component):
-    '''
-    Provide k neighbors classifier training. This component is currently experimental.
-    '''
+    """
+    Provide k neighbors classifier training.
+    """
 
     weights: WeightFunc = Field.union_attr(
         desc="weights function used in prediction method.",
@@ -138,16 +131,11 @@ class KNeighborsClassifier(Component):
         ctx.dump_to(model_db, self.output_model)
 
 
-@register(
-    domain="ml.predict",
-    version="1.0.0",
-    name="knn_predict",
-    labels={"experimental": True, "package": "sml"},
-)
+@register(domain="ml.predict", version="1.0.0", name="knn_predict")
 class KNeighborsClassifierPredict(Component):
-    '''
-    Predict using the K neighbors classifier model. This component is currently experimental.
-    '''
+    """
+    Predict using the K neighbors classifier model.
+    """
 
     receiver: str = Field.party_attr(desc="Party of receiver.")
     pred_name: str = Field.attr(desc="Column name for predictions.", default="pred")
@@ -219,7 +207,7 @@ class KNeighborsClassifierPredict(Component):
             pred_partitions_order=None,
             feature_dataset=self.input_ds,
             saved_features=self.saved_features,
-            saved_labels=[model_public_info['label']] if self.save_label else None,
+            saved_labels=[model_public_info["label"]] if self.save_label else None,
             save_ids=self.save_ids,
         )
 

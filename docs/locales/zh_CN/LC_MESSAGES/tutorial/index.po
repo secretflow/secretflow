@@ -40,10 +40,6 @@ msgstr ""
 msgid "PSI"
 msgstr ""
 
-#: ../../tutorial/index.rst:57
-msgid "Federated Learning"
-msgstr "联邦学习"
-
 #: ../../tutorial/index.rst:69
 msgid "场景方案"
 msgstr ""

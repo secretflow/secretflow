@@ -36,9 +36,9 @@ from .base import VertBinningBase
 
 @register(domain="preprocessing", version="1.0.0", name="vert_binning")
 class VertBinning(VertBinningBase, IServingExporter):
-    '''
+    """
     Generate equal frequency or equal range binning rules for vertical partitioning datasets.
-    '''
+    """
 
     binning_method: str = Field.attr(
         desc="How to bin features with numeric types: "

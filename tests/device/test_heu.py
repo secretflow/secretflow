@@ -49,10 +49,6 @@ def test_device_prod(sf_production_setup_devices):
     _test_device(sf_production_setup_devices)
 
 
-def test_device_sim(sf_simulation_setup_devices):
-    _test_device(sf_simulation_setup_devices)
-
-
 def _test_math_ops(devices):
     schema = phe.SchemaType.ZPaillier
     x = ft.with_device(devices.alice)(np.random.rand)(3, 4)
@@ -108,10 +104,6 @@ def test_math_ops_prod(sf_production_setup_devices):
     _test_math_ops(sf_production_setup_devices)
 
 
-def test_math_ops_sim(sf_simulation_setup_devices):
-    _test_math_ops(sf_simulation_setup_devices)
-
-
 def _test_sum(devices):
     # test vector, ciphertext
     m = ft.with_device(devices.alice)(np.random.rand)(20)
@@ -139,7 +131,3 @@ def _test_sum(devices):
 @pytest.mark.mpc
 def test_sum_prod(sf_production_setup_devices):
     _test_sum(sf_production_setup_devices)
-
-
-def test_sum_sim(sf_simulation_setup_devices):
-    _test_sum(sf_simulation_setup_devices)

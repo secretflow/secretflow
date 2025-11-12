@@ -47,10 +47,10 @@ def _test_wait_should_ok(devices):
     assert reveal(devices.alice(check)(file_path))
 
 
-_MPC_PARAMS_BRPC_RAY = {"cross_silo_comm_backend": "brpc_link", "ray_mode": True}
+_MPC_PARAMS_BRPC = {"cross_silo_comm_backend": "brpc_link"}
 
 
-@pytest.mark.mpc(params=_MPC_PARAMS_BRPC_RAY)
+@pytest.mark.mpc(params=_MPC_PARAMS_BRPC)
 def test_wait_should_ok_prod_brpc(sf_production_setup_devices):
     _test_wait_should_ok(sf_production_setup_devices)
 
@@ -67,7 +67,7 @@ def _test_spu_reveal(devices):
     assert x_ == 32
 
 
-@pytest.mark.mpc(params=_MPC_PARAMS_BRPC_RAY)
+@pytest.mark.mpc(params=_MPC_PARAMS_BRPC)
 def test_spu_reveal_prod_brpc(sf_production_setup_devices):
     _test_spu_reveal(sf_production_setup_devices)
 
@@ -80,6 +80,6 @@ def _test_spu_reveal_empty_list(devices):
     assert x_ == []
 
 
-@pytest.mark.mpc(params=_MPC_PARAMS_BRPC_RAY)
+@pytest.mark.mpc(params=_MPC_PARAMS_BRPC)
 def test_spu_reveal_empty_list_prod_brpc(sf_production_setup_devices):
     _test_spu_reveal_empty_list(sf_production_setup_devices)

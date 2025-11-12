@@ -2,7 +2,7 @@ header: # <1>
   license:
     spdx-id: Apache-2.0 # <2>
     copyright-owner: Ant Group Co., Ltd. # <3>
-    copyright-year: '2024' # <25>
+    copyright-year: "2024" # <25>
     software-name: secretflow # <4>
 
     pattern: | # <6>
@@ -19,44 +19,44 @@ header: # <1>
       limitations under the License.
 
   paths: # <7>
-    - '**'
+    - "**"
 
   paths-ignore: # <8>
-    - '.circleci'
-    - '.github'
-    - '**/*.md'
-    - '**/*.json'
-    - '**/*.yaml'
-    - '**/*.yml'
-    - '**/*.ipynb'
-    - '**/*.txt'
-    - '**/*.Dockerfile'
-    - '**/Dockerfile'
-    - '**/*.po'
-    - '**/*.svg'
-    - '**/*.rst'
-    - '**/nsjail.cfg'
-    - '**/*.whl'
-    - '**/*.rst_t'
-    - '**/*.lds'
-    - '**/.condarc'
-    - '**/*.tmpl'
-    - '**/*.policy'
-    - '**/*_pb2.py'
-    - '**/*_grpc.py'
-    - '**/*.pyi'
-    - 'LICENSE'
-    - 'NOTICE'
-    - '.bazelversion'
-    - '.clang-format'
-    - '.coveragerc'
-    - '.gitattributes'
-    - '.gitignore'
-    - '.gitmodules'
-    - '.pylintrc'
-    - 'pyproject.toml'
-    - 'pytest.ini'
-    - 'examples/app/h_cv/dispfl/**/*.py' # MIT
+    - ".circleci"
+    - ".github"
+    - "**/*.md"
+    - "**/*.json"
+    - "**/*.yaml"
+    - "**/*.yml"
+    - "**/*.ipynb"
+    - "**/*.txt"
+    - "**/*.Dockerfile"
+    - "**/Dockerfile"
+    - "**/*.po"
+    - "**/*.svg"
+    - "**/*.rst"
+    - "**/nsjail.cfg"
+    - "**/*.whl"
+    - "**/*.rst_t"
+    - "**/*.lds"
+    - "**/.condarc"
+    - "**/*.tmpl"
+    - "**/*.policy"
+    - "**/*_pb2.py"
+    - "**/*_grpc.py"
+    - "**/*.pyi"
+    - "LICENSE"
+    - "NOTICE"
+    - ".bazelversion"
+    - ".clang-format"
+    - ".coveragerc"
+    - ".gitattributes"
+    - ".gitignore"
+    - ".gitmodules"
+    - ".pylintrc"
+    - "pyproject.toml"
+    - "pytest.ini"
+    - "uv.lock"
 
   comment: on-failure # <9>
 

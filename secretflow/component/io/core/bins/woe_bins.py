@@ -26,6 +26,7 @@ from secretflow.component.io.core.bins.bin_utils import (
     strip_inf_from_split_points,
 )
 from secretflow.component.io.core.bins.woe_bin_utils import (
+    calculate_iv_from_ratios,
     calculate_woe_from_ratios,
     compute_bin_ratios,
     dispatch_rules,
@@ -70,6 +71,7 @@ def woe_feature_to_pb(
         bin.right_bound = split_points_padded[i + 1]
         bin.total_count = feature["total_counts"][i]
         bin.filling_value = feature["filling_values"][i]
+        bin.iv = feature["ivs"][i]
         variable_bins.valid_bins.append(bin)
 
     else_bin = Bin()
@@ -77,6 +79,7 @@ def woe_feature_to_pb(
     else_bin.right_bound = 0
     else_bin.total_count = feature["else_counts"]
     else_bin.filling_value = feature["else_filling_value"]
+    else_bin.iv = feature["else_iv"]
     variable_bins.else_bin.CopyFrom(else_bin)
     variable_bins.valid_bin_count = bin_count
     variable_bins.iv = feature_iv
@@ -99,6 +102,10 @@ def woe_bin_rule_to_pb(rules: List[PYUObject], label_holder_index: int) -> Bins:
                 "else_counts": int, # np.nan samples count
                 "filling_values": list[float], # woe values for each bins.
                 "else_filling_value": float, # woe value for np.nan samples.
+                # warning: giving ivs to other party will leak positive samples in each bin.
+                # this is required for practical use.
+                "ivs": list[float], # iv values for each bins.
+                "else_iv": float, # iv for np.nan samples
             },
             # ... others feature
         ],
@@ -216,6 +223,10 @@ def feature_modify_woe_bin_rule(
     ]
     feature_rule["split_points"] = strip_inf_from_split_points(new_split_points)
     feature_rule["total_counts"] = new_total_counts
+    # add ivs
+    feature_rule["ivs"] = [
+        calculate_iv_from_ratios(rp, rn) for (rp, rn) in new_bin_ratio_pairs
+    ]
     return feature_rule
 
 

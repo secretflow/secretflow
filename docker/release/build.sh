@@ -66,8 +66,6 @@ NO_COLOR="\033[0m"
 
 IMAGE_TAG=secretflow/secretflow-ubuntu:${VERSION}
 LATEST_TAG=secretflow/secretflow-ubuntu:latest
-IMAGE_LITE_TAG=secretflow/secretflow-lite-ubuntu:${VERSION}
-LATEST_LITE_TAG=secretflow/secretflow-lite-ubuntu:latest
 
 # wait pypi to be updated.
 sleep 10s
@@ -77,19 +75,6 @@ echo -e "Building ${GREEN}${IMAGE_TAG}${NO_COLOR}"
 #Enable or switch to a specific Docker buildx builder )
 docker buildx create --name secretflow
 docker buildx use secretflow
-
-#Building Secretflow Lite Multi Platform Images
-docker buildx build \
-  --platform linux/arm64/v8,linux/amd64 \
-  -f ubuntu-lite.Dockerfile \
-  -t ${IMAGE_LITE_TAG} \
-  --build-arg sf_version=${VERSION} \
-  --build-arg config_templates="$(cat config_templates.yml)" \
-  --build-arg deploy_templates="$(cat deploy_templates.yml)" \
-  . --push
-
-#Output construction completion information
-echo -e "Finish building ${GREEN}${IMAGE_LITE_TAG} for linux/arm64 and linux/amd64${NO_COLOR}"
 
 #Building multi platform images
 docker buildx build \
@@ -105,12 +90,8 @@ docker buildx build \
 echo -e "Finish building ${GREEN}${IMAGE_TAG} for linux/arm64 and linux/amd64${NO_COLOR}"
 
 if [[ LATEST -eq 1 ]]; then
-    echo -e "Tag and push ${GREEN}${LATEST_LITE_TAG}${NO_COLOR} ..."
-    docker buildx imagetools create --tag ${LATEST_LITE_TAG} ${IMAGE_LITE_TAG}
-
     echo -e "Tag and push ${GREEN}${LATEST_TAG}${NO_COLOR} ..."
     docker buildx imagetools create --tag ${LATEST_TAG} ${IMAGE_TAG}
 fi
 
-rm *.yml
-rm *.whl
+rm -f *.yml

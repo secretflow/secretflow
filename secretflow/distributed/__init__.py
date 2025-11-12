@@ -15,13 +15,14 @@
 
 from .const import DISTRIBUTION_MODE, FED_OBJECT_TYPES
 from .primitive import (
-    init,
     active_sf_cluster,
+    add_distribution_modes,
     get,
     get_cluster_available_resources,
     get_current_cluster_idx,
     get_distribution_mode,
     in_ic_mode,
+    init,
     kill,
     remote,
     set_distribution_mode,
@@ -36,6 +37,7 @@ __all__ = [
     'kill',
     'remote',
     'shutdown',
+    'add_distribution_modes',
     'set_distribution_mode',
     'get_distribution_mode',
     'get_current_cluster_idx',

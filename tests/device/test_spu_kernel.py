@@ -62,10 +62,6 @@ def test_single_return_prod(sf_production_setup_devices):
     _test_single_return(sf_production_setup_devices)
 
 
-def test_single_return_sim(sf_simulation_setup_devices):
-    _test_single_return(sf_simulation_setup_devices)
-
-
 def _test_multiple_return(devices):
     def foo(x, y) -> Tuple[int, int]:
         return x, y
@@ -105,10 +101,6 @@ def test_multiple_return_prod(sf_production_setup_devices):
     _test_multiple_return(sf_production_setup_devices)
 
 
-def test_multiple_return_sim(sf_simulation_setup_devices):
-    _test_multiple_return(sf_simulation_setup_devices)
-
-
 def _test_selu(devices):
     def selu(x, alpha=1.67, lmbda=1.05):
         return lmbda * jnp.where(x > 0, x, alpha * jnp.exp(x) - alpha)
@@ -127,10 +119,6 @@ def _test_selu(devices):
 @pytest.mark.mpc
 def test_selu_prod(sf_production_setup_devices):
     _test_selu(sf_production_setup_devices)
-
-
-def test_selu_sim(sf_simulation_setup_devices):
-    _test_selu(sf_simulation_setup_devices)
 
 
 def _test_min(devices):
@@ -157,10 +145,6 @@ def test_min_prod(sf_production_setup_devices):
     _test_min(sf_production_setup_devices)
 
 
-def test_min_sim(sf_simulation_setup_devices):
-    _test_min(sf_simulation_setup_devices)
-
-
 def _test_max(devices):
     def max(*values):
         return jnp.min(jnp.stack(values), axis=0)
@@ -183,10 +167,6 @@ def _test_max(devices):
 @pytest.mark.mpc(parties=3)
 def test_max_prod(sf_production_setup_devices):
     _test_max(sf_production_setup_devices)
-
-
-def test_max_sim(sf_simulation_setup_devices):
-    _test_max(sf_simulation_setup_devices)
 
 
 def _test_static_argument(devices):
@@ -213,10 +193,6 @@ def _test_static_argument(devices):
 @pytest.mark.mpc
 def test_static_argument_prod(sf_production_setup_devices):
     _test_static_argument(sf_production_setup_devices)
-
-
-def test_static_argument_sim(sf_simulation_setup_devices):
-    _test_static_argument(sf_simulation_setup_devices)
 
 
 @pytest.mark.mpc()

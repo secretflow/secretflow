@@ -53,7 +53,7 @@ class VertBinningPyuWorker:
     def _build_feature_bin(
         self, f_data: pa.ChunkedArray
     ) -> Tuple[List[np.ndarray], Union[np.ndarray, List[str]], np.ndarray]:
-        '''
+        """
         split one feature column into {bin_num} bins.
 
         Attributes:
@@ -64,7 +64,7 @@ class VertBinningPyuWorker:
             Second: split points for number column (np.array) or
                     categories for string column (List[str])
             Third: sample indices for np.nan values.
-        '''
+        """
         if pa.types.is_string(f_data.type):
             # for string type col, split into bins by categories.
             categories = pc.drop_null(pc.unique(f_data)).to_pylist()
@@ -81,11 +81,11 @@ class VertBinningPyuWorker:
 
             if self.binning_method == "quantile":
                 bins, split_points = pd.qcut(
-                    f_data, bin_num, labels=False, duplicates='drop', retbins=True
+                    f_data, bin_num, labels=False, duplicates="drop", retbins=True
                 )
             elif self.binning_method == "eq_range":
                 bins, split_points = pd.cut(
-                    f_data, bin_num, labels=False, duplicates='drop', retbins=True
+                    f_data, bin_num, labels=False, duplicates="drop", retbins=True
                 )
             else:
                 raise ValueError(f"binning_method {self.binning_method} not supported")
@@ -112,7 +112,7 @@ class VertBinningPyuWorker:
     def _build_feature_bins(
         self, data: pa.Table
     ) -> Tuple[List[np.ndarray], List[Union[np.ndarray, List[str]]], List[np.ndarray]]:
-        '''
+        """
         split all columns into {bin_num} bins.
         Attributes:
             data: dataset to be split.
@@ -122,7 +122,7 @@ class VertBinningPyuWorker:
             Second: split points for number column (np.array) or
                     categories for string column (List[str]) for all features.
             Third: sample indices for np.nan values in all features.
-        '''
+        """
         ret_bins_idx = list()
         ret_points = list()
         ret_else_bins = list()
@@ -158,7 +158,7 @@ class VertBinningPyuWorker:
         total_counts: List[int],
         else_counts: int,
     ) -> Dict:
-        '''
+        """
         build report dict for one feature.
         Attributes:
             f_name: feature name.
@@ -168,29 +168,29 @@ class VertBinningPyuWorker:
 
         Return:
             Dict report.
-        '''
+        """
         ret = dict()
-        ret['name'] = f_name
+        ret["name"] = f_name
 
         f_bin_size = 0
         if isinstance(split_points, list):
-            ret['type'] = "string"
-            ret['categories'] = split_points
+            ret["type"] = "string"
+            ret["categories"] = split_points
             f_bin_size = len(split_points)
         else:
-            ret['type'] = "numeric"
-            ret['split_points'] = list(split_points)
+            ret["type"] = "numeric"
+            ret["split_points"] = list(split_points)
             f_bin_size = split_points.size + 1
 
-        ret['total_counts'] = list()
+        ret["total_counts"] = list()
         for i in range(len(total_counts)):
-            ret['total_counts'].append(total_counts[i])
+            ret["total_counts"].append(total_counts[i])
 
-        ret['else_counts'] = else_counts
+        ret["else_counts"] = else_counts
 
-        ret['filling_values'] = [*range(f_bin_size)]
+        ret["filling_values"] = [*range(f_bin_size)]
 
-        ret['else_filling_value'] = -1
+        ret["else_filling_value"] = -1
         return ret
 
     def _build_report(
@@ -199,7 +199,7 @@ class VertBinningPyuWorker:
         total_counts: List[int],
         else_counts: List[int],
     ) -> Dict:
-        '''
+        """
         Attributes:
             split_points: see _build_feature_bin.
             total_counts: total samples all features' bins.
@@ -207,7 +207,7 @@ class VertBinningPyuWorker:
 
         Return:
             Dict report
-        '''
+        """
         assert len(else_counts) == len(self.bin_names), (
             f"len(else_counts) {len(else_counts)},"
             f" len(self.bin_names) {len(self.bin_names)}"
@@ -244,9 +244,9 @@ class VertBinningPyuWorker:
         return {"variables": variables}
 
     def bin_feature_and_produce_rules(self) -> Dict:
-        '''
+        """
         bin all the features in self.data and return rules
-        '''
+        """
         bins_idx, split_points, else_bins = self._build_feature_bins(self.data)
 
         total_counts = [b.size for b in bins_idx]

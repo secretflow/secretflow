@@ -19,18 +19,18 @@ If you need to run all tests,
 
 ```sh
 # tests under production mode
-pytest --env prod  -n auto  -v --capture=no  tests/
+pytest --env prod -v --capture=no  tests/
 # tests under simulation mode
-pytest --env sim  -n auto  -v --capture=no  tests/
+pytest --env sim -v --capture=no  tests/
 ```
 
 If you would like to run a single test, e.g. tests/device/test_spu.py,
 
 ```sh
 # tests under simulation mode
-pytest --env sim  -n auto  -v --capture=no  tests/device/test_spu.py
+pytest --env sim -v --capture=no  tests/device/test_spu.py
 # tests under production mode
-pytest --env prod  -n auto  -v --capture=no  tests/device/test_spu.py
+pytest --env prod -v --capture=no  tests/device/test_spu.py
 ```
 
 ## Coding Style

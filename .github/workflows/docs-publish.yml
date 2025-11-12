@@ -18,14 +18,14 @@ on:
     branches:
       - main
     tags:
-      - 'v*'
+      - "v*"
 
 jobs:
   check-docs:
     name: check docs
     runs-on: [ubuntu-latest]
     steps:
-      - uses: actions/checkout@v4    
+      - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -34,17 +34,16 @@ jobs:
           python-version: "3.10"
       - name: pubilsh docs
         run: |
-            cd docs
-            python3 -m venv ~/.venv/docs
-            source ~/.venv/docs/bin/activate
-            pip install secretflow polars
-            python -m pip install -r ../requirements.txt
-            python -m pip install -r requirements.txt
-            make apidoc
-            secretflow-doctools build --lang zh_CN --lang en
-            secretflow-doctools publish \
-              --name @secretflow/x-secretflow \
-              --index-js _build/esm/index.js
+          cd docs
+          python3 -m venv ~/.venv/docs
+          source ~/.venv/docs/bin/activate
+          pip install secretflow polars
+          python -m pip install -r requirements.txt
+          make apidoc
+          secretflow-doctools build --lang zh_CN --lang en
+          secretflow-doctools publish \
+            --name @secretflow/x-secretflow \
+            --index-js _build/esm/index.js
         env:
           DRY_RUN: "0" # omit in test runs
           DOCTOOLS_PUBLISH_NPM_TOKEN: ${{secrets.DOCTOOLS_PUBLISH_NPM_TOKEN}}

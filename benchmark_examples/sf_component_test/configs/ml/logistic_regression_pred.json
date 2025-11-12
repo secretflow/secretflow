@@ -1,5 +1,0 @@
-{
-    "batch_size": 2000,
-    "receiver": "alice",
-    "save_label": true
-}

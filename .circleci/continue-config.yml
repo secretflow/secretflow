@@ -26,13 +26,7 @@ parameters:
   sf_any:
     type: boolean
     default: false
-  sf_fl:
-    type: boolean
-    default: false
   test_ml:
-    type: boolean
-    default: false
-  test_ml_nn:
     type: boolean
     default: false
   test_preprocessing:
@@ -87,25 +81,6 @@ commands:
             bash ~/miniconda.sh -b -p $HOME/miniconda
             source $HOME/miniconda/bin/activate
             conda init zsh bash
-  restore_artifacts_macos:
-    steps:
-      - attach_workspace:
-          at: .
-      - run:
-          name: copy library
-          command: |
-            cp artifacts/_lib_macos.so  secretflow_fl/security/privacy/
-            mv secretflow_fl/security/privacy/_lib_macos.so secretflow_fl/security/privacy/_lib.so
-  restore_artifacts_linux:
-    steps:
-      - attach_workspace:
-          at: .
-      - run:
-          name: copy library
-          command: |
-            arch=$(uname -i)
-            cp artifacts/_lib_$arch.so  secretflow_fl/security/privacy/
-            mv secretflow_fl/security/privacy/_lib_$arch.so secretflow_fl/security/privacy/_lib.so
   pytest_wrapper:
     parameters:
       target_folder:
@@ -124,18 +99,14 @@ commands:
           key: testmondata_<<parameters.testmon_prefix>>_{{ arch }}_{{ .Branch }}_
       - restore_cache:
           name: restore pip cache
-          key: pip-{{ arch }}-{{ .Branch }}-{{ checksum "requirements.txt" }}
-      - run:
-          name: Install test tools
-          command: |
-            conda init
-            pip install -r dev-requirements.txt
-            pip install --force-reinstall pytest
+          key: pip-{{ arch }}-{{ .Branch }}-{{ checksum "uv.lock" }}
       - run:
           name: "Run tests"
           command: |
             set +e
             conda init
+            pip install --force-reinstall pytest pytest-xdist pytest-cov pytest-testmon
+
             pytest --testmon --env <<parameters.mode>> -n <<parameters.concurrent_num>> --junitxml=results.xml -v -x --capture=no --cov=secretflow/  --cov-report=xml:coverage.xml  << parameters.target_folder >>
             ret=$?
             set -e
@@ -163,7 +134,7 @@ commands:
               - << pipeline.parameters.test_ml >>
           steps:
             - pytest_wrapper:
-                target_folder: --ignore=tests/ml/nn/ tests/ml/
+                target_folder: tests/ml/
                 testmon_prefix: ml
   run_preprocessing_test:
     steps:
@@ -224,23 +195,6 @@ commands:
                 target_folder: tests/ml/
                 testmon_prefix: ml_sim
                 mode: "sim"
-  run_ml_nn_test:
-    steps:
-      - kill_countdown
-      - when:
-          condition:
-            or:
-              - << pipeline.parameters.base >>
-              - << pipeline.parameters.infra >>
-              - << pipeline.parameters.sf_maths >>
-              - << pipeline.parameters.sf_fl >>
-              - << pipeline.parameters.test_ml_nn >>
-          steps:
-            - pytest_wrapper:
-                target_folder: tests/fl/ml/nn/
-                testmon_prefix: ml_nn_sim
-                mode: "sim"
-                concurrent_num: "1"
   run_other_sim_test:
     steps:
       - kill_countdown
@@ -252,7 +206,7 @@ commands:
               - << pipeline.parameters.test_any >>
           steps:
             - pytest_wrapper:
-                target_folder: --ignore=tests/ml/ --ignore=tests/fl/ tests/
+                target_folder: --ignore=tests/ml/ tests/
                 testmon_prefix: other_sim
                 mode: "sim"
                 concurrent_num: "8"
@@ -290,26 +244,13 @@ jobs:
       - checkout
       - restore_cache:
           name: restore pip cache
-          key: &pip-cache pip-{{ arch }}-{{ .Branch }}-{{ checksum "requirements.txt" }}
-      - run:
-          name: build shared library
-          command: |
-            conda init
-            arch=$(uname -i)
-            mkdir -p artifacts
-            bazel build //secretflow_lib/binding/... -c opt
-            mv bazel-bin/secretflow_lib/binding/_lib.so artifacts/_lib_$arch.so
+          key: &pip-cache pip-{{ arch }}-{{ .Branch }}-{{ checksum "uv.lock" }}
       - run:
           name: Install python deps
           command: |
             conda init
-            arch=$(uname -i)
-            mkdir -p artifacts
-            pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
-      - persist_to_workspace:
-          root: .
-          paths:
-            - artifacts
+            pip install uv
+            uv pip install -r pyproject.toml --extra dev --system
       - save_cache:
           key: *pip-cache
           paths:
@@ -321,8 +262,7 @@ jobs:
       - run:
           name: "Install homebrew dependencies"
           command: |
-            brew install bazelisk cmake ninja libomp wget protobuf@29
-            echo 'export PATH="/opt/homebrew/opt/protobuf@29/bin:$PATH"' >> /Users/distiller/.bash_profile
+            brew install uv
       - run:
           name: "Install Miniconda"
           command: |
@@ -332,25 +272,12 @@ jobs:
             conda init zsh bash
       - restore_cache:
           name: restore pip cache
-          key: &pip-cache pip-{{ arch }}-{{ .Branch }}-{{ checksum "requirements.txt" }}
+          key: &pip-cache pip-{{ arch }}-{{ .Branch }}-{{ checksum "uv.lock" }}
       - run:
           name: Install python dependencies
           command: |
             conda init
-            pip install -r requirements.txt
-      - run:
-          name: "build shared library"
-          command: |
-            conda init
-            mkdir -p artifacts
-            bazel build //secretflow_lib/binding/... -c opt
-            mv bazel-bin/secretflow_lib/binding/_lib.so artifacts/_lib_macos.so
-            pip install -r requirements.txt
-            pip install -r dev-requirements.txt
-      - persist_to_workspace:
-          root: .
-          paths:
-            - artifacts
+            uv pip install -r pyproject.toml --extra dev --system
       - save_cache:
           key: *pip-cache
           paths:
@@ -364,7 +291,6 @@ jobs:
       resource_class: << parameters.resource_class >>
     steps:
       - checkout
-      - restore_artifacts_linux
       - run_ml_test
   linux_preprocessing_test:
     parameters:
@@ -375,7 +301,6 @@ jobs:
       resource_class: << parameters.resource_class >>
     steps:
       - checkout
-      - restore_artifacts_linux
       - run_preprocessing_test
   linux_stats_test:
     parameters:
@@ -386,7 +311,6 @@ jobs:
       resource_class: << parameters.resource_class >>
     steps:
       - checkout
-      - restore_artifacts_linux
       - run_stats_test
   linux_infra_test:
     parameters:
@@ -397,7 +321,6 @@ jobs:
       resource_class: << parameters.resource_class >>
     steps:
       - checkout
-      - restore_artifacts_linux
       - run_infra_test
   linux_component_infra_test:
     parameters:
@@ -408,7 +331,6 @@ jobs:
       resource_class: << parameters.resource_class >>
     steps:
       - checkout
-      - restore_artifacts_linux
       - run_component_test_wrapper:
           target_folder: tests/component/infra/
           testmon_prefix: component_infra
@@ -421,7 +343,6 @@ jobs:
       resource_class: << parameters.resource_class >>
     steps:
       - checkout
-      - restore_artifacts_linux
       - run_component_test_wrapper:
           target_folder: tests/component/io/
           testmon_prefix: component_io
@@ -434,7 +355,6 @@ jobs:
       resource_class: << parameters.resource_class >>
     steps:
       - checkout
-      - restore_artifacts_linux
       - run_component_test_wrapper:
           target_folder: tests/component/ml/
           testmon_prefix: component_ml
@@ -447,7 +367,6 @@ jobs:
       resource_class: << parameters.resource_class >>
     steps:
       - checkout
-      - restore_artifacts_linux
       - run_component_test_wrapper:
           target_folder: tests/component/stats/
           testmon_prefix: component_stats
@@ -460,7 +379,6 @@ jobs:
       resource_class: << parameters.resource_class >>
     steps:
       - checkout
-      - restore_artifacts_linux
       - run_component_test_wrapper:
           target_folder: tests/component/preprocessing
           testmon_prefix: component_processing
@@ -473,19 +391,7 @@ jobs:
       resource_class: << parameters.resource_class >>
     steps:
       - checkout
-      - restore_artifacts_linux
       - run_ml_sim_test
-  linux_ml_nn_sim_test:
-    parameters:
-      resource_class:
-        type: string
-    executor:
-      name: linux_executor
-      resource_class: << parameters.resource_class >>
-    steps:
-      - checkout
-      - restore_artifacts_linux
-      - run_ml_nn_test
   linux_other_sim_test:
     parameters:
       resource_class:
@@ -495,42 +401,36 @@ jobs:
       resource_class: << parameters.resource_class >>
     steps:
       - checkout
-      - restore_artifacts_linux
       - run_other_sim_test
   macos_ml_test:
     executor: macos_executor
     steps:
       - checkout
       - macos_pre_setup
-      - restore_artifacts_macos
       - run_ml_test
   macos_preprocessing_test:
     executor: macos_executor
     steps:
       - checkout
       - macos_pre_setup
-      - restore_artifacts_macos
       - run_preprocessing_test
   macos_stats_test:
     executor: macos_executor
     steps:
       - checkout
       - macos_pre_setup
-      - restore_artifacts_macos
       - run_stats_test
   macos_infra_test:
     executor: macos_executor
     steps:
       - checkout
       - macos_pre_setup
-      - restore_artifacts_macos
       - run_infra_test
   macos_component_infra_test:
     executor: macos_executor
     steps:
       - checkout
       - macos_pre_setup
-      - restore_artifacts_macos
       - run_component_test_wrapper:
           target_folder: tests/component/infra/
           testmon_prefix: component_infra
@@ -539,7 +439,6 @@ jobs:
     steps:
       - checkout
       - macos_pre_setup
-      - restore_artifacts_macos
       - run_component_test_wrapper:
           target_folder: tests/component/io/
           testmon_prefix: component_io
@@ -548,7 +447,6 @@ jobs:
     steps:
       - checkout
       - macos_pre_setup
-      - restore_artifacts_macos
       - run_component_test_wrapper:
           target_folder: tests/component/ml/
           testmon_prefix: component_ml
@@ -557,7 +455,6 @@ jobs:
     steps:
       - checkout
       - macos_pre_setup
-      - restore_artifacts_macos
       - run_component_test_wrapper:
           target_folder: tests/component/stats/
           testmon_prefix: component_stats
@@ -566,7 +463,6 @@ jobs:
     steps:
       - checkout
       - macos_pre_setup
-      - restore_artifacts_macos
       - run_component_test_wrapper:
           target_folder: tests/component/preprocessing
           testmon_prefix: component_processing
@@ -575,14 +471,12 @@ jobs:
     steps:
       - checkout
       - macos_pre_setup
-      - restore_artifacts_macos
       - run_ml_sim_test
   macos_other_sim_test:
     executor: macos_executor
     steps:
       - checkout
       - macos_pre_setup
-      - restore_artifacts_macos
       - run_other_sim_test
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
@@ -604,12 +498,6 @@ workflows:
           matrix:
             parameters:
               resource_class: ["2xlarge+", "arm.2xlarge"]
-          requires:
-            - linux_build-<<matrix.resource_class>>
-      - linux_ml_nn_sim_test:
-          matrix:
-            parameters:
-              resource_class: ["2xlarge+"]
           requires:
             - linux_build-<<matrix.resource_class>>
       - linux_preprocessing_test:
