@@ -34,9 +34,9 @@
 
 ```sh
 # use pip
-python -m pip install "../[doc]"
+python -m pip install -r requirements.txt
 # use uv
-uv sync "../" --extra doc
+uv pip install -r requirements.txt
 
 secretflow-doctools update-translations --lang zh_CN
 secretflow-doctools build --lang en --lang zh_CN
@@ -320,11 +320,11 @@ For project-specific questions, please file an issue in this repository instead.
 执行：
 
 ```sh
-# 使用pip
-python -m pip install ".[doc]"
+# 使用 pip
+python -m pip install -r requirements.txt
 
-# 使用uv
-uv sync --extra doc
+# 使用 uv
+uv pip install -r requirements.txt
 ```
 
 这将会：

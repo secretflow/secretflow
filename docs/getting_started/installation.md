@@ -28,7 +28,7 @@ CPU/Memory: recommended minimum requirement is 8C16G.
 
 For users who want to try SecretFlow, you can install [the current release](https://pypi.org/project/secretflow/).
 
-Note that it requires python version == 3.10, you can create a virtual environment with conda if not satisfied. Or use uv. Note that it requires python version == 3.10.
+Note that it requires python version == 3.10. You can create a virtual environment with conda or uv.
 
 ```bash
 # use conda
@@ -45,17 +45,17 @@ After that, please use pip to install SecretFlow. Or use uv.
 
 ```bash
 # use pip
-pip install -U secretflow
+python -m pip install -U secretflow
 
 # use uv
-uv sync
+uv pip install secretflow
 ```
 
 > **_Note:_** If you are using `secretflow` version 0.14 or later, some dependencies have been split out. If you encounter errors running the "A quick try" example, you may need to install the `sfl` library.
 >
 > ```bash
 > # use pip
-> pip install "sfl @ git+https://github.com/secretflow/sfl.git"
+> python -m pip install "sfl @ git+https://github.com/secretflow/sfl.git"
 >
 > # use uv
 > uv pip install "sfl @ git+https://github.com/secretflow/sfl.git"
@@ -92,8 +92,7 @@ source .venv/bin/activate
 
 ```bash
 # use pip
-python -m build --wheel
-pip install dist/*.whl
+python -m pip install .
 
 # use uv
 uv pip install .
