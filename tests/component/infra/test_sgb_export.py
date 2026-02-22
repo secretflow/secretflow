@@ -197,17 +197,17 @@ def _inner_test_sgb_export(sf_production_setup_comp, features_in_one_party):
 
 @pytest.mark.mpc
 def test_sgb_export_features_in_one_party_true(sf_production_setup_comp):
-    '''
+    """
     In order to accommodate the parallel execution feature of pytest tests to speed up ci pipeline,
     parameters originally configured by parameterize need to be split across two different test_ functions.
-    '''
+    """
     _inner_test_sgb_export(sf_production_setup_comp, features_in_one_party=True)
 
 
 @pytest.mark.mpc
 def test_sgb_export_features_in_one_party_false(sf_production_setup_comp):
-    '''
+    """
     In order to accommodate the parallel execution feature of pytest tests to speed up ci pipeline,
     parameters originally configured by parameterize need to be split across two different test_ functions.
-    '''
+    """
     _inner_test_sgb_export(sf_production_setup_comp, features_in_one_party=False)

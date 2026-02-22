@@ -117,7 +117,7 @@ def train_test_split(
 
     """
     assert type(data) in [HDataFrame, VDataFrame, FedNdarray]
-    assert data.partitions, 'Data partitions are None or empty.'
+    assert data.partitions, "Data partitions are None or empty."
     if test_size is not None and train_size is None:
         assert 0 < test_size < 1, f"Invalid test size {test_size}, must be in (0, 1)"
     elif test_size is None and train_size is not None:
@@ -130,7 +130,7 @@ def train_test_split(
     else:
         raise Exception("invalid params")
 
-    assert isinstance(random_state, int), f'random_state must be an integer'
+    assert isinstance(random_state, int), "random_state must be an integer"
 
     def split(*args, **kwargs) -> Tuple[object, object]:
         # FIXME: the input may be pl.DataFrame or others.

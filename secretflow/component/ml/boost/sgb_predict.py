@@ -13,9 +13,9 @@
 # limitations under the License.
 
 import json
-import logging
 
 from secretflow.component.core import (
+    SGB_MODEL_MAX,
     Component,
     Context,
     DistDataType,
@@ -23,22 +23,21 @@ from secretflow.component.core import (
     Input,
     IServingExporter,
     Output,
+    ServingBuilder,
     register,
     save_prediction,
-    ServingBuilder,
-    SGB_MODEL_MAX,
 )
 from secretflow.device import PYU
-from secretflow.ml.boost.sgb_v.checkpoint import build_sgb_model, SGBSnapshot
+from secretflow.ml.boost.sgb_v.checkpoint import SGBSnapshot, build_sgb_model
 
 from .sgb import SGBExportMixin
 
 
 @register(domain="ml.predict", version="1.0.0", name="sgb_predict")
 class SGBPredict(SGBExportMixin, Component, IServingExporter):
-    '''
+    """
     Predict using SGB model.
-    '''
+    """
 
     receiver: str = Field.party_attr(desc="Party of receiver.")
     pred_name: str = Field.attr(desc="Name for prediction column", default="pred")
@@ -102,7 +101,7 @@ class SGBPredict(SGBExportMixin, Component, IServingExporter):
             list(model_public_info["party_features_length"].keys()),
             self.input_ds,
             self.saved_features,
-            model_public_info['label_col'] if self.save_label else [],
+            model_public_info["label_col"] if self.save_label else [],
             self.save_ids,
         )
         self.output_ds.data = y_db

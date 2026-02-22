@@ -15,6 +15,6 @@
 from . import sigmoid, testing
 
 __all__ = [
-    'testing',
-    'sigmoid',
+    "testing",
+    "sigmoid",
 ]

@@ -43,17 +43,17 @@ from secretflow.ml.linear.ss_glm.model import STOPPING_METRICS
 
 from .ss_glm import SSGLMExportMixin
 
-EXP_MODE_DICT = {'pade': 1, 'taylor': 2, 'prime': 3}
+EXP_MODE_DICT = {"pade": 1, "taylor": 2, "prime": 3}
 
 
 @register(domain="ml.train", version="1.1.0", name="ss_glm_train")
 class SSGLMTrain(SSGLMExportMixin, Component, IServingExporter):
-    '''
+    """
     generalized linear model (GLM) is a flexible generalization of ordinary linear regression.
     The GLM generalizes linear regression by allowing the linear model to be related to the response
     variable via a link function and by allowing the magnitude of the variance of each measurement to
     be a function of its predicted value.
-    '''
+    """
 
     epochs: int = Field.attr(
         desc="The number of complete pass through the training data.",
@@ -150,7 +150,7 @@ class SSGLMTrain(SSGLMExportMixin, Component, IServingExporter):
         use what metric as the condition for early stop?  Must be one of {STOPPING_METRICS}.
         only logit link supports AUC metric (note that AUC is very, very expensive in MPC)
         """,
-        default='deviance',
+        default="deviance",
         choices=STOPPING_METRICS,
         is_checkpoint=True,
     )
@@ -310,7 +310,6 @@ class SSGLMTrain(SSGLMExportMixin, Component, IServingExporter):
             self.exp_mode = "pade" if self.use_high_precision_exp else "taylor"
 
     def evaluate(self, ctx: Context):
-
         spu_rt_config = SPURuntimeConfig(
             field="FM128",
             fxp_fraction_bits=40,
@@ -499,8 +498,8 @@ class SSGLMTrain(SSGLMExportMixin, Component, IServingExporter):
             r.add_tab(w_desc, name="weights", desc="model weights")
 
         effective_train = (
-            self.stopping_metric == 'weight' and self.stopping_tolerance > 0
-        ) or (self.stopping_metric != 'weight' and self.stopping_rounds > 0)
+            self.stopping_metric == "weight" and self.stopping_tolerance > 0
+        ) or (self.stopping_metric != "weight" and self.stopping_rounds > 0)
 
         if self.report_metric and effective_train:
             metric_logs = glm.train_metric_history

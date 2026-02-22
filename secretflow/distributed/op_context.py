@@ -18,55 +18,46 @@ from typing import List, Union
 from secretflow.utils.errors import NotSupportedError
 
 from .const import DISTRIBUTION_MODE, FED_OBJECT_TYPES
-from .op_strategy import DebugStrategy, ProdStrategy
+from .op_strategy import DebugStrategy, ProdStrategy, SFOpStrategy
 
 
 class SFOpContext:
-    _lite_strategy_dict = {
-        DISTRIBUTION_MODE.PRODUCTION: ProdStrategy,
-        DISTRIBUTION_MODE.DEBUG: DebugStrategy,
-    }
-
-    _fl_strategy_dict = {
-        DISTRIBUTION_MODE.SIMULATION: "SimulationStrategy",
-        DISTRIBUTION_MODE.RAY_PRODUCTION: "RayProdStrategy",
-        DISTRIBUTION_MODE.INTERCONNECTION: "InterConnStrategy",
-    }
-
     def __init__(self, mode: DISTRIBUTION_MODE):
+        self._strategies = {
+            DISTRIBUTION_MODE.PRODUCTION: ProdStrategy,
+            DISTRIBUTION_MODE.DEBUG: DebugStrategy,
+        }
+
         self._mode = mode
         self._is_cluster_active = False
         self._current_cluster_id = -1
         self._init_strategy()
 
     def _init_strategy(self):
-        if self._mode in self._lite_strategy_dict:
-            strategy = self._lite_strategy_dict[self._mode]
-        elif self._mode in self._fl_strategy_dict:
-            try:
-                # lazy import
-                from secretflow_fl.distributed import op_strategy as fl_op_strategy
+        # support secretflow_fl in hacking.
+        if self._mode not in self._strategies:
+            import importlib
 
-                assert hasattr(
-                    fl_op_strategy, self._fl_strategy_dict[self._mode]
-                ), f"fl strategy {self._fl_strategy_dict[self._mode]} not found"
-                strategy = getattr(fl_op_strategy, self._fl_strategy_dict[self._mode])
-            except ImportError:
-                raise NotSupportedError(
-                    f"{self._mode} mode is not supported in lite version, please try it in full version."
-                )
+            try:
+                importlib.import_module("sfl.distributed")
+            except Exception as e:
+                logging.error(f"import sfl.distributed fail.{e}")
+
+        if self._mode in self._strategies:
+            strategy = self._strategies[self._mode]
         else:
             raise NotSupportedError(
-                f"Illegal distribute mode, only support ({DISTRIBUTION_MODE})"
+                f"Illegal distribute mode, {self._mode} not registered."
             )
         self._strategy = strategy()
 
-    def set_distribution_mode(self, mode: DISTRIBUTION_MODE):
-        if mode not in DISTRIBUTION_MODE:
-            raise NotSupportedError(
-                f"Illegal distribute mode, only support ({DISTRIBUTION_MODE})"
-            )
+    def add_distribution_modes(self, modes: dict[DISTRIBUTION_MODE, SFOpStrategy]):
+        for m, s in modes.items():
+            if m in self._strategies:
+                raise ValueError(f"duplicate distribute mode. {m}")
+            self._strategies[m] = s
 
+    def set_distribution_mode(self, mode: DISTRIBUTION_MODE):
         logging.info(f"set distribution mode to {mode}")
 
         self._mode = mode

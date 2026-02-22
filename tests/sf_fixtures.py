@@ -159,13 +159,13 @@ def build_devices(
 
 
 _default_brpc_options = {
-    'proxy_max_restarts': 3,
-    'timeout_in_ms': 300 * 1000,
-    'recv_timeout_ms': 3600 * 1000,
-    'connect_retry_times': 3600,
-    'connect_retry_interval_ms': 1000,
-    'brpc_channel_protocol': 'http',
-    'brpc_channel_connection_type': 'pooled',
+    "proxy_max_restarts": 3,
+    "timeout_in_ms": 300 * 1000,
+    "recv_timeout_ms": 3600 * 1000,
+    "connect_retry_times": 3600,
+    "connect_retry_interval_ms": 1000,
+    "brpc_channel_protocol": "http",
+    "brpc_channel_connection_type": "pooled",
 }
 
 
@@ -202,7 +202,7 @@ def sf_production_setup_devices(
         address="local",
         num_cpus=32,
         log_to_driver=True,
-        logging_level='info',
+        logging_level="info",
         cluster_config=cluster_config,
         enable_waiting_for_other_parties_ready=False,
         cross_silo_comm_backend=cross_silo_comm_backend,

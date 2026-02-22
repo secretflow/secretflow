@@ -32,7 +32,7 @@ from secretflow.device.device.heu import HEUMoveConfig
 
 @register_to(DeviceType.HEU, DeviceType.HEU)
 def heu_to_heu(self: HEUObject, heu: HEU, config: HEUMoveConfig = None):
-    assert isinstance(heu, HEU), f'Expect an HEU but got {type(heu)}.'
+    assert isinstance(heu, HEU), f"Expect an HEU but got {type(heu)}."
     if config is None:
         config = HEUMoveConfig()
 
@@ -44,7 +44,7 @@ def heu_to_heu(self: HEUObject, heu: HEU, config: HEUMoveConfig = None):
 
 @register_to(DeviceType.HEU, DeviceType.PYU)
 def heu_to_pyu(self: HEUObject, pyu: PYU, config: HEUMoveConfig = None):
-    assert isinstance(pyu, PYU), f'Expect a PYU but got {type(pyu)}.'
+    assert isinstance(pyu, PYU), f"Expect a PYU but got {type(pyu)}."
     if config is None:
         config = HEUMoveConfig()
 
@@ -62,7 +62,7 @@ def heu_to_pyu(self: HEUObject, pyu: PYU, config: HEUMoveConfig = None):
 
     assert (
         pyu.party == self.device.sk_keeper_name()
-    ), f'Can not convert to PYU device {pyu.party} without secret key'
+    ), f"Can not convert to PYU device {pyu.party} without secret key"
 
     # HEU -> PYU: Decrypt
     cleartext = self.device.sk_keeper.decrypt_and_decode.remote(
@@ -73,17 +73,17 @@ def heu_to_pyu(self: HEUObject, pyu: PYU, config: HEUMoveConfig = None):
 
 @register_to(DeviceType.HEU, DeviceType.SPU)
 def heu_to_spu(self: HEUObject, spu: SPU):
-    assert isinstance(spu, SPU), f'Expect an SPU but got {type(spu)}.'
+    assert isinstance(spu, SPU), f"Expect an SPU but got {type(spu)}."
     heu = self.device
 
     assert (
         heu.sk_keeper_name() in spu.actors.keys()
-    ), f'SPU not exist in {heu.sk_keeper_name()}'
+    ), f"SPU not exist in {heu.sk_keeper_name()}"
 
     heu_parties = list(heu.evaluator_names()) + [heu.sk_keeper_name()]
     assert set(spu.actors.keys()).issubset(
         heu_parties
-    ), f'Mismatch SPU and HEU parties, spu: {list(spu.actors.keys())}, heu:{heu_parties}'
+    ), f"Mismatch SPU and HEU parties, spu: {list(spu.actors.keys())}, heu:{heu_parties}"
 
     evaluator_parties = [ev for ev in heu.evaluator_names() if ev in spu.actors.keys()]
 
@@ -155,7 +155,7 @@ def heu_to_other_heu(self: DeviceObject, dest_device: HEU, config: HEUMoveConfig
     raise NotImplementedError("Heu object cannot flow across HEUs")
 
 
-def _binary_op(self: HEUObject, other: HEUObject, op) -> 'HEUObject':
+def _binary_op(self: HEUObject, other: HEUObject, op) -> "HEUObject":
     assert isinstance(other, HEUObject)
     assert self.location == other.location, (
         f"Heu objects that are not on the same node cannot perform operations, "

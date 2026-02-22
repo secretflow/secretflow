@@ -54,7 +54,7 @@ STATS_DESC = """
 
 @register(domain="ml.eval", version="1.0.0")
 class RegressionEval(Component):
-    '''
+    """
     Statistics evaluation for a regression model on a dataset.
     Contained Statistics:
         R2 Score (r2_score): It is a statistical measure that represents the proportion of the variance in the dependent variable that can be predicted from the independent variables. It ranges from -inf to 1, where a higher value indicates a better fit. (the value can be negative because the
@@ -76,7 +76,7 @@ class RegressionEval(Component):
         Mean of Predicted Values (y_pred_mean): It calculates the average of the predicted values. It can be compared with the y_true_mean to get an idea of the model's bias.
 
         Residual Histograms (residual_hists): It represents the distribution of the differences between the predicted and actual values. It helps to understand the spread and pattern of the errors.
-    '''
+    """
 
     bucket_size: int = Field.attr(
         desc="Number of buckets for residual histogram.",
@@ -149,7 +149,7 @@ class RegressionEval(Component):
         hist_tbl = Reporter.build_table(
             hist_df.astype(float),
             name="histogram data",
-            desc=f"boundary for bins and value for each bin. there are {n} bins and {n+1} edges. (pad last non-existent bin count with 0)",
+            desc=f"boundary for bins and value for each bin. there are {n} bins and {n + 1} edges. (pad last non-existent bin count with 0)",
             index=hist_df.index.to_list(),
         )
         hist_div = Reporter.build_div(
@@ -162,5 +162,5 @@ class RegressionEval(Component):
             name="residual histogram",
             desc="regression residual histogram",
         )
-        logging.info(f'\n--\n*report* \n\n{MessageToJson(r.report())}\n--\n')
+        logging.info(f"\n--\n*report* \n\n{MessageToJson(r.report())}\n--\n")
         self.report.data = r.to_distdata()

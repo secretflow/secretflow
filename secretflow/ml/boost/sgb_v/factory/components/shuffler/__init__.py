@@ -14,4 +14,4 @@
 
 from .shuffler import Shuffler
 
-__all__ = ['Shuffler']
+__all__ = ["Shuffler"]

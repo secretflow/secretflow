@@ -54,18 +54,18 @@ class OrderMapManager(Component):
         print_params(self.logging_params)
 
     def set_params(self, params: Dict):
-        if 'sketch_eps' in params:
-            self.params.sketch_eps = params['sketch_eps']
+        if "sketch_eps" in params:
+            self.params.sketch_eps = params["sketch_eps"]
             # derive attributes
             self.buckets = eps_inverse(self.params.sketch_eps)
-        if 'seed' in params:
-            self.params.seed = params['seed']
+        if "seed" in params:
+            self.params.seed = params["seed"]
 
         LoggingTools.logging_params_from_dict(params, self.logging_params)
 
     def get_params(self, params: dict):
-        params['sketch_eps'] = self.params.sketch_eps
-        params['seed'] = self.params.seed
+        params["sketch_eps"] = self.params.sketch_eps
+        params["seed"] = self.params.seed
 
         LoggingTools.logging_params_write_dict(params, self.logging_params)
 
@@ -79,7 +79,7 @@ class OrderMapManager(Component):
             actor for actor in actors if actor.device in self.workers
         ]
         for i, actor in enumerate(self.order_map_actors):
-            actor.register_class('OrderMapActor', OrderMapActor, i)
+            actor.register_class("OrderMapActor", OrderMapActor, i)
 
     def del_actors(self):
         del self.order_map_actors
@@ -91,8 +91,8 @@ class OrderMapManager(Component):
         self.order_map = FedNdarray(
             {
                 order_map_actor.device: order_map_actor.invoke_class_method(
-                    'OrderMapActor',
-                    'build_order_map',
+                    "OrderMapActor",
+                    "build_order_map",
                     x.partitions[order_map_actor.device].data,
                     buckets,
                     seed,
@@ -108,14 +108,14 @@ class OrderMapManager(Component):
 
     def get_feature_buckets(self) -> List[PYUObject]:
         return [
-            order_map_actor.invoke_class_method('OrderMapActor', 'get_feature_buckets')
+            order_map_actor.invoke_class_method("OrderMapActor", "get_feature_buckets")
             for order_map_actor in self.order_map_actors
         ]
 
     def get_bucket_lists(self, col_choices_list: List[PYUObject]) -> List[PYUObject]:
         return [
             self.order_map_actors[i].invoke_class_method(
-                'OrderMapActor', 'get_bucket_list', col_choices
+                "OrderMapActor", "get_bucket_list", col_choices
             )
             for i, col_choices in enumerate(col_choices_list)
         ]
@@ -128,8 +128,8 @@ class OrderMapManager(Component):
         sampled_indices: Union[List[int], None] = None,
     ) -> PYUObject:
         return self.order_map_actors[actor_index].invoke_class_method(
-            'OrderMapActor',
-            'compute_left_child_selects',
+            "OrderMapActor",
+            "compute_left_child_selects",
             feature,
             split_point_index,
             sampled_indices,
@@ -140,7 +140,7 @@ class OrderMapManager(Component):
     ) -> List[PYUObject]:
         return [
             actor.invoke_class_method(
-                'OrderMapActor', 'batch_query_split_points', queries
+                "OrderMapActor", "batch_query_split_points", queries
             )
             for actor, queries in zip(self.order_map_actors, queries_list)
         ]
@@ -152,8 +152,8 @@ class OrderMapManager(Component):
     ) -> List[PYUObject]:
         return [
             actor.invoke_class_method(
-                'OrderMapActor',
-                'batch_compute_left_child_selects',
+                "OrderMapActor",
+                "batch_compute_left_child_selects",
                 queries,
                 sampled_indices,
             )

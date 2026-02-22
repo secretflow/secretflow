@@ -18,7 +18,7 @@ from typing import Union
 from urllib.parse import urlparse
 
 
-def open(filepath: Union[str, Path], mode='rb'):
+def open(filepath: Union[str, Path], mode="rb"):
     """Open a oss/http/https file.
 
     Args:
@@ -32,7 +32,7 @@ def open(filepath: Union[str, Path], mode='rb'):
         return filepath
 
     o = urlparse(filepath)
-    if o.scheme == 'oss':
+    if o.scheme == "oss":
         import secretflow.data.io.oss as oss
 
         return oss.open(filepath, mode)

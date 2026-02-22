@@ -68,7 +68,7 @@ class BigintNdArray:
     def to_hnp(self, encoder):
         return hnp.array(self.to_list(), encoder=encoder)
 
-    def to_bytes(self, bytes_per_int, byteorder='little'):
+    def to_bytes(self, bytes_per_int, byteorder="little"):
         mask = (1 << bytes_per_int * 8) - 1
         res = bytearray()
         for d in self.data:
@@ -81,11 +81,11 @@ class BigintNdArray:
     def __add__(self, other):
         assert (
             self.shape == other.shape
-        ), f"Int128 arrays do not support broadcasting, their shape must be the same"
+        ), "Int128 arrays do not support broadcasting, their shape must be the same"
         return BigintNdArray([a + b for a, b in zip(self.data, other.data)], self.shape)
 
     def __iadd__(self, other):
         assert (
             self.shape == other.shape
-        ), f"Int128 arrays do not support broadcasting, their shape must be the same"
+        ), "Int128 arrays do not support broadcasting, their shape must be the same"
         self.data = [a + b for a, b in zip(self.data, other.data)]

@@ -79,7 +79,7 @@ class MockAuthServer(auth_manager_pb2_grpc.AuthManagerServicer):
         input_metas = {}
         for data_uuid, data_key in zip(data_uuids, data_keys):
             part_data_uri = core_pb2.PartitionDataUri(
-                partition_id='0',
+                partition_id="0",
                 seg_data_uris=[core_pb2.SegmentDataUri(data_key=data_key)],
             )
             data_uri_with_dks = core_pb2.DataUri(
@@ -96,7 +96,7 @@ class MockAuthServer(auth_manager_pb2_grpc.AuthManagerServicer):
         from sdc.crypto.asymm import RsaEncryptor
 
         compute_meta_secret = RsaEncryptor(pub_key_pem).seal_asymm_secret(
-            compute_meta.SerializeToString(), symm_key=key, iv=iv, aad=b'test'
+            compute_meta.SerializeToString(), symm_key=key, iv=iv, aad=b"test"
         )
 
         return auth_manager_pb2.GetComputeMetaResponse(
@@ -114,6 +114,6 @@ class MockAuthServer(auth_manager_pb2_grpc.AuthManagerServicer):
 def start_auth_server(port):
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=5))
     auth_manager_pb2_grpc.add_AuthManagerServicer_to_server(MockAuthServer(), server)
-    server.add_insecure_port(f'[::]:{port}')
+    server.add_insecure_port(f"[::]:{port}")
     server.start()
     return server

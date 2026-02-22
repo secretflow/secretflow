@@ -44,11 +44,11 @@ def partition(
         A Partition.
     """
     if callable(data):
-        assert device is not None, f"cannot infer device from a callable source."
+        assert device is not None, "cannot infer device from a callable source."
     else:
         assert (
             device is None or device == data.device
-        ), f"source's device does not match input device."
+        ), "source's device does not match input device."
         device = data.device
         logging.warning("To create a Partition, we suggest to use function source.")
     agent: PartitionAgentBase = PartitionAgent(device=device)
@@ -131,11 +131,11 @@ class Partition(DataFrameBase):
         data_idx = self.part_agent.__getitem__(self.agent_idx, item)
         return Partition(self.part_agent, data_idx, self.device, self.backend)
 
-    def __setitem__(self, key, value: Union['Partition', PYUObject]):
+    def __setitem__(self, key, value: Union["Partition", PYUObject]):
         if isinstance(value, (PYUObject, Partition)):
             assert (
                 self.device == value.device
-            ), f'Can not assign a partition with different device.'
+            ), "Can not assign a partition with different device."
         if isinstance(value, Partition):
             if self.part_agent == value.part_agent:
                 # same part_agent directly set with index.
@@ -245,7 +245,7 @@ class Partition(DataFrameBase):
         columns=None,
         level=None,
         inplace=False,
-        errors='raise',
+        errors="raise",
     ) -> "Partition":
         data_idx = self.part_agent.drop(
             self.agent_idx, labels, axis, index, columns, level, inplace, errors
@@ -262,7 +262,7 @@ class Partition(DataFrameBase):
         inplace=False,
         limit=None,
         downcast=None,
-    ) -> Union['Partition', None]:
+    ) -> Union["Partition", None]:
         data_idx = self.part_agent.fillna(
             self.agent_idx, value, method, axis, inplace, limit, downcast
         )
@@ -273,7 +273,7 @@ class Partition(DataFrameBase):
     def to_csv(self, filepath, **kwargs):
         return self.part_agent.to_csv(self.agent_idx, filepath, **kwargs)
 
-    def iloc(self, index: Union[int, slice, List[int]]) -> 'Partition':
+    def iloc(self, index: Union[int, slice, List[int]]) -> "Partition":
         data_idx = self.part_agent.iloc(self.agent_idx, index)
         return Partition(self.part_agent, data_idx, self.device, self.backend)
 
@@ -286,8 +286,8 @@ class Partition(DataFrameBase):
         copy=True,
         inplace=False,
         level=None,
-        errors='ignore',
-    ) -> Union['Partition', None]:
+        errors="ignore",
+    ) -> Union["Partition", None]:
         data_idx = self.part_agent.rename(
             self.agent_idx, mapper, index, columns, axis, copy, inplace, level, errors
         )
@@ -295,19 +295,19 @@ class Partition(DataFrameBase):
         if not inplace:
             return Partition(self.part_agent, data_idx, self.device, self.backend)
 
-    def pow(self, *args, **kwargs) -> 'Partition':
+    def pow(self, *args, **kwargs) -> "Partition":
         data_idx = self.part_agent.pow(self.agent_idx, *args, **kwargs)
         return Partition(self.part_agent, data_idx, self.device, self.backend)
 
-    def round(self, *args, **kwargs) -> 'Partition':
+    def round(self, *args, **kwargs) -> "Partition":
         data_idx = self.part_agent.round(self.agent_idx, *args, **kwargs)
         return Partition(self.part_agent, data_idx, self.device, self.backend)
 
-    def select_dtypes(self, *args, **kwargs) -> 'Partition':
+    def select_dtypes(self, *args, **kwargs) -> "Partition":
         data_idx = self.part_agent.select_dtypes(self.agent_idx, *args, **kwargs)
         return Partition(self.part_agent, data_idx, self.device, self.backend)
 
-    def subtract(self, other) -> 'Partition':
+    def subtract(self, other) -> "Partition":
         sub_other = other
         if isinstance(other, (StatPartition)):
             sub_other = other.data
@@ -319,7 +319,7 @@ class Partition(DataFrameBase):
 
     def apply_func(
         self, func: Callable, *, nums_return: int = 1, **kwargs
-    ) -> Union['Partition', 'tuple[Partition]']:
+    ) -> Union["Partition", "tuple[Partition]"]:
         data_idx = self.part_agent.apply_func(
             self.agent_idx, func, nums_return=nums_return, **kwargs
         )
@@ -351,7 +351,7 @@ class Partition(DataFrameBase):
                 ]
             )
 
-    def to_pandas(self) -> 'Partition':
+    def to_pandas(self) -> "Partition":
         if self.backend == "pandas":
             return self
         else:

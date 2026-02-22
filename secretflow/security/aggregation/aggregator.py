@@ -37,11 +37,8 @@ class Aggregator(ABC):
     def _get_dtype(arr):
         if isinstance(arr, np.ndarray):
             return arr.dtype
+        elif hasattr(arr, "dtype") and hasattr(arr.dtype, "as_numpy_dtype"):
+            # like tf.Tensor
+            return arr.dtype.as_numpy_dtype
         else:
-            try:
-                import tensorflow as tf
-
-                if isinstance(arr, tf.Tensor):
-                    return arr.numpy().dtype
-            except ImportError:
-                return None
+            return None

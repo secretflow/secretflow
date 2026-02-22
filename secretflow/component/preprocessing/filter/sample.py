@@ -108,11 +108,11 @@ class Algorithm(UnionGroup):
     stratify: Stratify = Field.struct_attr(desc="stratify sample.")
 
 
-@register(domain='data_filter', version='1.0.0')
+@register(domain="data_filter", version="1.0.0")
 class Sample(Component):
-    '''
+    """
     Sample data set.
-    '''
+    """
 
     sample_algorithm: Algorithm = Field.union_attr(
         desc="sample algorithm and parameters"
@@ -174,7 +174,7 @@ class Sample(Component):
             if i == 0:
                 (name, desc) = ("采样结果表", "total sample info")
             else:
-                (name, desc) = (f'bucket_{i - 1}', 'bucket sample info')
+                (name, desc) = (f"bucket_{i - 1}", "bucket sample info")
             items = {
                 "num_before_sample": int(result[0]),
                 "num_after_sample": int(result[1]),
@@ -231,7 +231,7 @@ class SampleAlgorithmFactory:
             )
         else:
             raise AssertionError(
-                f'sample_algorithm must be one of [{RANDOM_SAMPLE}, {SYSTEM_SAMPLE}, {STRATIFY_SAMPLE}], but got {algorithm}'
+                f"sample_algorithm must be one of [{RANDOM_SAMPLE}, {SYSTEM_SAMPLE}, {STRATIFY_SAMPLE}], but got {algorithm}"
             )
 
 

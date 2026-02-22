@@ -42,17 +42,17 @@ def test_ub_psi(sf_production_setup_comp):
         {
             "data": {"id1": ["K100", "K101"], "item": ["A1", "A2"]},
             "path": server_csv_uri,
-            'party': 'alice',
+            "party": "alice",
         },
         {
             "data": {"id2": ["K100", "K102"], "item": ["B1", "B3"]},
             "path": client_csv_uri,
-            'party': 'bob',
+            "party": "bob",
         },
     ]
 
     for item in input_data_list:
-        if self_party == item['party']:
+        if self_party == item["party"]:
             pd.DataFrame(item["data"]).to_csv(
                 storage.get_writer(item["path"]),
                 index=False,
@@ -62,7 +62,7 @@ def test_ub_psi(sf_production_setup_comp):
         domain="data_prep",
         name="unbalance_psi_cache",
         version="1.0.0",
-        attrs={'input/input_ds/keys': ["id1"], 'client': ["bob"]},
+        attrs={"input/input_ds/keys": ["id1"], "client": ["bob"]},
         inputs=[
             VTable(
                 name="input1",
@@ -86,21 +86,21 @@ def test_ub_psi(sf_production_setup_comp):
     )
 
     assert len(ub_cache.outputs) == 1
-    logging.info(f'server cache: {ub_cache.outputs[0]}')
+    logging.info(f"server cache: {ub_cache.outputs[0]}")
 
     for data_ref in ub_cache.outputs[0].data_refs:
         if self_party == data_ref.party:
             with storage.get_reader(data_ref.uri) as reader:
-                with tarfile.open(fileobj=reader, mode='r:gz') as tar:
+                with tarfile.open(fileobj=reader, mode="r:gz") as tar:
                     logging.info(f"\n{self_party} -> output: {tar.getmembers()}\n")
 
     # unbalance psi
-    ub_psi_result_uri = 'ub_psi_result_uri'
+    ub_psi_result_uri = "ub_psi_result_uri"
     param = build_node_eval_param(
         domain="data_prep",
         name="unbalance_psi",
         version="1.0.0",
-        attrs={'input/client_ds/keys': ["id2"], "receiver_parties": ['alice', 'bob']},
+        attrs={"input/client_ds/keys": ["id2"], "receiver_parties": ["alice", "bob"]},
         inputs=[
             VTable(
                 name="input1",
@@ -124,7 +124,7 @@ def test_ub_psi(sf_production_setup_comp):
         cluster_config=sf_cluster_config,
     )
     assert len(ub_psi_result.outputs) == 1
-    logging.info(f'client result: {ub_psi_result.outputs[0]}')
+    logging.info(f"client result: {ub_psi_result.outputs[0]}")
     for data_ref in ub_psi_result.outputs[0].data_refs:
         if self_party == data_ref.party:
             table = orc.read_table(storage.get_reader(data_ref.uri))
@@ -145,17 +145,17 @@ def test_ub_psi_left(sf_production_setup_comp):
         {
             "data": {"id1": ["K100", "K101"], "item": ["A1", "A2"]},
             "path": server_csv_uri,
-            'party': 'alice',
+            "party": "alice",
         },
         {
             "data": {"id2": ["K100", "K102"], "item": ["B1", "B3"]},
             "path": client_csv_uri,
-            'party': 'bob',
+            "party": "bob",
         },
     ]
 
     for item in input_data_list:
-        if self_party == item['party']:
+        if self_party == item["party"]:
             pd.DataFrame(item["data"]).to_csv(
                 storage.get_writer(item["path"]),
                 index=False,
@@ -166,8 +166,8 @@ def test_ub_psi_left(sf_production_setup_comp):
         name="unbalance_psi_cache",
         version="1.0.0",
         attrs={
-            'input/input_ds/keys': ["id1"],
-            'client': ["bob"],
+            "input/input_ds/keys": ["id1"],
+            "client": ["bob"],
         },
         inputs=[
             VTable(
@@ -192,23 +192,23 @@ def test_ub_psi_left(sf_production_setup_comp):
     )
 
     assert len(ub_cache.outputs) == 1
-    logging.info(f'server cache: {ub_cache.outputs[0]}')
+    logging.info(f"server cache: {ub_cache.outputs[0]}")
 
     for data_ref in ub_cache.outputs[0].data_refs:
         if self_party == data_ref.party:
             with storage.get_reader(data_ref.uri) as reader:
-                with tarfile.open(fileobj=reader, mode='r:gz') as tar:
+                with tarfile.open(fileobj=reader, mode="r:gz") as tar:
                     logging.info(f"\n{self_party} -> output: {tar.getmembers()}\n")
 
     # unbalance psi
-    ub_psi_result_uri = 'ub_psi_result_uri'
+    ub_psi_result_uri = "ub_psi_result_uri"
     param = build_node_eval_param(
         domain="data_prep",
         name="unbalance_psi",
         version="1.0.0",
         attrs={
-            'input/client_ds/keys': ["id2"],
-            "receiver_parties": ['alice', 'bob'],
+            "input/client_ds/keys": ["id2"],
+            "receiver_parties": ["alice", "bob"],
             "join_type": "left_join",
             "join_type/left_join/left_side": ["alice"],
         },
@@ -235,7 +235,7 @@ def test_ub_psi_left(sf_production_setup_comp):
         cluster_config=sf_cluster_config,
     )
     assert len(ub_psi_result.outputs) == 1
-    logging.info(f'client result: {ub_psi_result.outputs[0]}')
+    logging.info(f"client result: {ub_psi_result.outputs[0]}")
     for data_ref in ub_psi_result.outputs[0].data_refs:
         if self_party == data_ref.party:
             table = orc.read_table(storage.get_reader(data_ref.uri))

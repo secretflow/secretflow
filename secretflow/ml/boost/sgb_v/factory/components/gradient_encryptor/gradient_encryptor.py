@@ -88,10 +88,10 @@ class GradientEncryptor(Component):
         return
 
     def get_params(self, params: dict):
-        params['fixed_point_parameter'] = self.params.fixed_point_parameter
-        params['batch_encoding_enabled'] = self.params.batch_encoding_enabled
-        params['audit_paths'] = self.params.audit_paths
-        params['label_holder_feature_only'] = self.params.label_holder_feature_only
+        params["fixed_point_parameter"] = self.params.fixed_point_parameter
+        params["batch_encoding_enabled"] = self.params.batch_encoding_enabled
+        params["audit_paths"] = self.params.audit_paths
+        params["label_holder_feature_only"] = self.params.label_holder_feature_only
         LoggingTools.logging_params_write_dict(params, self.logging_params)
 
     def set_params(self, params: dict):

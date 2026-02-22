@@ -21,17 +21,10 @@ from typing import Callable
 
 import pytest
 
-from .sf_config import (
-    ALL_PARTIES,
-    generate_port_by_node_index,
-    get_parties,
-    get_storage_root,
-)
+from .sf_config import get_parties, get_storage_root
 from .sf_fixtures import (
-    DeviceInventory,
     MPCFixture,
     build_cluster_config,
-    build_devices,
     get_mpc_fixture,
     is_mpc_fixture,
 )
@@ -117,7 +110,7 @@ def pytest_configure(config: pytest.Config):
     # os.fork() was called. os.fork() is incompatible with multithreaded code, and JAX is multithreaded,
     # so this will likely lead to a deadlock.
     if multiprocessing.get_start_method(allow_none=True) is None:
-        multiprocessing.set_start_method('spawn')
+        multiprocessing.set_start_method("spawn")
 
     config.addinivalue_line(
         "markers",
@@ -322,7 +315,7 @@ def _rand_id(count: int = 4) -> str:
     import random
 
     characters = string.ascii_lowercase + string.digits
-    res = ''.join(random.choice(characters) for _ in range(count))
+    res = "".join(random.choice(characters) for _ in range(count))
     return res
 
 
@@ -406,93 +399,3 @@ def prepare_storage_path(party):
     storage_path = os.path.join(get_storage_root(), party, str(uuid.uuid4()))
     os.makedirs(storage_path, exist_ok=True)
     return storage_path
-
-
-@pytest.fixture(scope="function", params=[{"parties": ["alice", "bob"]}])
-def sf_memory_setup_devices(request):
-    import secretflow as sf
-    import secretflow.distributed as sfd
-    from secretflow.distributed.const import DISTRIBUTION_MODE
-
-    param = request.param if hasattr(request, "param") else {}
-    parties = get_parties(param.get("parties"))
-    assert parties, f"parties={parties}"
-
-    sfd.set_distribution_mode(mode=DISTRIBUTION_MODE.DEBUG)
-    sf.shutdown()
-    sf.init(parties, debug_mode=True)
-
-    devices = DeviceInventory()
-    pyus = {p: sf.PYU(p) for p in parties}
-    devices.alice = pyus.get("alice")
-    devices.bob = pyus.get("bob")
-    devices.carol = pyus.get("carol")
-    devices.davy = pyus.get("davy")
-    devices.spu = pyus.get("spu")
-    devices.heu = None
-
-    yield devices
-    del devices
-    sf.shutdown()
-
-
-@pytest.fixture(scope="function")
-def sf_simulation_setup():
-    import multiprocess
-
-    import secretflow as sf
-    import secretflow.distributed as sfd
-    from secretflow.distributed.const import DISTRIBUTION_MODE
-
-    address = "local"
-    parties = ALL_PARTIES
-
-    logging.info(f"try to init sf, {address}")
-    sfd.set_distribution_mode(mode=DISTRIBUTION_MODE.SIMULATION)
-    sf.shutdown()
-    sf.init(
-        parties,
-        address=address,
-        num_cpus=32,
-        log_to_driver=True,
-        omp_num_threads=multiprocess.cpu_count(),
-    )
-
-    yield parties
-
-    sf.shutdown()
-
-
-@pytest.fixture(
-    scope="function",
-    params=[{"spu_protocol": "semi2k", "spu_parties": 2, "is_tune": False}],
-)
-def sf_simulation_setup_devices(request: pytest.FixtureRequest, sf_simulation_setup):
-    """
-    By default, parties is ["alice", "bob"], spu_protocol is semi2k.
-    The parameters can be adjusted using mark.parametrize.
-    ```
-    @pytest.mark.parametrize("sf_simulation_setup_devices", [{"is_tune": True}], indirect=True)
-    def test_foo(sf_simulation_setup_devices):...
-    ```
-    """
-
-    param = request.param if hasattr(request, "param") else {}
-    parties = sf_simulation_setup
-    spu_protocol = param.get("spu_protocol", "semi2k")
-    spu_parties = get_parties(param.get("spu_parties", 2))
-    heu_sk_keeper = param.get("heu_sk_keeper", "alice")
-    is_tune = param.get("is_tune", False)
-    assert spu_protocol and heu_sk_keeper, f"spu={spu_protocol},heu={heu_sk_keeper}"
-
-    # tests/tuner don't need spu and heu
-    if is_tune:
-        spu_protocol = ""
-        heu_sk_keeper = ""
-        spu_addrs = None
-    else:
-        index = _get_property(request.node.user_properties, "index", 1)
-        port_gen = generate_port_by_node_index(index)
-        spu_addrs = {party: f"127.0.0.1:{next(port_gen)}" for party in spu_parties}
-    devices = build_devices(parties, spu_protocol, spu_addrs, heu_sk_keeper)
-    return devices

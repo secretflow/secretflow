@@ -66,11 +66,11 @@ def _build_test():
     scaler = StandardScaler()
 
     alice_data = test_data_alice.copy()
-    alice_feature = ['a1', 'a2']
+    alice_feature = ["a1", "a2"]
     alice_data[alice_feature] = scaler.fit_transform(alice_data[alice_feature])
 
     bob_data = test_data_bob.copy()
-    bob_feature = ['b1']
+    bob_feature = ["b1"]
     bob_data[bob_feature] = scaler.fit_transform(bob_data[bob_feature])
 
     names.append("standardize")
@@ -84,11 +84,11 @@ def _build_test():
     scaler = MinMaxScaler()
 
     alice_data = test_data_alice.copy()
-    alice_feature = ['a1', 'a2']
+    alice_feature = ["a1", "a2"]
     alice_data[alice_feature] = scaler.fit_transform(alice_data[alice_feature])
 
     bob_data = test_data_bob.copy()
-    bob_feature = ['b1']
+    bob_feature = ["b1"]
     bob_data[bob_feature] = scaler.fit_transform(bob_data[bob_feature])
 
     names.append("normalization")
@@ -102,14 +102,14 @@ def _build_test():
     rule.operands.extend(["1", "2"])
 
     alice_data = test_data_alice.copy()
-    alice_feature = ['a1']
-    alice_data.loc[alice_data['a1'] < 1, 'a1'] = 1
-    alice_data.loc[alice_data['a1'] > 2, 'a1'] = 2
+    alice_feature = ["a1"]
+    alice_data.loc[alice_data["a1"] < 1, "a1"] = 1
+    alice_data.loc[alice_data["a1"] > 2, "a1"] = 2
 
     bob_data = test_data_bob.copy()
-    bob_feature = ['b1']
-    bob_data.loc[bob_data['b1'] < 1, 'b1'] = 1
-    bob_data.loc[bob_data['b1'] > 2, 'b1'] = 2
+    bob_feature = ["b1"]
+    bob_data.loc[bob_data["b1"] < 1, "b1"] = 1
+    bob_data.loc[bob_data["b1"] > 2, "b1"] = 2
     bob_data = bob_data.astype(float)
 
     names.append("range_limit")
@@ -123,12 +123,12 @@ def _build_test():
     rule.operands.extend(["+", "+", "1"])
 
     alice_data = test_data_alice.copy()
-    alice_feature = ['a1']
-    alice_data['a1'] = alice_data['a1'] + 1.0
+    alice_feature = ["a1"]
+    alice_data["a1"] = alice_data["a1"] + 1.0
 
     bob_data = test_data_bob.copy()
-    bob_feature = ['b1']
-    bob_data['b1'] = bob_data['b1'] + 1.0
+    bob_feature = ["b1"]
+    bob_data["b1"] = bob_data["b1"] + 1.0
 
     names.append("unary_+")
     tests.append(rule)
@@ -141,12 +141,12 @@ def _build_test():
     rule.operands.extend(["+", "-", "1"])
 
     alice_data = test_data_alice.copy()
-    alice_feature = ['a1']
-    alice_data['a1'] = alice_data['a1'] - 1.0
+    alice_feature = ["a1"]
+    alice_data["a1"] = alice_data["a1"] - 1.0
 
     bob_data = test_data_bob.copy()
-    bob_feature = ['b1']
-    bob_data['b1'] = bob_data['b1'] - 1.0
+    bob_feature = ["b1"]
+    bob_data["b1"] = bob_data["b1"] - 1.0
 
     names.append("unary_-")
     tests.append(rule)
@@ -159,12 +159,12 @@ def _build_test():
     rule.operands.extend(["-", "-", "1"])
 
     alice_data = test_data_alice.copy()
-    alice_feature = ['a1']
-    alice_data['a1'] = 1.0 - alice_data['a1']
+    alice_feature = ["a1"]
+    alice_data["a1"] = 1.0 - alice_data["a1"]
 
     bob_data = test_data_bob.copy()
-    bob_feature = ['b1']
-    bob_data['b1'] = 1.0 - bob_data['b1']
+    bob_feature = ["b1"]
+    bob_data["b1"] = 1.0 - bob_data["b1"]
 
     names.append("unary_reverse_-")
     tests.append(rule)
@@ -177,12 +177,12 @@ def _build_test():
     rule.operands.extend(["+", "*", "2"])
 
     alice_data = test_data_alice.copy()
-    alice_feature = ['a1']
-    alice_data['a1'] = alice_data['a1'] * 2.0
+    alice_feature = ["a1"]
+    alice_data["a1"] = alice_data["a1"] * 2.0
 
     bob_data = test_data_bob.copy()
-    bob_feature = ['b1']
-    bob_data['b1'] = bob_data['b1'] * 2.0
+    bob_feature = ["b1"]
+    bob_data["b1"] = bob_data["b1"] * 2.0
 
     names.append("unary_*")
     tests.append(rule)
@@ -195,12 +195,12 @@ def _build_test():
     rule.operands.extend(["+", "/", "3"])
 
     alice_data = test_data_alice.copy()
-    alice_feature = ['a1']
-    alice_data['a1'] = alice_data['a1'] / 3.0
+    alice_feature = ["a1"]
+    alice_data["a1"] = alice_data["a1"] / 3.0
 
     bob_data = test_data_bob.copy()
-    bob_feature = ['b1']
-    bob_data['b1'] = bob_data['b1'] / 3.0
+    bob_feature = ["b1"]
+    bob_data["b1"] = bob_data["b1"] / 3.0
 
     names.append("unary_/")
     tests.append(rule)
@@ -213,12 +213,12 @@ def _build_test():
     rule.operands.extend(["-", "/", "3"])
 
     alice_data = test_data_alice.copy()
-    alice_feature = ['a1']
-    alice_data['a1'] = 3.0 / alice_data['a1']
+    alice_feature = ["a1"]
+    alice_data["a1"] = 3.0 / alice_data["a1"]
 
     bob_data = test_data_bob.copy()
-    bob_feature = ['b1']
-    bob_data['b1'] = 3.0 / bob_data['b1']
+    bob_feature = ["b1"]
+    bob_data["b1"] = 3.0 / bob_data["b1"]
 
     names.append("unary_reverse_/")
     tests.append(rule)
@@ -230,12 +230,12 @@ def _build_test():
     rule.op = CalculateOpRules.OpType.RECIPROCAL
 
     alice_data = test_data_alice.copy()
-    alice_feature = ['a1']
-    alice_data['a1'] = 1.0 / alice_data['a1']
+    alice_feature = ["a1"]
+    alice_data["a1"] = 1.0 / alice_data["a1"]
 
     bob_data = test_data_bob.copy()
-    bob_feature = ['b1']
-    bob_data['b1'] = 1.0 / bob_data['b1']
+    bob_feature = ["b1"]
+    bob_data["b1"] = 1.0 / bob_data["b1"]
 
     names.append("reciprocal")
     tests.append(rule)
@@ -247,12 +247,12 @@ def _build_test():
     rule.op = CalculateOpRules.OpType.ROUND
 
     alice_data = test_data_alice.copy()
-    alice_feature = ['a1']
-    alice_data['a1'] = alice_data['a1'].round()
+    alice_feature = ["a1"]
+    alice_data["a1"] = alice_data["a1"].round()
 
     bob_data = test_data_bob.copy()
-    bob_feature = ['b1']
-    bob_data['b1'] = bob_data['b1'].round()
+    bob_feature = ["b1"]
+    bob_data["b1"] = bob_data["b1"].round()
 
     names.append("round")
     tests.append(rule)
@@ -265,14 +265,14 @@ def _build_test():
     rule.operands.extend(["10"])
 
     alice_data = test_data_alice.copy()
-    alice_feature = ['a1']
-    alice_data['a1'] = np.log2(alice_data['a1'] + 10)
-    alice_data['a1'] = alice_data['a1'].round()
+    alice_feature = ["a1"]
+    alice_data["a1"] = np.log2(alice_data["a1"] + 10)
+    alice_data["a1"] = alice_data["a1"].round()
 
     bob_data = test_data_bob.copy()
-    bob_feature = ['b1']
-    bob_data['b1'] = np.log2(bob_data['b1'] + 10)
-    bob_data['b1'] = bob_data['b1'].round()
+    bob_feature = ["b1"]
+    bob_data["b1"] = np.log2(bob_data["b1"] + 10)
+    bob_data["b1"] = bob_data["b1"].round()
 
     names.append("log_round")
     tests.append(rule)
@@ -284,12 +284,12 @@ def _build_test():
     rule.op = CalculateOpRules.OpType.SQRT
 
     alice_data = test_data_alice.copy()
-    alice_feature = ['a1']
-    alice_data['a1'] = np.sqrt(alice_data['a1'])
+    alice_feature = ["a1"]
+    alice_data["a1"] = np.sqrt(alice_data["a1"])
 
     bob_data = test_data_bob.copy()
-    bob_feature = ['b1']
-    bob_data['b1'] = np.sqrt(bob_data['b1'])
+    bob_feature = ["b1"]
+    bob_data["b1"] = np.sqrt(bob_data["b1"])
 
     names.append("sqrt")
     tests.append(rule)
@@ -302,12 +302,12 @@ def _build_test():
     rule.operands.extend(["e", "10"])
 
     alice_data = test_data_alice.copy()
-    alice_feature = ['a1']
-    alice_data['a1'] = np.log(alice_data['a1'] + 10)
+    alice_feature = ["a1"]
+    alice_data["a1"] = np.log(alice_data["a1"] + 10)
 
     bob_data = test_data_bob.copy()
-    bob_feature = ['b1']
-    bob_data['b1'] = np.log(bob_data['b1'] + 10)
+    bob_feature = ["b1"]
+    bob_data["b1"] = np.log(bob_data["b1"] + 10)
 
     names.append("log base e")
     tests.append(rule)
@@ -320,12 +320,12 @@ def _build_test():
     rule.operands.extend(["2", "10"])
 
     alice_data = test_data_alice.copy()
-    alice_feature = ['a1']
-    alice_data['a1'] = np.log(alice_data['a1'] + 10) / np.log(2)
+    alice_feature = ["a1"]
+    alice_data["a1"] = np.log(alice_data["a1"] + 10) / np.log(2)
 
     bob_data = test_data_bob.copy()
-    bob_feature = ['b1']
-    bob_data['b1'] = np.log(bob_data['b1'] + 10) / np.log(2)
+    bob_feature = ["b1"]
+    bob_data["b1"] = np.log(bob_data["b1"] + 10) / np.log(2)
 
     names.append("log base 2")
     tests.append(rule)
@@ -337,12 +337,12 @@ def _build_test():
     rule.op = CalculateOpRules.OpType.EXP
 
     alice_data = test_data_alice.copy()
-    alice_feature = ['a1']
-    alice_data['a1'] = np.exp(alice_data['a1'])
+    alice_feature = ["a1"]
+    alice_data["a1"] = np.exp(alice_data["a1"])
 
     bob_data = test_data_bob.copy()
-    bob_feature = ['b1']
-    bob_data['b1'] = np.exp(bob_data['b1'])
+    bob_feature = ["b1"]
+    bob_data["b1"] = np.exp(bob_data["b1"])
 
     names.append("exp")
     tests.append(rule)
@@ -354,8 +354,8 @@ def _build_test():
     rule.op = CalculateOpRules.OpType.LENGTH
 
     alice_data = test_data_alice.copy()
-    alice_feature = ['a3']
-    alice_data['a3'] = alice_data['a3'].str.len()
+    alice_feature = ["a3"]
+    alice_data["a3"] = alice_data["a3"].str.len()
 
     names.append("length")
     tests.append(rule)
@@ -368,8 +368,8 @@ def _build_test():
     rule.operands.extend(["0", "2"])
 
     alice_data = test_data_alice.copy()
-    alice_feature = ['a3']
-    alice_data['a3'] = alice_data['a3'].str[:2]
+    alice_feature = ["a3"]
+    alice_data["a3"] = alice_data["a3"].str[:2]
 
     names.append("substr")
     tests.append(rule)

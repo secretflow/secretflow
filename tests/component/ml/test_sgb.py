@@ -45,7 +45,7 @@ def get_train_param(
     model_path,
     checkpoint_uri,
     train_version,
-    objective_case='biclassification',
+    objective_case="biclassification",
 ):
     objective = "logistic"
     metric = "roc_auc"

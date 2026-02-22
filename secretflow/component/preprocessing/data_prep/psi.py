@@ -33,9 +33,9 @@ from secretflow.component.core import (
     VTableFormat,
     VTableParty,
     download_csv,
+    pyu_shortid,
     register,
     upload_orc,
-    uuid4,
 )
 from secretflow.component.preprocessing.data_prep.pis_utils import trans_keys_to_ids
 from secretflow.device import PYU, reveal, wait
@@ -74,9 +74,9 @@ class Protocol(UnionGroup):
 
 @register(domain="data_prep", version="1.0.0", name="psi")
 class PSI(Component):
-    '''
+    """
     PSI between two parties.
-    '''
+    """
 
     protocol: Protocol = Field.union_attr(
         desc="PSI protocol.",
@@ -153,7 +153,7 @@ class PSI(Component):
         join_type = self.join_type.get_selected()
         advanced_join_type = to_join_type(join_type)
 
-        rand_id = uuid4(tbl1.party)
+        rand_id = pyu_shortid(tbl1.party)
         root_dir = os.path.join(ctx.data_dir, rand_id)
         na_rep = rand_id
 
@@ -254,10 +254,10 @@ def to_join_type(v: str) -> str:
     if v == "inner_join":
         return "JOIN_TYPE_INNER_JOIN"
     elif v == "left_join":
-        return 'JOIN_TYPE_LEFT_JOIN'
+        return "JOIN_TYPE_LEFT_JOIN"
     elif v == "full_join":
-        return 'JOIN_TYPE_FULL_JOIN'
+        return "JOIN_TYPE_FULL_JOIN"
     elif v == "difference":
-        return 'JOIN_TYPE_DIFFERENCE'
+        return "JOIN_TYPE_DIFFERENCE"
     else:
         raise ValueError(f"unknown join_type {v}")

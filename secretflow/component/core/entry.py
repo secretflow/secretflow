@@ -40,7 +40,7 @@ def setup_sf_cluster(config: SFClusterConfig):
     cross_silo_comm_backend = (
         config.desc.ray_fed_config.cross_silo_comm_backend
         if len(config.desc.ray_fed_config.cross_silo_comm_backend)
-        else 'brpc_link'
+        else "brpc_link"
     )
 
     # From https://grpc.github.io/grpc/core/md_doc_statuscodes.html
@@ -48,27 +48,27 @@ def setup_sf_cluster(config: SFClusterConfig):
     # The code could even be inconsistent with the original meaning because the
     # complex real produciton environment.
     _GRPC_RETRY_CODES = [
-        'CANCELLED',
-        'UNKNOWN',
-        'INVALID_ARGUMENT',
-        'DEADLINE_EXCEEDED',
-        'NOT_FOUND',
-        'ALREADY_EXISTS',
-        'PERMISSION_DENIED',
-        'RESOURCE_EXHAUSTED',
-        'ABORTED',
-        'OUT_OF_RANGE',
-        'UNIMPLEMENTED',
-        'INTERNAL',
-        'UNAVAILABLE',
-        'DATA_LOSS',
-        'UNAUTHENTICATED',
+        "CANCELLED",
+        "UNKNOWN",
+        "INVALID_ARGUMENT",
+        "DEADLINE_EXCEEDED",
+        "NOT_FOUND",
+        "ALREADY_EXISTS",
+        "PERMISSION_DENIED",
+        "RESOURCE_EXHAUSTED",
+        "ABORTED",
+        "OUT_OF_RANGE",
+        "UNIMPLEMENTED",
+        "INTERNAL",
+        "UNAVAILABLE",
+        "DATA_LOSS",
+        "UNAUTHENTICATED",
     ]
 
-    if cross_silo_comm_backend == 'grpc':
+    if cross_silo_comm_backend == "grpc":
         cross_silo_comm_options = {
-            'proxy_max_restarts': 3,
-            'grpc_retry_policy': {
+            "proxy_max_restarts": 3,
+            "grpc_retry_policy": {
                 # The maximum is 5.
                 # ref https://github.com/grpc/proposal/blob/master/A6-client-retries.md#validation-of-retrypolicy
                 "maxAttempts": 5,
@@ -78,18 +78,18 @@ def setup_sf_cluster(config: SFClusterConfig):
                 "retryableStatusCodes": _GRPC_RETRY_CODES,
             },
         }
-    elif cross_silo_comm_backend == 'brpc_link':
+    elif cross_silo_comm_backend == "brpc_link":
         cross_silo_comm_options = {
-            'proxy_max_restarts': 3,
-            'timeout_in_ms': 300 * 1000,
+            "proxy_max_restarts": 3,
+            "timeout_in_ms": 300 * 1000,
             # Give recv_timeout_ms a big value, e.g.
             # The server does nothing but waits for task finish.
             # To fix the psi timeout, got a week here.
-            'recv_timeout_ms': 7 * 24 * 3600 * 1000,
-            'connect_retry_times': 3600,
-            'connect_retry_interval_ms': 1000,
-            'brpc_channel_protocol': 'http',
-            'brpc_channel_connection_type': 'pooled',
+            "recv_timeout_ms": 7 * 24 * 3600 * 1000,
+            "connect_retry_times": 3600,
+            "connect_retry_interval_ms": 1000,
+            "brpc_channel_protocol": "http",
+            "brpc_channel_connection_type": "pooled",
         }
 
     else:
@@ -105,7 +105,7 @@ def setup_sf_cluster(config: SFClusterConfig):
         list(config.public_config.ray_fed_config.parties),
         list(config.public_config.ray_fed_config.addresses),
     ):
-        if cross_silo_comm_backend == 'brpc_link':
+        if cross_silo_comm_backend == "brpc_link":
             # if port is not present, use default 80 port.
             if len(addr.split(":")) < 2:
                 addr += ":80"
@@ -116,8 +116,8 @@ def setup_sf_cluster(config: SFClusterConfig):
 
             cluster_config["parties"][party] = {
                 # add "http://" to force brpc to set the correct host
-                "address": f'http://{addr}',
-                'listen_addr': f'0.0.0.0:{splits[1]}',
+                "address": f"http://{addr}",
+                "listen_addr": f"0.0.0.0:{splits[1]}",
             }
         else:
             cluster_config["parties"][party] = {"address": addr}
@@ -128,7 +128,7 @@ def setup_sf_cluster(config: SFClusterConfig):
         log_to_driver=True,
         cluster_config=cluster_config,
         omp_num_threads=multiprocessing.cpu_count(),
-        logging_level='info',
+        logging_level="info",
         cross_silo_comm_backend=cross_silo_comm_backend,
         cross_silo_comm_options=cross_silo_comm_options,
         enable_waiting_for_other_parties_ready=True,
@@ -197,14 +197,14 @@ def comp_eval(
     cluster_config: SFClusterConfig,
     tracer_report: bool = False,
 ) -> NodeEvalResult:
-    is_pytest = 'PYTEST_CURRENT_TEST' in os.environ
+    is_pytest = "PYTEST_CURRENT_TEST" in os.environ
     if not is_pytest:
         storage_config_masked = _mask_storage_config(storage_config)
         logging.info(f"\n--\n{build_message()}\n--\n")
-        logging.info(f'\n--\n*param* \n\n{param}\n--\n')
-        logging.info(f'\n--\n*storage_config* \n\n{storage_config_masked}\n--\n')
-        logging.info(f'\n--\n*cluster_config* \n\n{cluster_config}\n--\n')
-        logging.info(f'\n--\n*system_info* \n\n{platform.uname()}\n--\n')
+        logging.info(f"\n--\n*param* \n\n{param}\n--\n")
+        logging.info(f"\n--\n*storage_config* \n\n{storage_config_masked}\n--\n")
+        logging.info(f"\n--\n*cluster_config* \n\n{cluster_config}\n--\n")
+        logging.info(f"\n--\n*system_info* \n\n{platform.uname()}\n--\n")
 
     comp_def = Registry.get_definition_by_id(param.comp_id)
     if comp_def is None:
@@ -242,7 +242,7 @@ def comp_eval(
 
         res = NodeEvalResult(outputs=outputs)
         if not is_pytest:
-            logging.info(f'\n--\n*res* \n\n{res}\n--\n')
+            logging.info(f"\n--\n*res* \n\n{res}\n--\n")
         if tracer_report:
             res = {"eval_result": res, "tracer_report": ctx.trace_report()}
         return res

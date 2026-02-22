@@ -53,7 +53,7 @@ def read_csv_wrapper(
         filepath = filepath()
 
     if auto_gen_header_prefix:
-        kwargs['header'] = None
+        kwargs["header"] = None
 
         df = _read_csv(filepath, read_backend, **kwargs)
         df.columns = [

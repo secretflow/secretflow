@@ -74,16 +74,16 @@ class SplitTree:
 
     def to_dict(self) -> Dict:
         return {
-            'split_features': self.split_features,
-            'split_values': self.split_values,
-            'split_indices': self.split_indices,
-            'leaf_indices': self.leaf_indices,
+            "split_features": self.split_features,
+            "split_values": self.split_values,
+            "split_indices": self.split_indices,
+            "leaf_indices": self.leaf_indices,
         }
 
     def gain_statistics(self) -> Tuple[Dict, Dict]:
         if len(self.split_gains) != len(self.split_features):
             logging.warning(
-                f"split gains does not support serialization and deserialization for now. train a new tree instead."
+                "split gains does not support serialization and deserialization for now. train a new tree instead."
             )
             return {}, {}
         gain_sums = {}
@@ -102,10 +102,10 @@ class SplitTree:
 
 def from_dict(dict: Dict) -> SplitTree:
     s = SplitTree()
-    s.split_features = dict['split_features']
-    s.split_values = dict['split_values']
-    s.split_indices = dict['split_indices']
-    s.leaf_indices = dict['leaf_indices']
+    s.split_features = dict["split_features"]
+    s.split_values = dict["split_values"]
+    s.split_indices = dict["split_indices"]
+    s.leaf_indices = dict["leaf_indices"]
     return s
 
 

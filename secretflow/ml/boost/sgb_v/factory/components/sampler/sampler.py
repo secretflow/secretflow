@@ -90,7 +90,7 @@ class Sampler(Component):
     def set_actors(self, actors: SGBActor):
         self.sample_actors = {actor.device: actor for actor in actors}
         for actor in self.sample_actors.values():
-            actor.register_class('SampleActor', SampleActor, self.params.seed)
+            actor.register_class("SampleActor", SampleActor, self.params.seed)
 
     def del_actors(self):
         del self.sample_actors
@@ -113,14 +113,14 @@ class Sampler(Component):
                 *[
                     (
                         self.sample_actors[fb.device].invoke_class_method_two_ret(
-                            'SampleActor',
-                            'generate_one_partition_col_choices',
+                            "SampleActor",
+                            "generate_one_partition_col_choices",
                             colsample,
                             fb,
                         )
                         if fb.device == self.label_holder
                         else self.sample_actors[fb.device].invoke_class_method_two_ret(
-                            'SampleActor', 'generate_one_partition_col_choices', 0, fb
+                            "SampleActor", "generate_one_partition_col_choices", 0, fb
                         )
                     )
                     for fb in feature_buckets
@@ -130,8 +130,8 @@ class Sampler(Component):
             col_choices, total_buckets = zip(
                 *[
                     self.sample_actors[fb.device].invoke_class_method_two_ret(
-                        'SampleActor',
-                        'generate_one_partition_col_choices',
+                        "SampleActor",
+                        "generate_one_partition_col_choices",
                         colsample,
                         fb,
                     )
@@ -159,12 +159,12 @@ class Sampler(Component):
             top_rate = self.params.top_rate
             bottom_rate = self.params.bottom_rate
             return self.sample_actors[g.device].invoke_class_method_two_ret(
-                'SampleActor', 'goss', row_num, g, top_rate, bottom_rate
+                "SampleActor", "goss", row_num, g, top_rate, bottom_rate
             )
         else:
             sample_rate = self.params.rowsample_by_tree
             choices = self.sample_actors[g.device].invoke_class_method(
-                'SampleActor', 'generate_row_choices', row_num, sample_rate
+                "SampleActor", "generate_row_choices", row_num, sample_rate
             )
             return choices, None
 

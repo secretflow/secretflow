@@ -26,7 +26,7 @@ from secretflow.device import PYU, PYUObject, wait
 def apply_binning_rules(
     rules: Dict, input: Union[Dict[str, np.dtype], pa.Table, pa.Schema]
 ) -> sc.Table:
-    rules = {v['name']: v for v in rules["variables"]}
+    rules = {v["name"]: v for v in rules["variables"]}
     if isinstance(input, pa.Table):
         table = Table.from_pyarrow(input)
     else:
@@ -75,7 +75,7 @@ class VertBinSubstitution:
         """
         assert isinstance(r, dict) and "variables" in r, f"not support rule format {r}"
 
-        rules = {v['name']: v for v in r["variables"]}
+        rules = {v["name"]: v for v in r["variables"]}
         assert np.isin(
             list(rules.keys()), data.column_names
         ).all(), "rule feature names [%s] mismatch with input dataset [%s]" % (

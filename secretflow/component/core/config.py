@@ -62,7 +62,7 @@ def _parse_runtime_config(key: str, raw: str | dict, nodes: list[dict]):
         ttp_config = copy.deepcopy(raw)
         adjust_party = ttp_config.pop("adjust_party")
         for rank, node in enumerate(sorted(nodes, key=lambda x: x["party"])):
-            if node['party'] == adjust_party:
+            if node["party"] == adjust_party:
                 ttp_config["adjust_rank"] = rank
                 return ttp_config
         raise InvalidArgumentError(
@@ -70,7 +70,7 @@ def _parse_runtime_config(key: str, raw: str | dict, nodes: list[dict]):
         )
     else:
         raise InvalidArgumentError(
-            f"unsupported runtime config", detail={"key": key, "value": raw}
+            "unsupported runtime config", detail={"key": key, "value": raw}
         )
 
 

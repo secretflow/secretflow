@@ -50,13 +50,13 @@ class FedCallHolder:
             if isinstance(arg, FedObject):
                 if arg.get_party() != get_global_context().get_party():
                     logger.debug(
-                        f'Try recv {self._task_msg} input '
-                        f'seq id {arg.get_seq_id()}, from {arg.get_party()}'
+                        f"Try recv {self._task_msg} input "
+                        f"seq id {arg.get_seq_id()}, from {arg.get_party()}"
                     )
                     get_global_context().recv(arg)
 
     def resolve_dependencies(self, *args, **kwargs):
-        logger.debug(f'{self._task_msg} wait for inputs')
+        logger.debug(f"{self._task_msg} wait for inputs")
         flattened_args, tree = tree_flatten((args, kwargs))
         indexes = []
         resolved = []
@@ -64,25 +64,25 @@ class FedCallHolder:
             if isinstance(arg, FedObject):
                 indexes.append(idx)
                 logger.debug(
-                    f'{self._task_msg} wait for input seq id {arg.get_seq_id()}'
+                    f"{self._task_msg} wait for input seq id {arg.get_seq_id()}"
                 )
                 resolved.append(arg.get_object())
-                logger.debug(f'{self._task_msg} input seq id {arg.get_seq_id()} ready')
+                logger.debug(f"{self._task_msg} input seq id {arg.get_seq_id()} ready")
         if resolved:
             for idx, actual_val in zip(indexes, resolved):
                 flattened_args[idx] = actual_val
 
         resolved_args, resolved_kwargs = tree_unflatten(tree, flattened_args)
-        logger.debug(f'{self._task_msg} inputs ready')
+        logger.debug(f"{self._task_msg} inputs ready")
         return resolved_args, resolved_kwargs
 
     def internal_remote(self, *args, **kwargs):
         num_returns = 1
-        if self._options and 'num_returns' in self._options:
-            num_returns = self._options['num_returns']
+        if self._options and "num_returns" in self._options:
+            num_returns = self._options["num_returns"]
 
         if self._party == self._node_party:
-            logger.debug(f'Try submit {self._task_msg}')
+            logger.debug(f"Try submit {self._task_msg}")
             self.recv_dependencies(*args, **kwargs)
 
             def _task():
@@ -115,13 +115,13 @@ class FedCallHolder:
                     for i in range(num_returns)
                 ]
         else:
-            logger.debug(f'Try send {self._task_msg} input')
+            logger.debug(f"Try send {self._task_msg} input")
             flattened_args, _ = tree_flatten((args, kwargs))
             for arg in flattened_args:
                 if isinstance(arg, FedObject) and arg.get_party() == self._party:
                     logger.debug(
-                        f'Try send {self._task_msg} input '
-                        f'seq id {arg.get_seq_id()} to {self._node_party}'
+                        f"Try send {self._task_msg} input "
+                        f"seq id {arg.get_seq_id()} to {self._node_party}"
                     )
                     get_global_context().send(self._node_party, arg)
             if num_returns == 1:

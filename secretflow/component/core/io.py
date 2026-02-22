@@ -256,7 +256,7 @@ class CSVWriter(IWriter):
         df.to_csv(
             self._buffer.native,
             header=True,
-            mode='w',
+            mode="w",
             quoting=self._options.quoting,
             index=False,
         )
@@ -267,7 +267,7 @@ class CSVWriter(IWriter):
         df.to_csv(
             self._buffer.native,
             header=False,
-            mode='a',
+            mode="a",
             quoting=self._options.quoting,
             na_rep=self._options.na_rep,
             index=False,

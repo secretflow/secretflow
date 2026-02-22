@@ -22,7 +22,7 @@ option java_package = "org.secretflow.spec.extend";
 //
 // - Version info.
 // - Parties: who participate in the computation.
-// - Secret devices including and their configs.
+// - Secret devices including  and their configs.
 message SFClusterDesc {
   // SecretFlow version.
   string sf_version = 1;

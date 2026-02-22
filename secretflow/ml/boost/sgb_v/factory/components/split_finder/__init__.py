@@ -14,4 +14,4 @@
 
 from .split_finder import SplitFinder
 
-__all__ = ['SplitFinder']
+__all__ = ["SplitFinder"]

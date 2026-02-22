@@ -56,7 +56,7 @@ class WeightArbiter:
         self.kit = phe.setup(phe.SchemaType.ZPaillier, 2048)
         # You can get the public key by following method:
         logging.warning(
-            f"\033[33m ================== Initialize Arbiter RC ===================\033[0m"
+            "\033[33m ================== Initialize Arbiter RC ===================\033[0m"
         )
         self.public_key = self.kit.public_key()
         self.rc = RC()
@@ -74,13 +74,13 @@ class WeightArbiter:
         w2_int = [int(_w * 2**40) for _w in np.random.random(size=len(w_int))]
         w1_int = [_w - _w2 for _w, _w2 in zip(w_int, w2_int)]
         w1_pack = Pack(
-            task_id='1',
+            task_id="1",
             source_id=self.rc_id,
-            data_id='2',
+            data_id="2",
             target_id="rs_01",
-            encryption='ss',
+            encryption="ss",
             shape=(len(w1_int),),
-            dtype='int',
+            dtype="int",
             data=w1_int,
             process="he2ss",
             key=None,
@@ -89,13 +89,13 @@ class WeightArbiter:
             router_table=self.router_table,
         )
         w2_pack = Pack(
-            task_id='1',
+            task_id="1",
             source_id=self.rc_id,
-            data_id='2',
+            data_id="2",
             target_id="rs_02",
-            encryption='ss',
+            encryption="ss",
             shape=(len(w2_int),),
-            dtype='int',
+            dtype="int",
             data=w2_int,
             process="he2ss",
             key=None,
@@ -109,15 +109,15 @@ class WeightArbiter:
         logging.warning(f"\033[33m ROUND {self.round} rc send w2_int:{w2_int} \033[0m")
 
         # secretflow receives aggregated global weights from secret-sharing platform.
-        pk_buffer = pickle.dumps(self.public_key).decode('latin1')
+        pk_buffer = pickle.dumps(self.public_key).decode("latin1")
         pubkey_pack = Pack(
-            task_id='1',
+            task_id="1",
             source_id=self.rc_id,
-            data_id='2',
+            data_id="2",
             target_id="rs_01",
-            encryption='he',
+            encryption="he",
             shape=(1,),
-            dtype='int',
+            dtype="int",
             data=[0],  # 随便填个data
             process="ss2he",
             key=pk_buffer,

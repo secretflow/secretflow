@@ -44,7 +44,7 @@ def prod_env_and_data(sf_production_setup_devices):
 
     y_expected_2_pd_dataframe = pd.DataFrame(
         {
-            'y_expected': [0, 0, 0, 0, 0, 2, 3, 4, 5, 6],
+            "y_expected": [0, 0, 0, 0, 0, 2, 3, 4, 5, 6],
         }
     )
 
@@ -70,10 +70,10 @@ def prod_env_and_data(sf_production_setup_devices):
 def test_psi(prod_env_and_data):
     env, data = prod_env_and_data
     score_1 = reveal(
-        psi_eval(data['y_actual'], data['y_expected_1'], data['split_points'])
+        psi_eval(data["y_actual"], data["y_expected_1"], data["split_points"])
     )
     score_2 = reveal(
-        psi_eval(data['y_actual'], data['y_expected_2'], data['split_points'])
+        psi_eval(data["y_actual"], data["y_expected_2"], data["split_points"])
     )
     true_score_2 = (0.5 - 0.8) * np.log(0.5 / 0.8) + (0.5 - 0.2) * np.log(0.5 / 0.2)
     np.testing.assert_almost_equal(score_1, 0.0, decimal=2)

@@ -36,7 +36,7 @@ class KNNClassifer(_ModelBase):
 
     def _to_spu_dataset(self, x: Union[FedNdarray, VDataFrame]) -> SPUObject:
         x, _ = self._prepare_dataset(x)
-        return self.spu(self._concatenate, static_argnames=('axis'))(
+        return self.spu(self._concatenate, static_argnames=("axis"))(
             self._to_spu(x),
             axis=1,
         )
@@ -47,11 +47,11 @@ class KNNClassifer(_ModelBase):
         y: Union[FedNdarray, VDataFrame],
         n_classes,
         n_neighbors=5,
-        weights='uniform',  # uniform, distance
+        weights="uniform",  # uniform, distance
     ) -> None:
         if len(y.shape) == 2:
             if y.shape[1] != 1:
-                raise ValueError('y should be 1D array')
+                raise ValueError("y should be 1D array")
         spu_x = self._to_spu_dataset(x)
         spu_y = self._to_spu(y)[0]
 
@@ -61,7 +61,7 @@ class KNNClassifer(_ModelBase):
 
         spu_y = self.spu(adjust_label_shape)(spu_y)
 
-        logging.info(f'fit model..., x_shape:{x.shape} y_shape:{y.shape}')
+        logging.info(f"fit model..., x_shape:{x.shape} y_shape:{y.shape}")
 
         model = neighbors.KNNClassifer(
             n_neighbors=n_neighbors,
@@ -72,7 +72,7 @@ class KNNClassifer(_ModelBase):
         wait([self.model])
 
     def predict(self, x: Union[FedNdarray, VDataFrame]) -> SPUObject:
-        assert hasattr(self, 'model'), 'please fit model first'
+        assert hasattr(self, "model"), "please fit model first"
 
         spu_x = self._to_spu_dataset(x)
 

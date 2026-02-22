@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from ._utils import SPLIT_METHOD  # noqa: F401
 from .dataframe import create_df, create_hdf, create_vdf
 from .ndarray import create_ndarray
-from ._utils import SPLIT_METHOD
 
 __all__ = [
-    'create_df',
-    'create_hdf',
-    'create_vdf',
-    'create_ndarray',
+    "create_df",
+    "create_hdf",
+    "create_vdf",
+    "create_ndarray",
 ]

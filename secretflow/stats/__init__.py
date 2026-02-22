@@ -23,14 +23,14 @@ from .ss_vif_v import VIF as SSVertVIF
 from .table_statistics import categorical_statistics, table_statistics
 
 __all__ = [
-    'SSVertPearsonR',
-    'SSVertVIF',
-    'SSPValue',
-    'RegressionEval',
-    'BiClassificationEval',
-    'prediction_bias_eval',
-    'table_statistics',
-    'categorical_statistics',
-    'psi_eval',
-    'ScoreCard',
+    "SSVertPearsonR",
+    "SSVertVIF",
+    "SSPValue",
+    "RegressionEval",
+    "BiClassificationEval",
+    "prediction_bias_eval",
+    "table_statistics",
+    "categorical_statistics",
+    "psi_eval",
+    "ScoreCard",
 ]

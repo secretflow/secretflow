@@ -18,14 +18,14 @@ from typing import Tuple
 
 
 def _decode_hex(hex: str):
-    return int(f'0x{"".join(hex.split())}', 16)
+    return int(f"0x{''.join(hex.split())}", 16)
 
 
 # MODP DH Groups
 # ref https://datatracker.ietf.org/doc/html/rfc3526
 _PRIMES = {
     2: {
-        'prime': _decode_hex(
+        "prime": _decode_hex(
             """
         FFFFFFFF FFFFFFFF C90FDAA2 2168C234 C4C6628B 80DC1CD1
         29024E08 8A67CC74 020BBEA6 3B139B22 514A0879 8E3404DD
@@ -37,10 +37,10 @@ _PRIMES = {
         670C354E 4ABC9804 F1746C08 CA237327 FFFFFFFF FFFFFFFF
         """
         ),
-        'generator': 2,
+        "generator": 2,
     },
     14: {
-        'prime': _decode_hex(
+        "prime": _decode_hex(
             """
         FFFFFFFF FFFFFFFF C90FDAA2 2168C234 C4C6628B 80DC1CD1
         29024E08 8A67CC74 020BBEA6 3B139B22 514A0879 8E3404DD
@@ -55,10 +55,10 @@ _PRIMES = {
         15728E5A 8AACAA68 FFFFFFFF FFFFFFFF
         """
         ),
-        'generator': 2,
+        "generator": 2,
     },
     15: {
-        'prime': _decode_hex(
+        "prime": _decode_hex(
             """
         FFFFFFFF FFFFFFFF C90FDAA2 2168C234 C4C6628B 80DC1CD1
         29024E08 8A67CC74 020BBEA6 3B139B22 514A0879 8E3404DD
@@ -78,10 +78,10 @@ _PRIMES = {
         43DB5BFC E0FD108E 4B82D120 A93AD2CA FFFFFFFF FFFFFFFF
         """
         ),
-        'generator': 2,
+        "generator": 2,
     },
     16: {
-        'prime': _decode_hex(
+        "prime": _decode_hex(
             """
         FFFFFFFF FFFFFFFF C90FDAA2 2168C234 C4C6628B 80DC1CD1
         29024E08 8A67CC74 020BBEA6 3B139B22 514A0879 8E3404DD
@@ -107,10 +107,10 @@ _PRIMES = {
         FFFFFFFF FFFFFFFF
         """
         ),
-        'generator': 2,
+        "generator": 2,
     },
     17: {
-        'prime': _decode_hex(
+        "prime": _decode_hex(
             """
         FFFFFFFF FFFFFFFF C90FDAA2 2168C234 C4C6628B 80DC1CD1 29024E08
         8A67CC74 020BBEA6 3B139B22 514A0879 8E3404DD EF9519B3 CD3A431B
@@ -142,10 +142,10 @@ _PRIMES = {
         6DCC4024 FFFFFFFF FFFFFFFF
         """
         ),
-        'generator': 2,
+        "generator": 2,
     },
     18: {
-        'prime': _decode_hex(
+        "prime": _decode_hex(
             """
         FFFFFFFF FFFFFFFF C90FDAA2 2168C234 C4C6628B 80DC1CD1
         29024E08 8A67CC74 020BBEA6 3B139B22 514A0879 8E3404DD
@@ -192,7 +192,7 @@ _PRIMES = {
         60C980DD 98EDD3DF FFFFFFFF FFFFFFFF
         """
         ),
-        'generator': 2,
+        "generator": 2,
     },
 }
 
@@ -217,8 +217,8 @@ class DiffieHellman:
             group: optional; MODP Groups, the default is 15 which has
                 a 130 bits or 260 exponent size of security strength.
         """
-        self.p = _PRIMES[group]['prime']
-        self.g = _PRIMES[group]['generator']
+        self.p = _PRIMES[group]["prime"]
+        self.g = _PRIMES[group]["generator"]
 
     def _check_public_key(self, public_key):
         """Check the publick key.
@@ -229,7 +229,7 @@ class DiffieHellman:
         assert (
             2 < public_key < self.p - 1
             and pow(public_key, (self.p - 1) // 2, self.p) == 1
-        ), f'Invalid public key {public_key}'
+        ), f"Invalid public key {public_key}"
 
     def generate_secret(self, private_key, peer_public_key) -> str:
         """Generate secret.
@@ -246,7 +246,7 @@ class DiffieHellman:
         self._check_public_key(peer_public_key)
         shared_secret = pow(peer_public_key, private_key, self.p)
         return sha256(
-            shared_secret.to_bytes(shared_secret.bit_length() // 8 + 1, byteorder='big')
+            shared_secret.to_bytes(shared_secret.bit_length() // 8 + 1, byteorder="big")
         ).hexdigest()
 
     def generate_key_pair(self, num_key_bits=256) -> Tuple:

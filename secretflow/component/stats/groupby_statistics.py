@@ -56,10 +56,10 @@ def map_enum_type_to_agg(enum_type: ColumnQuery.AggregationFunction):
 
 @register(domain="stats", version="1.0.0")
 class GroupbyStatistics(Component):
-    '''
+    """
     Get a groupby of statistics, like pandas groupby statistics.
     Currently only support VDataframe.
-    '''
+    """
 
     # it turns out that our implementation efficiency works bad in multiple columns
     # pandas style groupby is not practical to use, due to the above reason
@@ -142,4 +142,4 @@ class GroupbyStatistics(Component):
             )
             r.add_tab(r_table, name=agg)
         self.report.data = r.to_distdata()
-        logging.info(f'\n--\n*report* \n\n{MessageToJson(r.report())}\n--\n')
+        logging.info(f"\n--\n*report* \n\n{MessageToJson(r.report())}\n--\n")

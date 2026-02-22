@@ -21,7 +21,6 @@ import translators
 from google.protobuf.json_format import MessageToJson
 
 import secretflow.component as _
-import secretflow_fl.component as _
 from secretflow.component.core import Translator, get_comp_list_def, translate
 
 
@@ -33,7 +32,7 @@ class MyTranslator(Translator):
     def translate(self, text):
         return translators.translate_text(
             text,
-            from_language='en',
+            from_language="en",
             to_language=self._lang,
             translator=self._translator,
         )
@@ -51,9 +50,9 @@ def do_translate(package: str, root_dir: str, ts: Translator):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Update sf component meta.")
-    parser.add_argument('-s', '--skip_translate', action='store_false')
+    parser.add_argument("-s", "--skip_translate", action="store_false")
     parser.add_argument(
-        '-t', '--translator', type=str, required=False, default="alibaba"
+        "-t", "--translator", type=str, required=False, default="alibaba"
     )
 
     args = parser.parse_args()
@@ -62,16 +61,15 @@ if __name__ == "__main__":
     current_dir = os.path.dirname(current_file_path)
     root_dir = os.path.dirname(current_dir)
 
-    logging.info('1. Update secretflow comp list.')
-    comp_list_file = os.path.join(current_dir, 'comp_list.json')
+    logging.info("1. Update secretflow comp list.")
+    comp_list_file = os.path.join(current_dir, "comp_list.json")
     comp_list_def = get_comp_list_def()
-    with open(comp_list_file, 'w') as f:
+    with open(comp_list_file, "w") as f:
         json.dump(
             json.loads(MessageToJson(comp_list_def)), f, indent=2, ensure_ascii=False
         )
 
     if args.skip_translate:
-        logging.info('2. Update translation.')
+        logging.info("2. Update translation.")
         my_ts = MyTranslator("zh", args.translator)
         do_translate("secretflow", root_dir, my_ts)
-        do_translate("secretflow_fl", root_dir, my_ts)

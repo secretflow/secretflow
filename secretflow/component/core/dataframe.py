@@ -14,6 +14,7 @@
 
 import copy
 import inspect
+import logging
 import math
 import traceback
 from collections import defaultdict
@@ -132,7 +133,6 @@ class CompPartition:
                 return pa.concat_tables([t1, t2])
 
         else:
-
             assert self.shape[0] == other.shape[0]
             assert len(set(self.columns).intersection(set(other.columns))) == 0
 
@@ -218,8 +218,8 @@ class CompVDataFrame(IDumper):
             return res
 
         partitions = {}
-        for pyu, partition in v_data.partitions.items():
-            data = pyu(_from_pandas)(partition.data, schemas[pyu.party])
+        for pyu, part in v_data.partitions.items():
+            data = pyu(_from_pandas)(part.data, schemas[pyu.party])
             partitions[pyu] = CompPartition(data)
 
         return CompVDataFrame(partitions, system_info)
@@ -253,10 +253,10 @@ class CompVDataFrame(IDumper):
             return res
 
         partitions = {}
-        for pyu, partition in f_nd.partitions.items():
+        for pyu, part in f_nd.partitions.items():
             if pyu.party not in schemas:
                 raise InvalidArgumentError(f"pyu.party {pyu.party} not in schemas")
-            data = pyu(_from_values)(partition, schemas[pyu.party])
+            data = pyu(_from_values)(part, schemas[pyu.party])
 
             partitions[pyu] = CompPartition(data)
 
@@ -264,7 +264,7 @@ class CompVDataFrame(IDumper):
 
     def _col_index(self, items) -> Dict[PYU, List[str]]:
         if not self.partitions:
-            raise RuntimeError(f"can not get index on empty DataFrame")
+            raise RuntimeError("can not get index on empty DataFrame")
 
         if hasattr(items, "tolist"):
             items = items.tolist()
@@ -280,7 +280,7 @@ class CompVDataFrame(IDumper):
             pyu = columns_to_party.get(item, None)
             if pyu is None:
                 raise InvalidArgumentError(
-                    f'Item {item} does not exist in columns_to_party.'
+                    f"Item {item} does not exist in columns_to_party."
                 )
             ret[pyu].append(item)
 
@@ -353,7 +353,7 @@ class CompVDataFrame(IDumper):
         self,
         fn: Callable[[pa.Table, list[str]], pa.Table],
         columns: list[str] | set[str] = None,
-    ) -> 'CompVDataFrame':
+    ) -> "CompVDataFrame":
         signature = inspect.signature(fn)
         is_one_param = len(signature.parameters) == 1
 
@@ -491,7 +491,7 @@ class CompVDataFrameReader:
             raise InvalidStateError(
                 message="DataFrame is not aligned", detail={"lines": lines}
             )
-        eof = next(iter(lines)) == True
+        eof = next(iter(lines))
 
         if eof:
             return None
@@ -583,9 +583,6 @@ class CompVDataFrameWriter:
         out.data = self.dump()
 
 
-import logging
-
-
 def save_prediction(
     storage: Storage,
     tracer: TimeTracer,
@@ -663,12 +660,12 @@ def save_prediction(
                     detail={"pyu": pyu.party, "partitions": pred.partitions},
                 )
             if isinstance(pred, FedNdarray):
-                logging.info('from value')
+                logging.info("from value")
                 pred_df = CompVDataFrame.from_values(
                     pred, pred_schemas, feature_dataset.system_info
                 )
             elif isinstance(pred, VDataFrame):
-                logging.info('from pandas')
+                logging.info("from pandas")
                 pred_df = CompVDataFrame.from_pandas(
                     pred, pred_schemas, feature_dataset.system_info
                 )
@@ -682,9 +679,9 @@ def save_prediction(
                         detail={"pyu": pyu.party, "partitions": addition_df.partitions},
                     )
 
-                logging.info(f'pred_df: {type(pred_df)}')
-                logging.info(f'pred_df: {pred_df.shape}')
-                logging.info(f'addition_df: {addition_df.shape}')
+                logging.info(f"pred_df: {type(pred_df)}")
+                logging.info(f"pred_df: {pred_df.shape}")
+                logging.info(f"addition_df: {addition_df.shape}")
 
                 out_df = pred_df.concat(addition_df, axis=1)
             else:

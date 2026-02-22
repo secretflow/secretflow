@@ -23,7 +23,6 @@ from secretflow.component.core import (
     DistDataType,
     ServingBuilder,
     VTable,
-    VTableUtils,
 )
 from secretflow.device import PYU
 from secretflow.ml.boost.sgb_v.checkpoint import SGBSnapshot, build_sgb_model

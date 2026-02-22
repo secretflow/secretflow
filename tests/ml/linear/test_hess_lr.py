@@ -44,9 +44,9 @@ def gen_heus():
             "key_pair": {"generate": {"bit_size": 2048}},
         },
         "encoding": {
-            'cleartext_type': 'DT_I32',
-            'encoder': "IntegerEncoder",
-            'encoder_args': {"scale": 1},
+            "cleartext_type": "DT_I32",
+            "encoder": "IntegerEncoder",
+            "encoder_args": {"scale": 1},
         },
     }
 
@@ -105,11 +105,11 @@ def test_model(sf_production_setup_devices):
 
     auc = roc_auc_score(label, yhat)
 
-    print(f'auc={auc}')
+    print(f"auc={auc}")
     assert auc > 0.99
 
     model.fit(x, y, epochs=4, batch_size=64, learning_rate=0.1)
     yhat = sf.reveal(model.predict(x))
     auc = roc_auc_score(label, yhat)
-    print(f'auc={auc}')
+    print(f"auc={auc}")
     assert auc > 0.98

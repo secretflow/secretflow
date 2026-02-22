@@ -19,5 +19,5 @@ from secretflow.device.device.base import register_to
 
 @register_to(DeviceType.TEEU, DeviceType.PYU)
 def teeu_to_pyu(self: TEEUObject, pyu: PYU) -> PYUObject:
-    assert isinstance(pyu, PYU), f'Expect a PYU but got {type(pyu)}.'
+    assert isinstance(pyu, PYU), f"Expect a PYU but got {type(pyu)}."
     return PYUObject(pyu, self.data)

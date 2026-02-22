@@ -40,7 +40,7 @@ from .type_traits import (
 
 @dataclass
 class HEUMoveConfig:
-    heu_dest_party: str = 'auto'
+    heu_dest_party: str = "auto"
     """Where the encrypted data is located"""
 
     heu_encoder: Union[
@@ -313,20 +313,18 @@ class HEUActor:
 
 class HEUSkKeeper(HEUActor):
     def __init__(self, heu_id, config, cleartext_type: np.dtype, encoder):
-        assert 'he_parameters' in config, f"missing field 'he_parameters' in heu config"
-        param: dict = config['he_parameters']
+        assert "he_parameters" in config, "missing field 'he_parameters' in heu config"
+        param: dict = config["he_parameters"]
 
-        assert 'key_pair' in param, f"missing field 'key_pair' in heu config"
-        assert (
-            'generate' in param['key_pair']
-        ), f"missing field 'generate' in heu config"
+        assert "key_pair" in param, "missing field 'key_pair' in heu config"
+        assert "generate" in param["key_pair"], "missing field 'generate' in heu config"
 
         self.hekit = hnp.setup(
             param.get("schema", "paillier"),
-            param['key_pair']['generate'].get('bit_size', 2048),
+            param["key_pair"]["generate"].get("bit_size", 2048),
         )
         super().__init__(
-            heu_id, config['sk_keeper']['party'], self.hekit, cleartext_type, encoder
+            heu_id, config["sk_keeper"]["party"], self.hekit, cleartext_type, encoder
         )
 
     def __repr__(self) -> str:
@@ -375,7 +373,7 @@ class HEUSkKeeper(HEUActor):
         """H2A: Decrypt the masked data array"""
         # decrypt without decode
         data_with_mask = self.decrypt(data_with_mask)
-        byte_content = data_with_mask.to_bytes(spu_fxp_size(spu_field_type), 'little')
+        byte_content = data_with_mask.to_bytes(spu_fxp_size(spu_field_type), "little")
         # ValueProto: see spu.proto in SPU repo for details.
 
         # TODO: support chunk
@@ -399,9 +397,9 @@ class HEUEvaluator(HEUActor):
 
     def dump(self, data, path):
         """Dump data to file."""
-        assert isinstance(data, (hnp.CiphertextArray, hnp.PlaintextArray)), (
-            f'value must be hnp array, ' f'got {type(data)} instead.'
-        )
+        assert isinstance(
+            data, (hnp.CiphertextArray, hnp.PlaintextArray)
+        ), f"value must be hnp array, got {type(data)} instead."
 
         Path(path).parent.mkdir(parents=True, exist_ok=True)
         with open(path, "wb") as f:
@@ -443,9 +441,9 @@ class HEUEvaluator(HEUActor):
         # otherwise ray cannot serialize the actor
         # https://docs.ray.io/en/releases-1.8.0/using-ray-with-tensorflow.html
 
-        assert isinstance(data, hnp.CiphertextArray), (
-            f'value must be HeCiphertext array, ' f'got {type(data)} instead.'
-        )
+        assert isinstance(
+            data, hnp.CiphertextArray
+        ), f"value must be HeCiphertext array, got {type(data)} instead."
 
         # we should make (random + n) <= plaintext_bound,
         # so we restrict random bound to half of plaintext_bound
@@ -465,7 +463,7 @@ class HEUEvaluator(HEUActor):
         for mask in masks:
             # TODO: support chunk
             chunk = spu.ValueChunk()
-            chunk.content = mask.to_bytes(spu_fxp_size(spu_field_type), 'little')
+            chunk.content = mask.to_bytes(spu_fxp_size(spu_field_type), "little")
             chunk.chunk_offset = 0
             chunk.total_bytes = len(chunk.content)
             shares_chunk.append(chunk.SerializeToString())
@@ -588,8 +586,8 @@ class HEU(Device):
         """
         super().__init__(DeviceType.HEU)
 
-        config.setdefault('mode', 'PHEU')
-        if config['mode'] != 'PHEU':
+        config.setdefault("mode", "PHEU")
+        if config["mode"] != "PHEU":
             raise InvalidArgumentError(
                 f"HEU working mode {config['mode']} not supported"
             )
@@ -603,16 +601,16 @@ class HEU(Device):
         if spu_fxp_fraction_bits > 0:
             default_scale = 1 << spu_fxp_fraction_bits
 
-        if 'he_parameters' not in config:
+        if "he_parameters" not in config:
             raise InvalidArgumentError("missing field 'he_parameters' in heu config")
 
-        param: dict = config['he_parameters']
+        param: dict = config["he_parameters"]
         schema = phe.parse_schema_type(param.get("schema", "paillier"))
         self.schema = schema
         self.encoder = phe.FloatEncoder(schema, default_scale)
         self.scale = default_scale
-        if 'encoding' in config:
-            cfg = config['encoding']
+        if "encoding" in config:
+            cfg = config["encoding"]
             self.cleartext_type = cfg.get("cleartext_type", "DT_F32")
             edr_args = cfg.get("encoder_args", {})
             edr_name = cfg.get("encoder", "FloatEncoder")
@@ -641,27 +639,27 @@ class HEU(Device):
 
     def init(self):
         assert (
-            'sk_keeper' in self.config
-        ), f"The current version does not support HEU standalone deployment mode"
+            "sk_keeper" in self.config
+        ), "The current version does not support HEU standalone deployment mode"
         assert (
-            'evaluators' in self.config and len(self.config['evaluators']) > 0
-        ), f"The current version does not support HEU standalone deployment mode"
+            "evaluators" in self.config and len(self.config["evaluators"]) > 0
+        ), "The current version does not support HEU standalone deployment mode"
 
         heu_id = id(self)
         self.sk_keeper = (
             sfd.remote(HEUSkKeeper)
-            .party(self.config['sk_keeper']['party'])
+            .party(self.config["sk_keeper"]["party"])
             .remote(heu_id, self.config, self.cleartext_type, self.encoder)
         )
 
         pk = sfd.get(self.sk_keeper.public_key.remote())
-        for cfg in self.config['evaluators']:
-            self.evaluators[cfg['party']] = (
+        for cfg in self.config["evaluators"]:
+            self.evaluators[cfg["party"]] = (
                 sfd.remote(HEUEvaluator)
-                .party(cfg['party'])
+                .party(cfg["party"])
                 .remote(
                     heu_id,
-                    cfg['party'],
+                    cfg["party"],
                     self.config,
                     pk,
                     self.cleartext_type,
@@ -670,7 +668,7 @@ class HEU(Device):
             )
 
     def sk_keeper_name(self):
-        return self.config['sk_keeper']['party']
+        return self.config["sk_keeper"]["party"]
 
     def evaluator_names(self):
         return self.evaluators.keys()

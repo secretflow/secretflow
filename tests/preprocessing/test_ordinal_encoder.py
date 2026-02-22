@@ -46,17 +46,17 @@ def prod_env_and_ordinal_encoder_data(sf_production_setup_devices):
 
     vdf_alice = pd.DataFrame(
         {
-            'a1': ['K5', 'K1', None, 'K6'],
-            'a2': ['A5', 'A5', 'A2', 'A2'],
-            'a3': [5, 1, 2, 6],
+            "a1": ["K5", "K1", None, "K6"],
+            "a2": ["A5", "A5", "A2", "A2"],
+            "a3": [5, 1, 2, 6],
         }
     )
 
     vdf_bob = pd.DataFrame(
         {
-            'b4': [10.2, 20.5, None, -0.4],
-            'b5': ['B3', 'B2', 'B3', 'B4'],
-            'b6': [3, 1, 9, 4],
+            "b4": [10.2, 20.5, None, -0.4],
+            "b5": ["B3", "B2", "B3", "B4"],
+            "b6": [3, 1, 9, 4],
         }
     )
     vdf = VDataFrame(
@@ -67,12 +67,12 @@ def prod_env_and_ordinal_encoder_data(sf_production_setup_devices):
     )
 
     return sf_production_setup_devices, {
-        'hdf': hdf,
-        'hdf_alice': hdf_alice,
-        'hdf_bob': hdf_bob,
-        'vdf_alice': vdf_alice,
-        'vdf_bob': vdf_bob,
-        'vdf': vdf,
+        "hdf": hdf,
+        "hdf_alice": hdf_alice,
+        "hdf_bob": hdf_bob,
+        "vdf_alice": vdf_alice,
+        "vdf_bob": vdf_bob,
+        "vdf": vdf,
     }
 
 
@@ -83,10 +83,10 @@ class TestOrdinalEncoder:
         # GIVEN
         encoder = OrdinalEncoder()
         # WHEN
-        value = encoder.fit_transform(data['vdf']['a2'])
+        value = encoder.fit_transform(data["vdf"]["a2"])
         # THEN
         sk_encoder = SkOrdinalEncoder()
-        expect_alice = sk_encoder.fit_transform(data['vdf_alice'][['a2']])[np.newaxis].T
+        expect_alice = sk_encoder.fit_transform(data["vdf_alice"][["a2"]])[np.newaxis].T
         np.testing.assert_array_almost_equal(
             reveal(value.partitions[env.alice].data), expect_alice.reshape(4, 1)
         )

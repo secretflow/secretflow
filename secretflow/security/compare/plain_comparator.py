@@ -47,4 +47,4 @@ class PlainComparator(DeviceComparator):
     def __post_init__(self):
         assert isinstance(
             self.device, PYU
-        ), f'Accepts PYU only but got {type(self.device)}.'
+        ), f"Accepts PYU only but got {type(self.device)}."

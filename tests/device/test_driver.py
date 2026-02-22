@@ -27,8 +27,8 @@ def _test_wait_should_ok(devices):
     def simple_write():
         _, temp_file = tempfile.mkstemp()
         time.sleep(5)
-        with open(temp_file, 'w') as f:
-            f.write('This is alice.')
+        with open(temp_file, "w") as f:
+            f.write("This is alice.")
         return temp_file
 
     o = devices.alice(simple_write)()
@@ -38,8 +38,8 @@ def _test_wait_should_ok(devices):
 
     # THEN
     def check(temp_file):
-        with open(temp_file, 'r') as f:
-            assert f.read() == 'This is alice.'
+        with open(temp_file, "r") as f:
+            assert f.read() == "This is alice."
         return True
 
     file_path = reveal(o)
@@ -51,14 +51,10 @@ def test_wait_should_ok_prod(sf_production_setup_devices):
     _test_wait_should_ok(sf_production_setup_devices)
 
 
-def test_wait_should_ok_sim(sf_simulation_setup_devices):
-    _test_wait_should_ok(sf_simulation_setup_devices)
-
-
 def _test_wait_should_error_when_task_failure(devices):
     # GIVEN
     def task():
-        raise AssertionError('This exception is expected by design.')
+        raise AssertionError("This exception is expected by design.")
 
     o = devices.alice(task)()
 
@@ -70,10 +66,6 @@ def _test_wait_should_error_when_task_failure(devices):
 # failing at this moment.
 # def test_wait_should_error_when_task_failure_prod(sf_production_setup_devices):
 #     _test_wait_should_error_when_task_failure(sf_production_setup_devices)
-
-
-def test_wait_should_error_when_task_failure_sim(sf_simulation_setup_devices):
-    _test_wait_should_error_when_task_failure(sf_simulation_setup_devices)
 
 
 def _test_spu_reveal(devices):
@@ -93,10 +85,6 @@ def test_spu_reveal_prod(sf_production_setup_devices):
     _test_spu_reveal(sf_production_setup_devices)
 
 
-def test_spu_reveal_sim(sf_simulation_setup_devices):
-    _test_spu_reveal(sf_simulation_setup_devices)
-
-
 def _test_spu_reveal_empty_list(devices):
     x = to(devices.alice, []).to(devices.spu)
     assert isinstance(x, SPUObject)
@@ -108,7 +96,3 @@ def _test_spu_reveal_empty_list(devices):
 @pytest.mark.mpc
 def test_spu_reveal_empty_list_prod(sf_production_setup_devices):
     _test_spu_reveal_empty_list(sf_production_setup_devices)
-
-
-def test_spu_reveal_empty_list_sim(sf_simulation_setup_devices):
-    _test_spu_reveal_empty_list(sf_simulation_setup_devices)

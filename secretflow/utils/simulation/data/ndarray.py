@@ -85,7 +85,7 @@ def create_ndarray(
     >>> h_arr = created_ndarray(arr, [alice,bob], axis=0, split_method=SPLIT_METHOD.LABEL_SKEW, label_column='f3', skew_ratio=0.5)
     """
 
-    assert parts, 'Parts should not be none or empty!'
+    assert parts, "Parts should not be none or empty!"
 
     if isinstance(source, str):
         arr = np.load(source, allow_pickle=allow_pickle)
@@ -95,10 +95,10 @@ def create_ndarray(
         arr = source()
         assert isinstance(
             arr, np.ndarray
-        ), f'Callable source must return a ndarray but got {type(arr)}'
+        ), f"Callable source must return a ndarray but got {type(arr)}"
     else:
         raise InvalidArgumentError(
-            f'Unknown source type, expect a file or ndarray or callable but got {type(source)}'
+            f"Unknown source type, expect a file or ndarray or callable but got {type(source)}"
         )
 
     if is_torch:
@@ -118,7 +118,7 @@ def create_ndarray(
     total_num = arr.shape[axis]
     assert total_num >= len(
         parts
-    ), f'Total samples/columns {total_num} is less than parts number {len(parts)}.'
+    ), f"Total samples/columns {total_num} is less than parts number {len(parts)}."
     if sample_method == SPLIT_METHOD.IID:
         indexes = iid_partition(
             parts=parts,
@@ -139,8 +139,8 @@ def create_ndarray(
             random_seed=random_state,
         )
     elif sample_method == SPLIT_METHOD.LABEL_SCREW and axis == 0:
-        num_classes = kwargs.pop('num_classes', 0)
-        max_class_nums = kwargs.pop('max_class_nums', num_classes)
+        num_classes = kwargs.pop("num_classes", 0)
+        max_class_nums = kwargs.pop("max_class_nums", num_classes)
         assert num_classes > 0, "dirichlet partition must supply num_classes"
         assert target is not None, "dirichlet partition must supply target"
         indexes = label_skew_partition(
@@ -151,7 +151,7 @@ def create_ndarray(
             random_seed=random_state,
         )
     else:
-        raise Exception(f'Unsupported sample method: {sample_method}.  axis = {axis}')
+        raise Exception(f"Unsupported sample method: {sample_method}.  axis = {axis}")
     if axis == 0:
         return FedNdarray(
             partitions={

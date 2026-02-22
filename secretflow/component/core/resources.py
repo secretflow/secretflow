@@ -32,7 +32,7 @@ class Resources:
         self.files = files
 
     @staticmethod
-    def from_package(root_package: str) -> 'Resources':
+    def from_package(root_package: str) -> "Resources":
         sub_dirs = ["", "resources", "component"]
         for d in sub_dirs:
             p = importlib.resources.files(root_package).joinpath(

@@ -42,9 +42,9 @@ from secretflow.device import PYU, reveal, wait
 
 @register(domain="data_prep", version="1.0.0")
 class UnbalancePsi(Component):
-    '''
+    """
     Unbalance psi with cache.
-    '''
+    """
 
     join_type: JoinType = Field.union_attr(
         desc="join type, default is inner join.",
@@ -59,7 +59,7 @@ class UnbalancePsi(Component):
         list_limit=Interval.closed(0, 2),
     )
     keys: list[str] = Field.table_column_attr(
-        'client_ds',
+        "client_ds",
         desc="Keys to be used for psi.",
     )
     client_ds: Input = Field.input(
@@ -88,16 +88,16 @@ class UnbalancePsi(Component):
             base_dir=task_dir,
         )
         public_info = cache.public_info
-        server_party = public_info['server']
-        client_party = public_info['client']
-        cache_dir_name = public_info['cache_dir_name']
-        na_rep = public_info['server_csv_na_rep']
+        server_party = public_info["server"]
+        client_party = public_info["client"]
+        cache_dir_name = public_info["cache_dir_name"]
+        na_rep = public_info["server_csv_na_rep"]
         cache_path = os.path.join(task_dir, cache_dir_name)
 
         join_type = self.join_type.get_selected()
 
         with PathCleanUp({server_party: task_dir, client_party: task_dir}):
-            client_csv_path = os.path.join(task_dir, f'{random_str}.client_ds.csv')
+            client_csv_path = os.path.join(task_dir, f"{random_str}.client_ds.csv")
 
             if client_party != data_client:
                 raise ValueError(
@@ -125,11 +125,11 @@ class UnbalancePsi(Component):
             output_path = {}
             if server_get_result:
                 output_path[server_party] = os.path.join(
-                    task_dir, f'{random_str}.server_output.csv'
+                    task_dir, f"{random_str}.server_output.csv"
                 )
             if client_get_result:
                 output_path[client_party] = os.path.join(
-                    task_dir, f'{random_str}.client_output.csv'
+                    task_dir, f"{random_str}.client_output.csv"
                 )
 
             spu = ctx.make_spu()
@@ -159,7 +159,7 @@ class UnbalancePsi(Component):
                 )
             parties = {}
             server_schema = VTableSchema.from_pb_str(
-                base64.b64decode(public_info['server_csv_schema'].encode())
+                base64.b64decode(public_info["server_csv_schema"].encode())
             )
             res = []
             if server_get_result:
@@ -176,7 +176,7 @@ class UnbalancePsi(Component):
                 parties[server_party] = VTableParty(
                     party=server_party,
                     uri=self.output_ds.uri,
-                    format='orc',
+                    format="orc",
                     schema=server_schema,
                 )
             if client_get_result:
@@ -193,7 +193,7 @@ class UnbalancePsi(Component):
                 parties[client_party] = VTableParty(
                     party=client_party,
                     uri=self.output_ds.uri,
-                    format='orc',
+                    format="orc",
                     schema=client_tbl.schema,
                 )
             res = set(reveal(res))
@@ -202,8 +202,8 @@ class UnbalancePsi(Component):
             logging.info(f"psi result line count: {res}")
 
             result_row_count = res.pop()
-            if result_row_count == 0 and self.allow_empty_result == False:
-                raise ValueError(f"psi result is emptys")
+            if result_row_count == 0 and not self.allow_empty_result:
+                raise ValueError("psi result is emptys")
 
             result = VTable(
                 name=self.output_ds.uri,

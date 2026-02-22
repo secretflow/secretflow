@@ -35,18 +35,18 @@ from secretflow.utils.errors import InvalidArgumentError
 from ..preprocessing import PreprocessingMixin
 
 
-@register(domain='preprocessing', version='1.0.0')
+@register(domain="preprocessing", version="1.0.0")
 class Cast(PreprocessingMixin, Component, IServingExporter):
-    '''
+    """
     For conversion between basic data types, such as converting float to string.
-    '''
+    """
 
     astype: str = Field.union_attr(
         desc="single-choice, options available are string, integer, float",
         selections=[
-            UnionSelection('integer', 'integer'),
-            UnionSelection('float', 'float'),
-            UnionSelection('string', 'string'),
+            UnionSelection("integer", "integer"),
+            UnionSelection("float", "float"),
+            UnionSelection("string", "string"),
         ],
     )
     columns: list[str] = Field.table_column_attr(
@@ -69,12 +69,12 @@ class Cast(PreprocessingMixin, Component, IServingExporter):
 
     @staticmethod
     def apply(table: sc.Table, target: str) -> sc.Table:
-        is_numeric_target = target == 'int' or target == 'float'
-        if target == 'int':
+        is_numeric_target = target == "int" or target == "float"
+        if target == "int":
             pa_type = pa.int64()
-        elif target == 'float':
+        elif target == "float":
             pa_type = pa.float64()
-        elif target == 'str':
+        elif target == "str":
             pa_type = pa.string()
         else:
             raise InvalidArgumentError(f"unsupported target type {target}")

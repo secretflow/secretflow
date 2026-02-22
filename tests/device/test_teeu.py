@@ -34,7 +34,7 @@ def sf_production_setup_devices_teeu(
 
     party_key_pair = None
     files = []
-    if self_party in ('alice', 'bob'):
+    if self_party in ("alice", "bob"):
         import tempfile
 
         from cryptography.hazmat.primitives import serialization
@@ -45,7 +45,7 @@ def sf_production_setup_devices_teeu(
         files = [private_key_path, public_key_path]
 
         party_key_pair = {
-            self_party: {'public_key': public_key_path, 'private_key': private_key_path}
+            self_party: {"public_key": public_key_path, "private_key": private_key_path}
         }
 
         def gen_rsa(pub_path: str, pri_path: str):
@@ -59,25 +59,26 @@ def sf_production_setup_devices_teeu(
                 encoding=serialization.Encoding.PEM,
                 format=serialization.PublicFormat.SubjectPublicKeyInfo,
             )
-            with open(pri_path, 'wb') as f:
+            with open(pri_path, "wb") as f:
                 f.write(key_contents)
-            with open(pub_path, 'wb') as f:
+            with open(pub_path, "wb") as f:
                 f.write(public_key)
 
         gen_rsa(public_key_path, private_key_path)
 
     cluster_config = build_prod_cluster_config(self_party, cluster.fed_addrs)
 
-    global_state.set_auth_manager_host(f'127.0.0.1:{auth_port}')
+    global_state.set_auth_manager_host(f"127.0.0.1:{auth_port}")
 
     sf.init(
-        address='local',
+        address="local",
         cluster_config=cluster_config,
         num_cpus=8,
         log_to_driver=True,
         party_key_pair=party_key_pair,
         tee_simulation=True,
         enable_waiting_for_other_parties_ready=False,
+        ray_mode=False,
     )
 
     devices = DeviceInventory()
@@ -93,7 +94,7 @@ def sf_production_setup_devices_teeu(
     sf.shutdown()
 
 
-@pytest.mark.skipif(platform == 'darwin', reason="TEEU does not support macOS")
+@pytest.mark.skipif(platform == "darwin", reason="TEEU does not support macOS")
 @pytest.mark.mpc(parties=4)
 def test_teeu_function_should_ok(sf_production_setup_devices_teeu):
     def average(data):
@@ -101,7 +102,7 @@ def test_teeu_function_should_ok(sf_production_setup_devices_teeu):
 
     devices = sf_production_setup_devices_teeu
 
-    teeu = TEEU(party='carol', mr_enclave='')
+    teeu = TEEU(party="carol", mr_enclave="")
     d1 = devices.alice(lambda: np.random.random([2, 4]))()
     d2 = devices.bob(lambda: np.random.random([2, 4]))()
     d1_tee = d1.to(teeu, allow_funcs=average)
@@ -112,7 +113,7 @@ def test_teeu_function_should_ok(sf_production_setup_devices_teeu):
     np.testing.assert_equal(avg_val, expected_avg)
 
 
-@pytest.mark.skipif(platform == 'darwin', reason="TEEU does not support macOS")
+@pytest.mark.skipif(platform == "darwin", reason="TEEU does not support macOS")
 @pytest.mark.mpc(parties=4)
 def test_teeu_actor_should_ok(sf_production_setup_devices_teeu):
     class Model:
@@ -125,7 +126,7 @@ def test_teeu_actor_should_ok(sf_production_setup_devices_teeu):
 
     devices = sf_production_setup_devices_teeu
 
-    teeu = TEEU(party='carol', mr_enclave='')
+    teeu = TEEU(party="carol", mr_enclave="")
     d1 = devices.alice(lambda: np.random.random([2, 4]))()
     d2 = devices.bob(lambda: np.random.random([2, 4]))()
     d1_tee = d1.to(teeu, allow_funcs=Model)

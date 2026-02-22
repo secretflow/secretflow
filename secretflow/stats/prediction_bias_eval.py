@@ -53,8 +53,8 @@ def prediction_bias_eval(
         prediction, (FedNdarray, VDataFrame)
     ), "prediction should be FedNdarray or VDataFrame"
     assert bucket_method in [
-        'equal_frequency',
-        'equal_width',
+        "equal_frequency",
+        "equal_width",
     ], "bucket_method must be in ['equal_frequency', 'equal_width']"
     assert (
         label.shape == prediction.shape
@@ -86,7 +86,7 @@ def prediction_bias_eval(
 
     bucket_method = (
         PredictionBiasBucketMethod.EQUAL_FREQUENCY
-        if bucket_method == 'equal_frequency'
+        if bucket_method == "equal_frequency"
         else PredictionBiasBucketMethod.EQUAL_WIDTH
     )
 

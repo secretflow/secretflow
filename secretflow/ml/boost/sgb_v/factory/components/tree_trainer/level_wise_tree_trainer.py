@@ -92,12 +92,12 @@ class LevelWiseTreeTrainer(TreeTrainer):
         return super().set_actors(actors)
 
     def _get_trainer_params(self, params: dict):
-        params['max_depth'] = self.params.max_depth
+        params["max_depth"] = self.params.max_depth
         LoggingTools.logging_params_write_dict(params, self.logging_params)
 
     def _set_trainer_params(self, params: dict):
-        if 'max_depth' in params:
-            self.params.max_depth = params['max_depth']
+        if "max_depth" in params:
+            self.params.max_depth = params["max_depth"]
         LoggingTools.logging_params_from_dict(params, self.logging_params)
 
     def train_tree_context_setup(

@@ -37,7 +37,7 @@ def infer_client_num(parts, total_num, num_clients):
         for part in parts:
             assert isinstance(
                 part, PYU
-            ), f'Parts shall be list like of PYUs but got {type(part)}.'
+            ), f"Parts shall be list like of PYUs but got {type(part)}."
         num_clients = len(parts)
         num_samples_per_client = int(round(total_num / num_clients))
         for i, device in enumerate(device_list):
@@ -49,14 +49,14 @@ def infer_client_num(parts, total_num, num_clients):
     elif isinstance(parts, dict):
         devices = parts.keys()
         for device in devices:
-            assert isinstance(device, PYU), f'Keys of parts shall be PYU'
+            assert isinstance(device, PYU), "Keys of parts shall be PYU"
         is_percent = isinstance(list(parts.values())[0], float)
         if is_percent:
             for percent in parts.values():
                 assert isinstance(
                     percent, float
-                ), f'Not all dict values are percentages.'
-            assert sum(parts.values()) == 1.0, f'Sum of percentages shall be 1.0.'
+                ), "Not all dict values are percentages."
+            assert sum(parts.values()) == 1.0, "Sum of percentages shall be 1.0."
 
             for i, (device, percent) in enumerate(parts.items()):
                 client_sample_dict[device] = round(percent * total_num)
@@ -68,7 +68,7 @@ def infer_client_num(parts, total_num, num_clients):
 
     else:
         raise InvalidArgumentError(
-            f'Parts should be a list/tuple or dict but got {type(parts)}.'
+            f"Parts should be a list/tuple or dict but got {type(parts)}."
         )
 
 
@@ -118,7 +118,7 @@ def iid_partition(
         num_cumsum = np.cumsum(client_sample_nums).astype(int)
         split_point = np.split(rand_perm, num_cumsum)[:-1]
         for device in device_list:
-            assert isinstance(device, PYU), f'Keys of parts shall be PYU'
+            assert isinstance(device, PYU), "Keys of parts shall be PYU"
         for p, idxs in zip(device_list, split_point):
             clnt_idx_dict[p] = idxs
         return clnt_idx_dict

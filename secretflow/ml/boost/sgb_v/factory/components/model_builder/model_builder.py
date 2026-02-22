@@ -50,10 +50,10 @@ class ModelBuilder(Component):
         print_params(self.params)
 
     def set_params(self, params: dict):
-        if 'objective' in params:
-            self.params.objective = RegType(params['objective'])
-        if 'base_score' in params:
-            self.params.base_score = params['base_score']
+        if "objective" in params:
+            self.params.objective = RegType(params["objective"])
+        if "base_score" in params:
+            self.params.base_score = params["base_score"]
 
     def get_params(self, params: dict):
         set_dict_from_params(self.params, params)

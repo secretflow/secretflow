@@ -40,18 +40,18 @@ from secretflow.device import (
 
 
 def get_agg_fun(agg):
-    if agg == 'sum':
+    if agg == "sum":
         return groupby_sum_via_shuffle
-    elif agg == 'max':
+    elif agg == "max":
         return groupby_max_via_shuffle
-    elif agg == 'min':
+    elif agg == "min":
         return groupby_min_via_shuffle
-    elif agg == 'mean':
+    elif agg == "mean":
         return groupby_mean_via_shuffle
-    elif agg == 'var':
+    elif agg == "var":
         return groupby_var_via_shuffle
     else:
-        raise ValueError(f'Unknown agg {agg}')
+        raise ValueError(f"Unknown agg {agg}")
 
 
 # TODO(zoupeicheng.zpc): add version that return SPUObjects and append with special shuffle-reveal-postprocess
@@ -138,7 +138,7 @@ class DataFrameGroupBy:
 
         return device(element_wise_sum)(random_orders)
 
-    def __getitem__(self, *target_col_names: str) -> 'DataFrameGroupBy':
+    def __getitem__(self, *target_col_names: str) -> "DataFrameGroupBy":
         if isinstance(target_col_names, tuple):
             target_col_names = target_col_names[0]
         if isinstance(target_col_names, str):
@@ -283,19 +283,19 @@ class DataFrameGroupBy:
             return df
 
     def sum(self, target_col_names: List[str] = None):
-        return self._agg('sum', target_col_names)
+        return self._agg("sum", target_col_names)
 
     def mean(self, target_col_names: List[str] = None):
-        return self._agg('mean', target_col_names)
+        return self._agg("mean", target_col_names)
 
     def var(self, target_col_names: List[str] = None):
-        return self._agg('var', target_col_names)
+        return self._agg("var", target_col_names)
 
     def max(self, target_col_names: List[str] = None):
-        return self._agg('max', target_col_names)
+        return self._agg("max", target_col_names)
 
     def min(self, target_col_names: List[str] = None):
-        return self._agg('min', target_col_names)
+        return self._agg("min", target_col_names)
 
 
 def matrix_to_cols(matrix):

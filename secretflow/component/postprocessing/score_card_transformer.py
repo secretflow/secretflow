@@ -44,9 +44,9 @@ from secretflow.component.core import (
 
 @register(domain="postprocessing", version="1.0.0")
 class ScoreCardTransformer(Component, IServingExporter):
-    '''
+    """
     Transform the predicted result (a probability value) produced by the logistic regression model into a more understandable score (for example, a score of up to 1000 points)
-    '''
+    """
 
     positive: int = Field.attr(
         desc="Value for positive cases.",

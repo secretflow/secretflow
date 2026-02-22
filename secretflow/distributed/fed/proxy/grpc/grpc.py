@@ -44,16 +44,16 @@ _DEFAULT_GRPC_MAX_SEND_MESSAGE_LENGTH = 500 * 1024 * 1024
 _DEFAULT_GRPC_MAX_RECEIVE_MESSAGE_LENGTH = 500 * 1024 * 1024
 
 _DEFAULT_GRPC_CHANNEL_OPTIONS = {
-    'grpc.enable_retries': 1,
-    'grpc.so_reuseport': 0,
-    'grpc.max_send_message_length': _DEFAULT_GRPC_MAX_SEND_MESSAGE_LENGTH,
-    'grpc.max_receive_message_length': _DEFAULT_GRPC_MAX_RECEIVE_MESSAGE_LENGTH,
-    'grpc.service_config': json.dumps(
+    "grpc.enable_retries": 1,
+    "grpc.so_reuseport": 0,
+    "grpc.max_send_message_length": _DEFAULT_GRPC_MAX_SEND_MESSAGE_LENGTH,
+    "grpc.max_receive_message_length": _DEFAULT_GRPC_MAX_RECEIVE_MESSAGE_LENGTH,
+    "grpc.service_config": json.dumps(
         {
-            'methodConfig': [
+            "methodConfig": [
                 {
-                    'name': [{'service': _GRPC_SERVICE}],
-                    'retryPolicy': _DEFAULT_GRPC_RETRY_POLICY,
+                    "name": [{"service": _GRPC_SERVICE}],
+                    "retryPolicy": _DEFAULT_GRPC_RETRY_POLICY,
                 }
             ]
         }
@@ -73,28 +73,28 @@ def get_grpc_options(
 
     return [
         (
-            'grpc.max_send_message_length',
+            "grpc.max_send_message_length",
             max_send_message_length,
         ),
         (
-            'grpc.max_receive_message_length',
+            "grpc.max_receive_message_length",
             max_receive_message_length,
         ),
-        ('grpc.enable_retries', 1),
+        ("grpc.enable_retries", 1),
         (
-            'grpc.service_config',
+            "grpc.service_config",
             json.dumps(
                 {
-                    'methodConfig': [
+                    "methodConfig": [
                         {
-                            'name': [{'service': _GRPC_SERVICE}],
-                            'retryPolicy': retry_policy,
+                            "name": [{"service": _GRPC_SERVICE}],
+                            "retryPolicy": retry_policy,
                         }
                     ]
                 }
             ),
         ),
-        ('grpc.so_reuseport', 0),
+        ("grpc.so_reuseport", 0),
     ]
 
 
@@ -158,8 +158,8 @@ def parse_grpc_options(proxy_config: CrossSiloMessageConfig):
             if proxy_config.messages_max_size_in_bytes is not None:
                 grpc_channel_options.update(
                     {
-                        'grpc.max_send_message_length': proxy_config.messages_max_size_in_bytes,
-                        'grpc.max_receive_message_length': proxy_config.messages_max_size_in_bytes,
+                        "grpc.max_send_message_length": proxy_config.messages_max_size_in_bytes,
+                        "grpc.max_receive_message_length": proxy_config.messages_max_size_in_bytes,
                     }
                 )
         if isinstance(proxy_config, GrpcCrossSiloMessageConfig):
@@ -168,12 +168,12 @@ def parse_grpc_options(proxy_config: CrossSiloMessageConfig):
             if proxy_config.grpc_retry_policy is not None:
                 grpc_channel_options.update(
                     {
-                        'grpc.service_config': json.dumps(
+                        "grpc.service_config": json.dumps(
                             {
-                                'methodConfig': [
+                                "methodConfig": [
                                     {
-                                        'name': [{'service': _GRPC_SERVICE}],
-                                        'retryPolicy': proxy_config.grpc_retry_policy,
+                                        "name": [{"service": _GRPC_SERVICE}],
+                                        "retryPolicy": proxy_config.grpc_retry_policy,
                                     }
                                 ]
                             }
@@ -239,7 +239,7 @@ class GrpcProxy(SenderReceiverProxy, fed_pb2_grpc.SfFedProxyServicer):
                 result=f"JobName mis-match, expected {self._job_name}, got {job_name}.",
             )
         seq_id = request.seq_id
-        logger.debug(f'Received a grpc data request seq id {seq_id}')
+        logger.debug(f"Received a grpc data request seq id {seq_id}")
 
         with self._lock:
             self._all_data[seq_id] = request.data
@@ -256,7 +256,7 @@ class GrpcProxy(SenderReceiverProxy, fed_pb2_grpc.SfFedProxyServicer):
         return True
 
     def _start_server(self):
-        port = self._listen_addr[self._listen_addr.index(':') + 1 :]
+        port = self._listen_addr[self._listen_addr.index(":") + 1 :]
         try:
             logger.info(
                 f"ReceiverProxy binding port {port}, options: {self._grpc_options}..."
@@ -271,21 +271,21 @@ class GrpcProxy(SenderReceiverProxy, fed_pb2_grpc.SfFedProxyServicer):
             if self._tls_config:
                 server_credentials = _load_cert_config(self._tls_config)
                 ## ????? why
-                server.add_secure_port(f'[::]:{port}', server_credentials)
+                server.add_secure_port(f"[::]:{port}", server_credentials)
             else:
-                server.add_insecure_port(f'[::]:{port}')
+                server.add_insecure_port(f"[::]:{port}")
 
             server.start()
             logger.info(
-                f'Successfully start Grpc service on port {port}, '
-                f'with{"" if self._tls_config else "out"} credentials.'
+                f"Successfully start Grpc service on port {port}, "
+                f"with{'' if self._tls_config else 'out'} credentials."
             )
             self._server = server
         except RuntimeError as err:
             logger.error(
-                f'Grpc server failed to listen to port: {port}'
-                f' Try another port by setting `listen_addr` into `cluster` config'
-                f' when calling `fed.init`. Grpc error msg: {err}'
+                f"Grpc server failed to listen to port: {port}"
+                f" Try another port by setting `listen_addr` into `cluster` config"
+                f" when calling `fed.init`. Grpc error msg: {err}"
             )
             raise err
 
@@ -340,8 +340,8 @@ class GrpcProxy(SenderReceiverProxy, fed_pb2_grpc.SfFedProxyServicer):
             request, metadata=self._grpc_metadata, timeout=timeout
         )
         logger.debug(
-            f'Received data response from {dest_party} seq id {seq_id}, '
-            f'code: {response.code}, result: {response.result}.'
+            f"Received data response from {dest_party} seq id {seq_id}, "
+            f"code: {response.code}, result: {response.result}."
         )
 
         if 400 <= response.code < 500:

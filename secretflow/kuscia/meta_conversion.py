@@ -32,7 +32,7 @@ from secretflow.kuscia.task_config import TableAttr
 def convert_domain_data_to_individual_table(
     domain_data: DomainData, table_attr: TableAttr = None
 ) -> IndividualTable:
-    assert domain_data.type == 'table'
+    assert domain_data.type == "table"
     dist_data = DistData(
         name=domain_data.name,
         type="sf.table.individual",
@@ -40,7 +40,7 @@ def convert_domain_data_to_individual_table(
             DistData.DataRef(
                 uri=domain_data.relative_uri,
                 party=domain_data.author,
-                format='csv',
+                format="csv",
                 null_strs=(
                     json.loads(domain_data.attributes["NullStrs"])
                     if "NullStrs" in domain_data.attributes
@@ -61,17 +61,17 @@ def convert_domain_data_to_individual_table(
         if col.name in attr_dict:
             attr_type = attr_dict[col.name]
             assert attr_type in (
-                'id',
-                'feature',
-                'label',
+                "id",
+                "feature",
+                "label",
                 "binned",
             ), f"{col.name} is not in [id, feature, binned, label]"
-            if attr_type == 'id':
+            if attr_type == "id":
                 ids.append((col.name, col.type))
-            elif attr_type == 'feature' or attr_type == 'binned':
+            elif attr_type == "feature" or attr_type == "binned":
                 # binned feature is treated as feature
                 features.append((col.name, col.type))
-            elif attr_type == 'label':
+            elif attr_type == "label":
                 labels.append((col.name, col.type))
         else:
             logging.info(f"{col.name} is not in table attr, treat it as feature")

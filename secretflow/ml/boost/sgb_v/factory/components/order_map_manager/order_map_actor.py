@@ -31,7 +31,7 @@ class OrderMapActor:
         Set up global context.
         """
         np.random.seed(seed)
-        x = np.array(x, order='F')
+        x = np.array(x, order="F")
         self.ordermap_context.build_maps(x, buckets)
         return self.ordermap_context.get_order_map()
 

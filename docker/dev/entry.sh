@@ -24,6 +24,9 @@ source ~/.bashrc
 conda create -n build python=3.10 -y
 conda activate build
 
-python3 setup.py bdist_wheel --lite
+pip install build
+python3 -m build --wheel 
 
+# Clean old wheel files before copying new ones
+rm -f ../src/docker/dev/*.whl
 cp dist/* ../src/docker/dev/

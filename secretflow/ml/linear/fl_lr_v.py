@@ -72,12 +72,12 @@ class FlLrVWorker(object):
         """
         assert isinstance(
             x, (pd.DataFrame, np.ndarray)
-        ), f'X shall be a DataFrame or ndarray but got {type(x)}.'
+        ), f"X shall be a DataFrame or ndarray but got {type(x)}."
         self.has_y = False
         if y is not None:
             assert isinstance(
                 y, (pd.DataFrame, np.ndarray)
-            ), f'Y shall be a DataFrame or ndarray but got {type(y)}.'
+            ), f"Y shall be a DataFrame or ndarray but got {type(y)}."
             y = y.values if isinstance(y, pd.DataFrame) else y
             y = y.reshape(-1, 1)
             self.has_y = True
@@ -180,7 +180,7 @@ def _gen_auth_file_path(
 ):
     if audit_log_dir is None:
         return None
-    return f'{audit_log_dir[device]}/epoch_{epoch}_step_{step}_{hint}'
+    return f"{audit_log_dir[device]}/epoch_{epoch}_step_{step}_{hint}"
 
 
 # TODO(zhouaihui): support linear regression.
@@ -226,12 +226,12 @@ class FlLogisticRegressionVertical:
                 Please leave it None unless you are very sure what the audit
                 does and accept the risk.
         """
-        assert isinstance(devices, list), 'device_list shall be a list!'
-        assert len(devices) > 1, 'At least 2 devices are expected!'
-        assert heu is not None, 'HEU must be provided.'
+        assert isinstance(devices, list), "device_list shall be a list!"
+        assert len(devices) > 1, "At least 2 devices are expected!"
+        assert heu is not None, "HEU must be provided."
         assert set(list(heu.evaluator_names()) + [heu.sk_keeper_name()]) == set(
             [device.party for device in devices]
-        ), 'The participants in HEU are inconsistent with device list.'
+        ), "The participants in HEU are inconsistent with device list."
 
         self.workers = {device: PYUFlLrVWorker(device=device) for device in devices}
         self.heu = heu
@@ -242,11 +242,11 @@ class FlLogisticRegressionVertical:
             for device in devices:
                 assert (
                     device in audit_log_dir
-                ), f'The device {device} is not in audit_log_dir.'
+                ), f"The device {device} is not in audit_log_dir."
             for party, evaluator in self.heu.evaluators.items():
-                evaluator.dump_pk.remote(f'{audit_log_dir[party]}/public_key')
+                evaluator.dump_pk.remote(f"{audit_log_dir[party]}/public_key")
             self.heu.sk_keeper.dump_pk.remote(
-                f'{audit_log_dir[self.heu.sk_keeper_name()]}/public_key'
+                f"{audit_log_dir[self.heu.sk_keeper_name()]}/public_key"
             )
 
     def init_train_data(
@@ -287,8 +287,8 @@ class FlLogisticRegressionVertical:
         """
         # Compute Wi*Xi locally.
         assert isinstance(x, (VDataFrame, FedNdarray, List)), (
-            'X should be a VDataFrame or FedNdarray or list of pyu objects but'
-            f'got {type(x)}.'
+            "X should be a VDataFrame or FedNdarray or list of pyu objects but"
+            f"got {type(x)}."
         )
         if isinstance(x, VDataFrame):
             x_batchs = list(x.values.partitions.values())
@@ -298,7 +298,7 @@ class FlLogisticRegressionVertical:
             x_batchs = x
         assert set([x_batch.device for x_batch in x_batchs]) == set(
             self.workers.keys()
-        ), 'Devices of x are different with this estimator.'
+        ), "Devices of x are different with this estimator."
 
         muls = [
             self.workers[x_batch.device].compute_mul(x_batch) for x_batch in x_batchs
@@ -320,7 +320,7 @@ class FlLogisticRegressionVertical:
             PYUObject: a PYUObject holds loss value.
         """
         # compute at alice, metrics: loss, auc
-        if not hasattr(self, 'y_device'):
+        if not hasattr(self, "y_device"):
             self.y_device = list(y.partitions.keys())[0]
         h = self.predict(x)
         return self.workers[self.y_device].compute_loss(
@@ -344,10 +344,10 @@ class FlLogisticRegressionVertical:
         """
         assert isinstance(
             weight, dict
-        ), f'Weight should be a dict but got {type(weight)}.'
+        ), f"Weight should be a dict but got {type(weight)}."
         assert set(weight.keys()) == set(
             self.workers.keys()
-        ), 'Devices of weight are different with this estimator.'
+        ), "Devices of weight are different with this estimator."
         for device, w in weight.items():
             if isinstance(w, PYUObject):
                 w = w.to(device)
@@ -374,23 +374,23 @@ class FlLogisticRegressionVertical:
         """
         assert isinstance(
             x, (VDataFrame, FedNdarray)
-        ), f'X should be a VDataFrame or FedNdarray but got a {type(x)}.'
-        assert len(x.partitions) > 1, f'Expect at least two partitipants.'
+        ), f"X should be a VDataFrame or FedNdarray but got a {type(x)}."
+        assert len(x.partitions) > 1, "Expect at least two partitipants."
         assert set(x.partitions.keys()) == set(
             self.workers.keys()
         ), "X has different devices with this estimator."
         assert isinstance(
             y, (VDataFrame, FedNdarray)
-        ), f'Y should be a VDataFrame or FedNdarray but got a {type(y)}.'
-        assert len(y.partitions) == 1, f'One and only one participant should hold y.'
+        ), f"Y should be a VDataFrame or FedNdarray but got a {type(y)}."
+        assert len(y.partitions) == 1, "One and only one participant should hold y."
         y_device = list(y.partitions.keys())[0]
-        assert y_device in self.workers, f'Device of y is not in this estimator.'
+        assert y_device in self.workers, "Device of y is not in this estimator."
         assert y_device.party == self.heu.sk_keeper_name(), (
-            'Y party shoule be same with heu sk keeper, '
-            f'expect {self.heu.sk_keeper_name()} but got {y_device.party}.'
+            "Y party shoule be same with heu sk keeper, "
+            f"expect {self.heu.sk_keeper_name()} but got {y_device.party}."
         )
-        assert epochs > 0, 'Epochs should be greater then zero.'
-        assert batch_size > 0, 'Batch size should be greater than zero.'
+        assert epochs > 0, "Epochs should be greater then zero."
+        assert batch_size > 0, "Batch size should be greater than zero."
 
         self.y_device = y_device
         if isinstance(x, VDataFrame):
@@ -401,15 +401,15 @@ class FlLogisticRegressionVertical:
         x_shapes = list(x.partition_shape().values())
         assert (
             len(x_shapes[0]) == 2
-        ), f'X should has two dimensions but got {len(x_shapes[0])}.'
+        ), f"X should has two dimensions but got {len(x_shapes[0])}."
         for shape in x_shapes[1:]:
             assert (
                 shape[0] == x_shapes[0][0]
-            ), f'Sample numbers of x partitionos are different.'
+            ), "Sample numbers of x partitionos are different."
             # For security.
             assert (
                 shape[1] < batch_size
-            ), f'Feature number shall be smaller than batch size.'
+            ), "Feature number shall be smaller than batch size."
         # Security Check.
         feature_num = sum(
             [
@@ -420,27 +420,27 @@ class FlLogisticRegressionVertical:
         )
         if batch_size > feature_num:
             assert epochs < feature_num * batch_size / (batch_size - feature_num), (
-                'Epochs shall be smaller than '
-                'feature_num * batch_size / (batch_size - feature_num) '
-                'when batch size is bigger than feature number for security. '
-                'Note that feature number does not include features in y device.'
+                "Epochs shall be smaller than "
+                "feature_num * batch_size / (batch_size - feature_num) "
+                "when batch size is bigger than feature number for security. "
+                "Note that feature number does not include features in y device."
             )
         assert (
             list(y.partition_shape().values())[0][0] == x_shapes[0][0]
-        ), f'Sample numbers of x and y are different.'
+        ), "Sample numbers of x and y are different."
         sample_number = x_shapes[0][0]
 
         self.init_train_data(x=x, y=y, epochs=epochs, batch_size=batch_size)
         n_step = math.ceil(sample_number / batch_size)
         for epoch in range(epochs):
             loss = reveal(self.compute_loss(x, y))
-            logging.info(f'Epoch {epoch}: loss = {loss}')
+            logging.info(f"Epoch {epoch}: loss = {loss}")
             if loss <= tol:
-                logging.info(f'Stop training as loss is no greater than {tol} already.')
+                logging.info(f"Stop training as loss is no greater than {tol} already.")
                 return
             self.fit_in_steps(n_step, learning_rate, epoch)
         loss = reveal(self.compute_loss(x, y))
-        logging.info(f'Epoch {epoch + 1}: loss = {loss}')
+        logging.info(f"Epoch {epoch + 1}: loss = {loss}")
 
     def fit_in_steps(self, n_step: int, learning_rate: float, epoch: int):
         """Fit in steps.
@@ -472,7 +472,7 @@ class FlLogisticRegressionVertical:
                         heu_dest_party=device.party,
                         heu_encoder=phe.FloatEncoder(self.heu.schema, 1),
                         heu_audit_log=_gen_auth_file_path(
-                            self.audit_log_dir, device, epoch, step, 'masked_g'
+                            self.audit_log_dir, device, epoch, step, "masked_g"
                         ),
                     ),
                 )
@@ -481,7 +481,7 @@ class FlLogisticRegressionVertical:
                     HEUMoveConfig(
                         heu_dest_party=device.party,
                         heu_audit_log=_gen_auth_file_path(
-                            self.audit_log_dir, device, epoch, step, 'residual'
+                            self.audit_log_dir, device, epoch, step, "residual"
                         ),
                     ),
                 )
@@ -490,7 +490,7 @@ class FlLogisticRegressionVertical:
                     HEUMoveConfig(
                         heu_dest_party=device.party,
                         heu_audit_log=_gen_auth_file_path(
-                            self.audit_log_dir, device, epoch, step, 'rand_mask'
+                            self.audit_log_dir, device, epoch, step, "rand_mask"
                         ),
                     ),
                 )

@@ -24,7 +24,7 @@ from jax.tree_util import tree_flatten, tree_unflatten
 
 from .actor import FedActorHandle
 from .call_holder import FedCallHolder
-from .exception import FedRemoteError, main_thread_assert
+from .exception import FedRemoteError, main_thread_assert  # noqa: F401
 from .global_context import (
     clear_global_context,
     get_global_context,
@@ -35,7 +35,7 @@ from .proxy import BrpcLinkProxy, GrpcProxy
 
 logger = logging.getLogger(__name__)
 
-CROSS_SILO_COMM_BACKENDS = ['grpc', 'brpc_link']
+CROSS_SILO_COMM_BACKENDS = ["grpc", "brpc_link"]
 
 
 class FedRemoteFunction:
@@ -167,27 +167,27 @@ def init(
 ):
     main_thread_assert()
     setup_logger(logging_level, party)
-    comm_backend = config.pop('cross_silo_comm_backend', 'brpc_link').lower()
+    comm_backend = config.pop("cross_silo_comm_backend", "brpc_link").lower()
     assert comm_backend in CROSS_SILO_COMM_BACKENDS, (
-        'Invalid cross_silo_comm_backend, '
-        f'{CROSS_SILO_COMM_BACKENDS} are available now.'
+        "Invalid cross_silo_comm_backend, "
+        f"{CROSS_SILO_COMM_BACKENDS} are available now."
     )
     if job_name is None:
         job_name = "_unspecified_name_"
-    if comm_backend == 'brpc_link':
-        if config['barrier_on_initializing']:
-            if 'connect_retry_times' not in config['cross_silo_comm']:
-                config['cross_silo_comm']['connect_retry_times'] = 3600
-                config['cross_silo_comm']['connect_retry_interval_ms'] = 1000
+    if comm_backend == "brpc_link":
+        if config["barrier_on_initializing"]:
+            if "connect_retry_times" not in config["cross_silo_comm"]:
+                config["cross_silo_comm"]["connect_retry_times"] = 3600
+                config["cross_silo_comm"]["connect_retry_interval_ms"] = 1000
         proxy = BrpcLinkProxy(
-            addresses, party, job_name, tls_config, config['cross_silo_comm']
+            addresses, party, job_name, tls_config, config["cross_silo_comm"]
         )
-    elif comm_backend == 'grpc':
+    elif comm_backend == "grpc":
         proxy = GrpcProxy(
-            addresses, party, job_name, tls_config, config['cross_silo_comm']
+            addresses, party, job_name, tls_config, config["cross_silo_comm"]
         )
     else:
-        raise RuntimeError(f'Invalid cross_silo_comm_backend {comm_backend}')
+        raise RuntimeError(f"Invalid cross_silo_comm_backend {comm_backend}")
 
     signal.signal(signal.SIGINT, _signal_handler)
     proxy.start()

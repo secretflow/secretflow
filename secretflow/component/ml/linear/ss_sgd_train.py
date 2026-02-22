@@ -40,12 +40,12 @@ from .ss_sgd import SSSGDExportMixin
 
 @register(domain="ml.train", version="1.0.0", name="ss_sgd_train")
 class SSSGDTrain(SSSGDExportMixin, Component, IServingExporter):
-    '''
+    """
     Train both linear and logistic regression
     linear models for vertical partitioning dataset with mini batch SGD training solver by using secret sharing.
 
     - SS-SGD is short for secret sharing SGD training.
-    '''
+    """
 
     epochs: int = Field.attr(
         desc="The number of complete pass through the training data.",

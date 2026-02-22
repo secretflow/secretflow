@@ -15,5 +15,5 @@
 from .model import HESSLogisticRegression
 
 __all__ = [
-    'HESSLogisticRegression',
+    "HESSLogisticRegression",
 ]

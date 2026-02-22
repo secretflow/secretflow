@@ -42,11 +42,11 @@ from secretflow.device import PYU, wait
 from secretflow.utils.errors import InvalidArgumentError
 
 
-@register(domain='ml.predict', version='1.1.0')
+@register(domain="ml.predict", version="1.1.0")
 class ServingModelInferencer(Component):
-    '''
+    """
     batch predicting online service models in offline
-    '''
+    """
 
     receiver: str = Field.party_attr(
         desc="Party of receiver.",
@@ -79,7 +79,7 @@ class ServingModelInferencer(Component):
 
     def evaluate(self, ctx: Context):
         if not self.pred_name:
-            raise InvalidArgumentError('pred_name cannot be empty')
+            raise InvalidArgumentError("pred_name cannot be empty")
 
         self_party = ctx.cluster_config.private_config.self_party
         receiver = self.receiver
@@ -129,7 +129,7 @@ class ServingModelInferencer(Component):
                 serving_config_path,
                 party_serving_config,
             )
-            serving_config_option = '--serving_config_file=' + serving_config_path
+            serving_config_option = "--serving_config_file=" + serving_config_path
 
             inference_config_path = os.path.join(base_path, "inference.config")
             create_dir_if_empty(output_pred_path)
@@ -142,11 +142,11 @@ class ServingModelInferencer(Component):
                 self.pred_name,
                 self.input_block_size,
             )
-            inference_config_option = '--inference_config_file=' + inference_config_path
+            inference_config_option = "--inference_config_file=" + inference_config_path
 
             try:
                 with resources.path(
-                    'secretflow_serving.tools.inferencer', 'inferencer'
+                    "secretflow_serving.tools.inferencer", "inferencer"
                 ) as binary_path:
                     subprocess.run(
                         [
@@ -199,7 +199,7 @@ def get_output_pred_path(base_path, user_input_path):
     # path can not contain ..
     assert abs_pred_path.startswith(
         base_path
-    ), f'path: {user_input_path} contains .., which is unsafe'
+    ), f"path: {user_input_path} contains .., which is unsafe"
     return abs_pred_path
 
 

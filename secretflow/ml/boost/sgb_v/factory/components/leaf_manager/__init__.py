@@ -14,4 +14,4 @@
 
 from .leaf_manager import LeafManager
 
-__all__ = ['LeafManager']
+__all__ = ["LeafManager"]

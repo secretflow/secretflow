@@ -97,12 +97,12 @@ class LeafWiseTreeTrainer(TreeTrainer):
         super().del_actors()
 
     def _get_trainer_params(self, params: dict):
-        params['max_leaf'] = self.params.max_leaf
+        params["max_leaf"] = self.params.max_leaf
         LoggingTools.logging_params_write_dict(params, self.logging_params)
 
     def _set_trainer_params(self, params: dict):
-        if 'max_leaf' in params:
-            self.params.max_leaf = params['max_leaf']
+        if "max_leaf" in params:
+            self.params.max_leaf = params["max_leaf"]
         LoggingTools.logging_params_from_dict(params, self.logging_params)
 
     def train_tree_context_setup(

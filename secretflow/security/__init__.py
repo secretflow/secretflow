@@ -16,12 +16,12 @@ from .aggregation import Aggregator, PlainAggregator, SecureAggregator, SPUAggre
 from .compare import Comparator, DeviceComparator, PlainComparator, SPUComparator
 
 __all__ = [
-    'Aggregator',
-    'SecureAggregator',
-    'PlainAggregator',
-    'SPUAggregator',
-    'Comparator',
-    'DeviceComparator',
-    'PlainComparator',
-    'SPUComparator',
+    "Aggregator",
+    "SecureAggregator",
+    "PlainAggregator",
+    "SPUAggregator",
+    "Comparator",
+    "DeviceComparator",
+    "PlainComparator",
+    "SPUComparator",
 ]

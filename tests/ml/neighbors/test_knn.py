@@ -79,7 +79,7 @@ def test_work(sf_production_setup_devices):
     model = KNNClassifer(sf_production_setup_devices.spu)
 
     start = time.time()
-    model.fit(train_vdata, train_label, n_neighbors=2, n_classes=2, weights='distance')
+    model.fit(train_vdata, train_label, n_neighbors=2, n_classes=2, weights="distance")
     logging.info(f" GPC fit time: {time.time() - start}")
 
     start = time.time()
@@ -87,7 +87,7 @@ def test_work(sf_production_setup_devices):
     result = reveal(spu_result)
     logging.info(f"predict time: {time.time() - start}")
 
-    neigh_dis = KNeighborsClassifier(n_neighbors=2, weights='distance')
+    neigh_dis = KNeighborsClassifier(n_neighbors=2, weights="distance")
     neigh_dis.fit(X, y)
 
     sklearn_predictions = neigh_dis.predict(tx)

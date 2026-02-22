@@ -28,8 +28,8 @@ def _test_wait_should_ok(devices):
     def simple_write():
         _, temp_file = tempfile.mkstemp()
         time.sleep(5)
-        with open(temp_file, 'w') as f:
-            f.write('This is alice.')
+        with open(temp_file, "w") as f:
+            f.write("This is alice.")
         return temp_file
 
     o = devices.alice(simple_write)()
@@ -39,18 +39,18 @@ def _test_wait_should_ok(devices):
 
     # THEN
     def check(temp_file):
-        with open(temp_file, 'r') as f:
-            assert f.read() == 'This is alice.'
+        with open(temp_file, "r") as f:
+            assert f.read() == "This is alice."
         return True
 
     file_path = reveal(o)
     assert reveal(devices.alice(check)(file_path))
 
 
-_MPC_PARAMS_BRPC_RAY = {"cross_silo_comm_backend": "brpc_link", "ray_mode": True}
+_MPC_PARAMS_BRPC = {"cross_silo_comm_backend": "brpc_link"}
 
 
-@pytest.mark.mpc(params=_MPC_PARAMS_BRPC_RAY)
+@pytest.mark.mpc(params=_MPC_PARAMS_BRPC)
 def test_wait_should_ok_prod_brpc(sf_production_setup_devices):
     _test_wait_should_ok(sf_production_setup_devices)
 
@@ -67,7 +67,7 @@ def _test_spu_reveal(devices):
     assert x_ == 32
 
 
-@pytest.mark.mpc(params=_MPC_PARAMS_BRPC_RAY)
+@pytest.mark.mpc(params=_MPC_PARAMS_BRPC)
 def test_spu_reveal_prod_brpc(sf_production_setup_devices):
     _test_spu_reveal(sf_production_setup_devices)
 
@@ -80,6 +80,6 @@ def _test_spu_reveal_empty_list(devices):
     assert x_ == []
 
 
-@pytest.mark.mpc(params=_MPC_PARAMS_BRPC_RAY)
+@pytest.mark.mpc(params=_MPC_PARAMS_BRPC)
 def test_spu_reveal_empty_list_prod_brpc(sf_production_setup_devices):
     _test_spu_reveal_empty_list(sf_production_setup_devices)

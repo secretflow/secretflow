@@ -89,9 +89,9 @@ _str_to_serving_type = {
     "float32": "DT_FLOAT",
     "float64": "DT_DOUBLE",
     "bool": "DT_BOOL",
-    "int": 'DT_INT64',
-    "float": 'DT_DOUBLE',
-    "str": 'DT_STRING',
+    "int": "DT_INT64",
+    "float": "DT_DOUBLE",
+    "str": "DT_STRING",
 }
 
 _str_to_duckdb_dtype = {
@@ -166,10 +166,10 @@ class VTableUtils:
         kind = VTableFieldKind.UNKNOWN
 
         if f.metadata:
-            if b'kind' in f.metadata:
-                kind = VTableFieldKind.from_str(f.metadata[b'kind'].decode('utf-8'))
-            if b'type' in f.metadata:
-                raw_type = f.metadata[b'type'].decode('utf-8')
+            if b"kind" in f.metadata:
+                kind = VTableFieldKind.from_str(f.metadata[b"kind"].decode("utf-8"))
+            if b"type" in f.metadata:
+                raw_type = f.metadata[b"type"].decode("utf-8")
                 is_same = VTableFieldType.is_same_type(f_type, raw_type)
                 f_type = raw_type if is_same else f_type
 
@@ -197,12 +197,12 @@ class VTableUtils:
     @staticmethod
     def pa_field_from(name: str, dtype: pa.DataType, old: pa.Field) -> pa.Field:
         assert (
-            old.metadata and b'kind' in old.metadata
+            old.metadata and b"kind" in old.metadata
         ), f"kind not in metadata, {old.name}, {old.metadata}"
         if dtype == old.type:
             metadata = old.metadata
         else:
-            metadata = {b'kind': old.metadata[b'kind']}
+            metadata = {b"kind": old.metadata[b"kind"]}
         return pa.field(name, dtype, metadata=metadata)
 
 

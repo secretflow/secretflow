@@ -15,12 +15,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 `Security` in case of vulnerabilities.
 
 ## staging
->
+
 > please add your unreleased change here.
+
+### Changed
+
+- Migrate secretflow_fl to an independent code repository
 
 ### Fixed
 
+- [component] fix secretpad/issues/309, model_export schema mismatch.
+- [test] fix secretflow/issues/1922, `ProtocolKind is not JSON serializable`
+
 ### Added
+
+## [v1.15.0b0] - 2025-10-20
+
+### Changed
+
+- [component] expose iv for practical reasons.
 
 ## [v1.13.0b0] - 2025-07-04
 
@@ -598,7 +611,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Add missing __init__ files.
+- Add missing __init__.py files.
 
 ## [0.8.2b0] - 2023-4-19
 

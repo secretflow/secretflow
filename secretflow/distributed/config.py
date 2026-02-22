@@ -22,24 +22,24 @@ from secretflow.utils.errors import InvalidArgumentError
 def get_cluster_config(cluster_config: Dict):
     if not cluster_config:
         raise InvalidArgumentError(
-            'Must provide `cluster_config` when running with production mode.'
-            ' Or if you want to run SecretFlow in simulation mode, you should'
-            ' provide `parties` and keep `cluster_config` with `None`.'
+            "Must provide `cluster_config` when running with production mode."
+            " Or if you want to run SecretFlow in simulation mode, you should"
+            " provide `parties` and keep `cluster_config` with `None`."
         )
-    if 'self_party' not in cluster_config:
-        raise InvalidArgumentError('Miss self_party in cluster config.')
-    if 'parties' not in cluster_config:
-        raise InvalidArgumentError('Miss parties in cluster config.')
-    self_party = cluster_config['self_party']
-    all_parties: Dict = cluster_config['parties']
+    if "self_party" not in cluster_config:
+        raise InvalidArgumentError("Miss self_party in cluster config.")
+    if "parties" not in cluster_config:
+        raise InvalidArgumentError("Miss parties in cluster config.")
+    self_party = cluster_config["self_party"]
+    all_parties: Dict = cluster_config["parties"]
     if self_party not in all_parties:
         raise InvalidArgumentError(
-            f'Party {self_party} not found in cluster config parties.'
+            f"Party {self_party} not found in cluster config parties."
         )
     for party in all_parties.values():
         assert (
-            'address' in party
-        ), f'There is no address for party {party} in cluster config.'
+            "address" in party
+        ), f"There is no address for party {party} in cluster config."
     return self_party, all_parties
 
 
@@ -47,20 +47,20 @@ def parse_tls_config(
     tls_config: Dict[str, str], party: str
 ) -> Dict[str, global_state.PartyCert]:
     party_certs = {}
-    if set(tls_config) != set(('cert', 'key', 'ca_cert')):
+    if set(tls_config) != set(("cert", "key", "ca_cert")):
         raise InvalidArgumentError(
-            'You should only provide cert, key and ca_cert in tls config.'
+            "You should only provide cert, key and ca_cert in tls config."
         )
-    key_path = pathlib.Path(tls_config['key'])
-    cert_path = pathlib.Path(tls_config['cert'])
-    root_cert_path = pathlib.Path(tls_config['ca_cert'])
+    key_path = pathlib.Path(tls_config["key"])
+    cert_path = pathlib.Path(tls_config["cert"])
+    root_cert_path = pathlib.Path(tls_config["ca_cert"])
 
     if not key_path.exists():
-        raise InvalidArgumentError(f'Private key file {key_path} does not exist!')
+        raise InvalidArgumentError(f"Private key file {key_path} does not exist!")
     if not cert_path.exists():
-        raise InvalidArgumentError(f'Cert file {cert_path} does not exist!')
+        raise InvalidArgumentError(f"Cert file {cert_path} does not exist!")
     if not root_cert_path.exists():
-        raise InvalidArgumentError(f'CA cert file {root_cert_path} does not exist!')
+        raise InvalidArgumentError(f"CA cert file {root_cert_path} does not exist!")
     party_cert = global_state.PartyCert(
         party_name=party,
         key=key_path.read_text(),

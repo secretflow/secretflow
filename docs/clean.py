@@ -21,12 +21,12 @@ import nbformat
 
 
 def forbidden_found(output):
-    pattern = re.compile(r'(\{\{|\{#)')
-    for key in ['text', 'evalue']:
+    pattern = re.compile(r"(\{\{|\{#)")
+    for key in ["text", "evalue"]:
         if key in output and pattern.search(str(output[key])):
             return True
-    if 'data' in output:
-        for val in output['data'].values():
+    if "data" in output:
+        for val in output["data"].values():
             if pattern.search(str(val)):
                 return True
     return False
@@ -36,7 +36,7 @@ def clean_notebook(filename):
     nb = nbformat.read(filename, as_version=nbformat.NO_CONVERT)
     changed = False
     for cell in nb.cells:
-        if cell.cell_type == 'code' and 'outputs' in cell:
+        if cell.cell_type == "code" and "outputs" in cell:
             outputs = cell.outputs
             if any(forbidden_found(o) for o in outputs):
                 # Remove all outputs and reset execution_count
@@ -49,7 +49,7 @@ def clean_notebook(filename):
         print(f"No forbidden outputs found in {filename}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("Usage: python clean_forbidden_outputs.py notebook.ipynb")
         sys.exit(1)

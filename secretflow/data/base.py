@@ -186,7 +186,7 @@ class DataFrameBase(ABC):
         columns=None,
         level=None,
         inplace=False,
-        errors='raise',
+        errors="raise",
     ) -> "DataFrameBase":
         pass
 
@@ -199,7 +199,7 @@ class DataFrameBase(ABC):
         inplace=False,
         limit=None,
         downcast=None,
-    ) -> Union['DataFrameBase', None]:
+    ) -> Union["DataFrameBase", None]:
         pass
 
     @abstractmethod
@@ -208,7 +208,7 @@ class DataFrameBase(ABC):
         pass
 
     @abstractmethod
-    def iloc(self, index: Union[int, slice, List[int]]) -> 'DataFrameBase':
+    def iloc(self, index: Union[int, slice, List[int]]) -> "DataFrameBase":
         """Integer-location based indexing for selection by position.
 
         Args:
@@ -229,14 +229,14 @@ class DataFrameBase(ABC):
         copy=True,
         inplace=False,
         level=None,
-        errors='ignore',
-    ) -> Union['DataFrameBase', None]:
+        errors="ignore",
+    ) -> Union["DataFrameBase", None]:
         """See :py:meth:`pandas.DataFrame.rename`"""
 
         pass
 
     @abstractmethod
-    def pow(self, *args, **kwargs) -> 'DataFrameBase':
+    def pow(self, *args, **kwargs) -> "DataFrameBase":
         """Gets Exponential power of (partition of) dataframe and other, element-wise (binary operator pow).
         Equivalent to dataframe ** other, but with support to substitute a fill_value for missing data in one of the inputs.
         With reverse version, rpow.
@@ -245,17 +245,17 @@ class DataFrameBase(ABC):
         pass
 
     @abstractmethod
-    def round(self, *args, **kwargs) -> 'DataFrameBase':
+    def round(self, *args, **kwargs) -> "DataFrameBase":
         """Round the (partition of) DataFrame to a variable number of decimal places."""
         pass
 
     @abstractmethod
-    def select_dtypes(self, *args, **kwargs) -> 'DataFrameBase':
+    def select_dtypes(self, *args, **kwargs) -> "DataFrameBase":
         """Returns a subset of the DataFrame's columns based on the column dtypes."""
         pass
 
     @abstractmethod
-    def subtract(self, *args, **kwargs) -> 'DataFrameBase':
+    def subtract(self, *args, **kwargs) -> "DataFrameBase":
         """Gets Subtraction of (partition of) dataframe and other, element-wise (binary operator sub).
         Equivalent to dataframe - other, but with support to substitute a fill_value for missing data in one of the inputs.
         With reverse version, rsub.
@@ -266,7 +266,7 @@ class DataFrameBase(ABC):
     @abstractmethod
     def apply_func(
         self, func: Callable, *, nums_return: int = 1, **kwargs
-    ) -> 'DataFrameBase':
+    ) -> "DataFrameBase":
         """
         Apply any function inside the dataframe actor.
         Please make sure the function retures a dataframe type same as the type of the self.data
@@ -280,7 +280,7 @@ class DataFrameBase(ABC):
         pass
 
     @abstractmethod
-    def to_pandas(self) -> 'DataFrameBase':
+    def to_pandas(self) -> "DataFrameBase":
         """
         Convert myself to pandas type.
         Returns:

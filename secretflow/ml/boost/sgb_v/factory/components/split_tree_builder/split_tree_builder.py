@@ -46,11 +46,11 @@ class SplitTreeBuilder(Component):
         print_params(self.params)
 
     def set_params(self, params: dict):
-        if 'enable_packbits' in params:
-            self.params.enable_packbits = params['enable_packbits']
+        if "enable_packbits" in params:
+            self.params.enable_packbits = params["enable_packbits"]
 
     def get_params(self, params: dict):
-        params['enable_packbits'] = self.params.enable_packbits
+        params["enable_packbits"] = self.params.enable_packbits
 
     def set_devices(self, devices: Devices):
         self.workers = devices.workers
@@ -63,14 +63,14 @@ class SplitTreeBuilder(Component):
             actor for actor in actors if actor.device in self.workers
         ]
         for i, actor in enumerate(self.split_tree_builder_actors):
-            actor.register_class('SplitTreeActor', SplitTreeActor, i)
+            actor.register_class("SplitTreeActor", SplitTreeActor, i)
 
     def del_actors(self):
         del self.split_tree_builder_actors
 
     def reset(self):
         for actor in self.split_tree_builder_actors:
-            actor.invoke_class_method('SplitTreeActor', 'reset')
+            actor.invoke_class_method("SplitTreeActor", "reset")
 
     def set_col_choices_and_buckets(
         self,
@@ -81,14 +81,14 @@ class SplitTreeBuilder(Component):
         for actor, col_choice, feature_bucket in zip(
             self.split_tree_builder_actors, col_choices, feature_buckets
         ):
-            actor.invoke_class_method('SplitTreeActor', 'set_col_choices', col_choice)
+            actor.invoke_class_method("SplitTreeActor", "set_col_choices", col_choice)
             actor.invoke_class_method(
-                'SplitTreeActor', 'set_feature_bucket', feature_bucket
+                "SplitTreeActor", "set_feature_bucket", feature_bucket
             )
             # total number buckets is broadcasted
             actor.invoke_class_method(
-                'SplitTreeActor',
-                'set_buckets_count',
+                "SplitTreeActor",
+                "set_buckets_count",
                 [buckets_count.to(actor.device) for buckets_count in total_buckets],
             )
 
@@ -106,8 +106,8 @@ class SplitTreeBuilder(Component):
         """
         return [
             actor.invoke_class_method(
-                'SplitTreeActor',
-                'split_buckets_to_paritition',
+                "SplitTreeActor",
+                "split_buckets_to_paritition",
                 (
                     split_buckets.to(actor.device)
                     if isinstance(split_buckets, PYUObject)
@@ -130,7 +130,7 @@ class SplitTreeBuilder(Component):
         """
         return [
             actor.invoke_class_method(
-                'SplitTreeActor', 'get_split_feature_list_wise', split_buckets
+                "SplitTreeActor", "get_split_feature_list_wise", split_buckets
             )
             for actor, split_buckets in zip(
                 self.split_tree_builder_actors, un_shuffled_split_buckets_each_party
@@ -175,8 +175,8 @@ class SplitTreeBuilder(Component):
             )
             # split buckets is sent from label holder to workers
             selects = self.split_tree_builder_actors[i].invoke_class_method(
-                'SplitTreeActor',
-                'do_split_list_wise',
+                "SplitTreeActor",
+                "do_split_list_wise",
                 split_features[i],
                 split_points[i],
                 left_child_selects[i],
@@ -201,6 +201,6 @@ class SplitTreeBuilder(Component):
     ):
         for i, builder in enumerate(self.split_tree_builder_actors):
             tree = builder.invoke_class_method(
-                'SplitTreeActor', 'tree_finish', leaf_node_indices.to(self.workers[i])
+                "SplitTreeActor", "tree_finish", leaf_node_indices.to(self.workers[i])
             )
             distributed_tree.insert_split_tree(self.workers[i], tree)

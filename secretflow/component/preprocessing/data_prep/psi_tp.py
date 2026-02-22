@@ -38,9 +38,9 @@ from secretflow.device import PYU, reveal, wait
 
 @register(domain="data_prep", version="1.0.0", name="psi_tp")
 class PSIThreeParty(Component):
-    '''
+    """
     PSI between three parties.
-    '''
+    """
 
     ecdh_curve: ECDHProtocol = Field.union_attr(
         desc="Curve type for ECDH PSI.",

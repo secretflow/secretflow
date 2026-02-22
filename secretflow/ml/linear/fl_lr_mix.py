@@ -44,7 +44,7 @@ class _CustomSecureAggregator(SecureAggregator):
     @staticmethod
     def _merge_data(data: List[PYUObject]):
         """Merge multi data in same pyu."""
-        assert data, 'Data should be not be empty.'
+        assert data, "Data should be not be empty."
         pyu_data = {}
         for datum in data:
             if datum.device in pyu_data:
@@ -208,29 +208,29 @@ class FlLogisticRegressionMix:
         """
         assert isinstance(
             x, MixDataFrame
-        ), f'X should be a MixDataFrame but got {type(x)}.'
+        ), f"X should be a MixDataFrame but got {type(x)}."
         assert (
             x.partition_way == PartitionWay.HORIZONTAL
-        ), 'X should be horizontal partitioned.'
+        ), "X should be horizontal partitioned."
         assert isinstance(
             y, MixDataFrame
-        ), f'Y should be a MixDataFrame but got {type(y)}.'
+        ), f"Y should be a MixDataFrame but got {type(y)}."
         assert (
             y.partition_way == PartitionWay.HORIZONTAL
-        ), 'y should be horizontal partitioned.'
+        ), "y should be horizontal partitioned."
         assert len(x.partitions) == len(
             y.partitions
-        ), f'X has {len(x.partitions)} partitions while y has {len(y.partitions)}.'
+        ), f"X has {len(x.partitions)} partitions while y has {len(y.partitions)}."
         for part in y.partitions:
             assert (
                 len(part.partitions.keys()) == 1
-            ), 'One and only one party should have y.'
+            ), "One and only one party should have y."
         assert len(aggregators) == len(
             x.partitions
-        ), 'Amount of aggregators should be same as `VDataFrame`s of X.'
+        ), "Amount of aggregators should be same as `VDataFrame`s of X."
         assert len(heus) == len(
             x.partitions
-        ), 'Amount of heus should be same as `VDataFrame`s of X.'
+        ), "Amount of heus should be same as `VDataFrame`s of X."
         aggr_hooks = aggr_hooks or []  # change None -> []
         aggr_hooks = aggr_hooks if isinstance(aggr_hooks, List) else [aggr_hooks]
 
@@ -267,7 +267,7 @@ class FlLogisticRegressionMix:
             if epoch % agg_epochs == 0:
                 self._agg_weights(aggr_hooks)
                 loss = self._compute_loss(x, y)
-                logging.info(f'MixLr epoch {epoch}: loss = {loss}')
+                logging.info(f"MixLr epoch {epoch}: loss = {loss}")
                 if loss <= tol:
                     return
             self._fit_in_steps(
@@ -275,7 +275,7 @@ class FlLogisticRegressionMix:
             )
         self._agg_weights(aggr_hooks)
         loss = self._compute_loss(x, y)
-        logging.info(f'MixLr epoch {epoch + 1}: loss = {loss}')
+        logging.info(f"MixLr epoch {epoch + 1}: loss = {loss}")
 
     def _fit_in_steps(
         self,
@@ -306,11 +306,11 @@ class FlLogisticRegressionMix:
         """
         assert isinstance(
             x, MixDataFrame
-        ), f'X should be a MixDataFrame but got {type(x)}.'
+        ), f"X should be a MixDataFrame but got {type(x)}."
         assert (
             x.partition_way == PartitionWay.HORIZONTAL
-        ), 'X should be horizontal partitioned.'
-        assert self.ver_lr_list, 'This estimator has not been fit yet.'
+        ), "X should be horizontal partitioned."
+        assert self.ver_lr_list, "This estimator has not been fit yet."
 
         devices_list = [list(ver_lr.workers.keys()) for ver_lr in self.ver_lr_list]
         preds = []
@@ -320,8 +320,8 @@ class FlLogisticRegressionMix:
                 preds.append(self.ver_lr_list[idx].predict(part))
             except ValueError:
                 raise InvalidArgumentError(
-                    'Failed to predict as the devices of'
-                    'VDataFrame in X do not appear during fit.'
+                    "Failed to predict as the devices of"
+                    "VDataFrame in X do not appear during fit."
                 )
 
         return preds

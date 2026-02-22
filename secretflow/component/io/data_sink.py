@@ -33,9 +33,9 @@ from secretflow.device import PYU, wait
 
 @register(domain="io", version="1.0.0")
 class DataSink(Component):
-    '''
+    """
     export data to an external data source
-    '''
+    """
 
     output_party: str = Field.party_attr(
         desc="output party", list_limit=Interval.closed(0, 1)
@@ -80,7 +80,7 @@ class DataSink(Component):
 
         if not self.output_party:
             if len(input_tbl.parties) > 1:
-                raise ValueError(f"empty party")
+                raise ValueError("empty party")
             self.output_party = input_tbl.get_party(0).party
         pyu = PYU(self.output_party)
         input_party = input_tbl.get_party(self.output_party)

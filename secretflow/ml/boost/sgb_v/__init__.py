@@ -17,9 +17,9 @@ from .factory import SGBFactory as Sgb
 from .model import SgbModel
 
 __all__ = [
-    'SgbModel',
-    'Sgb',
-    'get_classic_lightGBM_params',
-    'get_classic_XGB_params',
-    'SGBParams',
+    "SgbModel",
+    "Sgb",
+    "get_classic_lightGBM_params",
+    "get_classic_XGB_params",
+    "SGBParams",
 ]

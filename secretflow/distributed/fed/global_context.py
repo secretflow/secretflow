@@ -188,9 +188,9 @@ class GlobalContext:
             try:
                 send_future.result()
                 return True
-            except FedRemoteError as e:
+            except FedRemoteError:
                 logger.info(f"FedRemoteError on seq id {seq_id}")
-            except FedLocalError as e:
+            except FedLocalError:
                 logger.info(f"FedLocalError on seq id {seq_id}")
             except Exception as e:
                 logger.exception(f"Failed to send seq id {seq_id} to {target_party}")

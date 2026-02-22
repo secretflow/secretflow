@@ -35,7 +35,7 @@ def read_csv(
     drop_keys: Union[str, List[str], Dict[Device, List[str]]] = None,
     psi_protocl=None,
     no_header: bool = False,
-    backend: str = 'pandas',
+    backend: str = "pandas",
     nrows: int = None,
     skip_rows_after_header: int = None,
 ) -> VDataFrame:
@@ -90,10 +90,10 @@ def read_csv(
     Returns:
         A aligned VDataFrame.
     """
-    assert spu is None or keys is not None, f"keys required when spu provided"
-    assert spu is None or drop_keys is not None, f"drop_keys required when spu provided"
+    assert spu is None or keys is not None, "keys required when spu provided"
+    assert spu is None or drop_keys is not None, "drop_keys required when spu provided"
     if spu is not None:
-        assert len(filepath) <= 3, f"only support 2 or 3 parties for now"
+        assert len(filepath) <= 3, "only support 2 or 3 parties for now"
     assert spu is None or all(
         [isinstance(p, str) for p in filepath.values()]
     ), "psi only support local file path"

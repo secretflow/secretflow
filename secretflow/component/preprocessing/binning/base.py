@@ -219,9 +219,28 @@ class VertBinningBase(PreprocessingMixin, Component):
             for rule in rules.values():
                 rule = reveal(rule)
                 variable_data_list = rule["variables"] if "variables" in rule else []
+                feature_ivs_list = rule.get("feature_iv_info", [])
+                # Create a mapping from feature name to IV info
+                feature_ivs_map = {
+                    iv_info["name"]: iv_info for iv_info in feature_ivs_list
+                }
                 for variable_data in variable_data_list:
+                    # "feature_iv_info" :[
+                    #     {
+                    #         "name": str, #feature name
+                    #         "ivs": list[float], #iv values for each bins, not safe to share with workers in any case.
+                    #         "else_iv": float, #iv for nan values, may share to with workers
+                    #         "feature_iv": float, #sum of bin_ivs, safe to share with workers when bin num > 2.
+                    #     }
+                    # ]
                     name = variable_data["name"]
                     desc = f"bin rules for {variable_data['name']}"
+                    if name in feature_ivs_map:
+                        iv_dict = feature_ivs_map[variable_data["name"]]
+                        variable_data["iv"] = iv_dict.get("feature_iv", 0.0)
+                        variable_data["ivs"] = iv_dict.get("ivs", [])
+                        variable_data["else_iv"] = iv_dict.get("else_iv", 0.0)
+                        desc += f", feature level iv: {variable_data['iv']}"
 
                     r.add_tab(
                         self.build_report_table(variable_data), name=name, desc=desc
@@ -247,6 +266,8 @@ class VertBinningBase(PreprocessingMixin, Component):
                     optional_values.append(
                         str(rule_dict["total_rates"][i]).replace("nan", "-")
                     )
+                if "ivs" in rule_dict and i < len(rule_dict["ivs"]):
+                    optional_values.append(str(rule_dict["ivs"][i]).replace("nan", "-"))
                 rows.append([from_val, to_val, count] + optional_values)
 
             optional_last = []
@@ -258,6 +279,8 @@ class VertBinningBase(PreprocessingMixin, Component):
                 optional_last.append(
                     str(rule_dict["else_total_rate"]).replace("nan", "-")
                 )
+            if "else_iv" in rule_dict:
+                optional_last.append(str(rule_dict["else_iv"]).replace("nan", "-"))
             last = [
                 "nan values",
                 str(rule_dict["else_filling_value"]),
@@ -279,6 +302,8 @@ class VertBinningBase(PreprocessingMixin, Component):
                     optional_values.append(
                         str(rule_dict["total_rates"][i]).replace("nan", "-")
                     )
+                if "ivs" in rule_dict and i < len(rule_dict["ivs"]):
+                    optional_values.append(str(rule_dict["ivs"][i]).replace("nan", "-"))
                 rows.append([from_val, to_val, count] + optional_values)
 
             optional_last = []
@@ -288,7 +313,11 @@ class VertBinningBase(PreprocessingMixin, Component):
                 )
             if "total_rates" in rule_dict:
                 optional_last.append(
-                    str(rule_dict.get("else_positive_rate", "-")).replace("nan", "-")
+                    str(rule_dict.get("else_total_rate", "-")).replace("nan", "-")
+                )
+            if "else_iv" in rule_dict:
+                optional_last.append(
+                    str(rule_dict.get("else_iv", "-")).replace("nan", "-")
                 )
 
             last = [
@@ -308,6 +337,8 @@ class VertBinningBase(PreprocessingMixin, Component):
             headers["positive_rate"] = "positive bin sample count/ bin sample count"
         if "total_rates" in rule_dict:
             headers["total_rate"] = "bin sample count/ total sample count"
+        if "ivs" in rule_dict:
+            headers["iv"] = "Information Value for each bin"
 
         df = pd.DataFrame(data=rows, columns=list(headers.keys()))
         r_table = Reporter.build_table(

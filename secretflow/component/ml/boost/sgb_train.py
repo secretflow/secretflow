@@ -55,14 +55,14 @@ from .sgb import SGBExportMixin
 
 @register(domain="ml.train", version="1.1.0", name="sgb_train")
 class SGBTrain(SGBExportMixin, Component, IServingExporter):
-    '''
+    """
     Provides both classification and regression tree boosting (also known as GBDT, GBM)
     for vertical split dataset setting by using secure boost.
 
     - SGB is short for SecureBoost. Compared to its safer counterpart SS-XGB, SecureBoost focused on protecting label holder.
 
     - Check https://arxiv.org/abs/1901.08755.
-    '''
+    """
 
     num_boost_round: int = Field.attr(
         desc="Number of boosting iterations.",
@@ -327,27 +327,27 @@ class SGBTrain(SGBExportMixin, Component, IServingExporter):
             sgb = Sgb(heu)
             model = sgb.train(
                 params={
-                    'num_boost_round': self.num_boost_round,
-                    'max_depth': self.max_depth,
-                    'learning_rate': self.learning_rate,
-                    'objective': self.objective,
-                    'reg_lambda': self.reg_lambda,
-                    'gamma': self.gamma,
-                    'rowsample_by_tree': self.rowsample_by_tree,
-                    'colsample_by_tree': self.colsample_by_tree,
-                    'bottom_rate': self.bottom_rate,
-                    'top_rate': self.top_rate,
-                    'max_leaf': self.max_leaf,
-                    'quantization_scale': self.quantization_scale,
-                    'sketch_eps': self.sketch_eps,
-                    'base_score': self.base_score,
-                    'seed': self.seed,
-                    'fixed_point_parameter': self.fixed_point_parameter,
-                    'enable_goss': self.enable_goss,
-                    'enable_quantization': self.enable_quantization,
-                    'batch_encoding_enabled': self.batch_encoding_enabled,
-                    'tree_growing_method': self.tree_growing_method,
-                    'first_tree_with_label_holder_feature': self.first_tree_with_label_holder_feature,
+                    "num_boost_round": self.num_boost_round,
+                    "max_depth": self.max_depth,
+                    "learning_rate": self.learning_rate,
+                    "objective": self.objective,
+                    "reg_lambda": self.reg_lambda,
+                    "gamma": self.gamma,
+                    "rowsample_by_tree": self.rowsample_by_tree,
+                    "colsample_by_tree": self.colsample_by_tree,
+                    "bottom_rate": self.bottom_rate,
+                    "top_rate": self.top_rate,
+                    "max_leaf": self.max_leaf,
+                    "quantization_scale": self.quantization_scale,
+                    "sketch_eps": self.sketch_eps,
+                    "base_score": self.base_score,
+                    "seed": self.seed,
+                    "fixed_point_parameter": self.fixed_point_parameter,
+                    "enable_goss": self.enable_goss,
+                    "enable_quantization": self.enable_quantization,
+                    "batch_encoding_enabled": self.batch_encoding_enabled,
+                    "tree_growing_method": self.tree_growing_method,
+                    "first_tree_with_label_holder_feature": self.first_tree_with_label_holder_feature,
                     "enable_monitor": self.enable_monitor,
                     "enable_early_stop": self.enable_early_stop,
                     "eval_metric": self.eval_metric,

@@ -38,12 +38,12 @@ from secretflow.utils.consistent_ops import unique_list
 from secretflow.utils.errors import InvalidArgumentError, InvalidStateError
 
 
-@register(domain='data_filter', version='1.0.0')
+@register(domain="data_filter", version="1.0.0")
 class ExprConditionFilter(Component):
-    '''
+    """
     Only row-level filtering is supported, column processing is not available;
     the custom expression must comply with SQLite syntax standards
-    '''
+    """
 
     # Suggest that the user verify the validity of the expression
     expr: str = Field.attr(
@@ -108,7 +108,7 @@ class ExprConditionFilter(Component):
                 selection.field(0).type
             ):
                 return InvalidStateError(
-                    message=f"The result can only have one column and it must be boolean type",
+                    message="The result can only have one column and it must be boolean type",
                     detail={
                         "num_columns": selection.num_columns,
                         "type": selection.field(0).type,

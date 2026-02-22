@@ -17,14 +17,14 @@ from .core import Partition, partition
 from .ndarray import FedNdarray, PartitionWay
 
 __all__ = [
-    'horizontal',
-    'vertical',
-    'mix',
-    'core',
-    'io',
-    'ndarray',
-    'FedNdarray',
-    'PartitionWay',
-    'partition',
-    'Partition',
+    "horizontal",
+    "vertical",
+    "mix",
+    "core",
+    "io",
+    "ndarray",
+    "FedNdarray",
+    "PartitionWay",
+    "partition",
+    "Partition",
 ]

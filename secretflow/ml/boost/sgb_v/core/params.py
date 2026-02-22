@@ -19,9 +19,9 @@ import numpy as np
 
 @unique
 class RegType(Enum):
-    Linear = 'linear'
-    Logistic = 'logistic'
-    Tweedie = 'tweedie'
+    Linear = "linear"
+    Logistic = "logistic"
+    Tweedie = "tweedie"
 
 
 class TreeGrowingMethod(Enum):
@@ -162,13 +162,13 @@ class SGBParams:
     top_rate: float = 0.3
     bottom_rate: float = 0.5
     sketch_eps: float = 0.1
-    objective: RegType = RegType('logistic')
+    objective: RegType = RegType("logistic")
     base_score: float = 0.0
     tree_growing_method: TreeGrowingMethod = TreeGrowingMethod.LEVEL
     enable_packbits: bool = False
 
     # callback params
-    eval_metric: str = 'roc_auc'
+    eval_metric: str = "roc_auc"
     enable_monitor: bool = False
     enable_early_stop: bool = False
     validation_fraction: float = 0.1
@@ -190,46 +190,46 @@ def get_classic_lightGBM_params() -> dict:
     classic_lightGBM_params.enable_goss = True
     classic_lightGBM_params.tree_growing_method = TreeGrowingMethod.LEAF
     result = asdict(classic_lightGBM_params)
-    result['objective'] = classic_lightGBM_params.objective.value
-    result['tree_growing_method'] = classic_lightGBM_params.tree_growing_method.value
+    result["objective"] = classic_lightGBM_params.objective.value
+    result["tree_growing_method"] = classic_lightGBM_params.tree_growing_method.value
     return result
 
 
 def get_classic_XGB_params() -> dict:
     """Return a param dictionary that is typical for a XGB style training"""
     result = asdict(default_params)
-    result['objective'] = default_params.objective.value
-    result['tree_growing_method'] = default_params.tree_growing_method.value
+    result["objective"] = default_params.objective.value
+    result["tree_growing_method"] = default_params.tree_growing_method.value
     return result
 
 
 param_names = set(asdict(default_params).keys())
 numeric_params_range = {
     # param_name : (lower, higher, lower_inclusive, higher_inclusive)
-    'fixed_point_parameter': (1, 100, True, True),
-    'quantization_scale': (0, 10000000.0, True, True),
-    'num_boost_round': (1, 1024, True, True),
-    'reg_lambda': (0, 10000, True, True),
-    'learning_rate': (0, 1, False, True),
-    'max_leaf': (1, 32768, True, True),
-    'max_depth': (1, 16, True, True),
-    'gamma': (0, 10000, True, True),
-    'rowsample_by_tree': (0, 1, False, True),
-    'colsample_by_tree': (0, 1, False, True),
-    'top_rate': (0, 1, False, False),
-    'bottom_rate': (0, 1, False, False),
-    'sketch_eps': (0, 1, False, True),
-    'validation_fraction': (0, 1, False, False),
-    'stopping_rounds': (1, 1024, True, True),
-    'stopping_tolerance': (0, np.inf, True, False),
-    'tweedie_variance_power': (1, 2, False, False),
-    'base_score': (-10, 10, True, True),
+    "fixed_point_parameter": (1, 100, True, True),
+    "quantization_scale": (0, 10000000.0, True, True),
+    "num_boost_round": (1, 1024, True, True),
+    "reg_lambda": (0, 10000, True, True),
+    "learning_rate": (0, 1, False, True),
+    "max_leaf": (1, 32768, True, True),
+    "max_depth": (1, 16, True, True),
+    "gamma": (0, 10000, True, True),
+    "rowsample_by_tree": (0, 1, False, True),
+    "colsample_by_tree": (0, 1, False, True),
+    "top_rate": (0, 1, False, False),
+    "bottom_rate": (0, 1, False, False),
+    "sketch_eps": (0, 1, False, True),
+    "validation_fraction": (0, 1, False, False),
+    "stopping_rounds": (1, 1024, True, True),
+    "stopping_tolerance": (0, np.inf, True, False),
+    "tweedie_variance_power": (1, 2, False, False),
+    "base_score": (-10, 10, True, True),
 }
 
 categorical_params_options = {
-    'objective': [e.value for e in RegType],
-    'tree_growing_method': [e.value for e in TreeGrowingMethod],
-    'eval_metric': ['roc_auc', 'tweedie_deviance', 'tweedie_nll', 'mse', 'rmse'],
+    "objective": [e.value for e in RegType],
+    "tree_growing_method": [e.value for e in TreeGrowingMethod],
+    "eval_metric": ["roc_auc", "tweedie_deviance", "tweedie_nll", "mse", "rmse"],
 }
 
 
@@ -275,23 +275,23 @@ def assert_categorical_parameter_valid_option(param_name, value):
 
 def assert_parameter_combination_valid(params_dict):
     if (
-        params_dict.get('enable_monitor', False)
-        or params_dict.get('enable_early_stop', False)
-    ) and 'eval_metric' in params_dict:
-        objective = params_dict.get('objective', 'logistic')
-        if objective == 'logistic':
+        params_dict.get("enable_monitor", False)
+        or params_dict.get("enable_early_stop", False)
+    ) and "eval_metric" in params_dict:
+        objective = params_dict.get("objective", "logistic")
+        if objective == "logistic":
             assert (
-                params_dict['eval_metric'] == 'roc_auc'
+                params_dict["eval_metric"] == "roc_auc"
             ), f"when objective is logistic, eval_metric must be auc, got {params_dict['eval_metric']}"
-        if objective == 'tweedie':
-            assert params_dict['eval_metric'] in [
-                'tweedie_nll',
-                'tweedie_deviance',
+        if objective == "tweedie":
+            assert params_dict["eval_metric"] in [
+                "tweedie_nll",
+                "tweedie_deviance",
             ], f"when objective is tweedie, eval_metric must be tweedie_nll or tweedie_deviance, got {params_dict['eval_metric']}"
-        if objective == 'linear':
-            assert params_dict['eval_metric'] in [
-                'mse',
-                'rmse',
+        if objective == "linear":
+            assert params_dict["eval_metric"] in [
+                "mse",
+                "rmse",
             ], f"when objective is linear, eval_metric must be mse or rmse, got {params_dict['eval_metric']}"
 
 
@@ -328,21 +328,21 @@ def type_and_range_check(params_dict):
 
 
 XGB_COMMON_PARAMS = [
-    'reg_lambda',
-    'seed',
-    'learning_rate',
-    'max_depth',
-    'gamma',
-    'base_score',
-    'tweedie_variance_power',
+    "reg_lambda",
+    "seed",
+    "learning_rate",
+    "max_depth",
+    "gamma",
+    "base_score",
+    "tweedie_variance_power",
 ]
 
 
 OBJ_CONVERSION_DICT = {
-    'binary:logistic': RegType.Logistic.value,
-    'reg:logistic': RegType.Logistic.value,
-    'reg:squarederror': RegType.Linear.value,
-    'reg:tweedie': RegType.Tweedie.value,
+    "binary:logistic": RegType.Logistic.value,
+    "reg:logistic": RegType.Logistic.value,
+    "reg:squarederror": RegType.Linear.value,
+    "reg:tweedie": RegType.Tweedie.value,
 }
 
 
@@ -354,17 +354,17 @@ def objective_conversion_function(xgb_obj_str: str) -> RegType:
 
 
 XGB_TO_SGB_PARAMS = {
-    'max_leaves': ('max_leaf', lambda x: x),
-    'max_bin': ('sketch_eps', lambda x: 1 / x),
-    'subsample': ('rowsample_by_tree', lambda x: x),
-    'colsample_bytree': ('colsample_by_tree', lambda x: x),
-    'lambda': ('reg_lambda', lambda x: x),
-    'eta': ('learning_rate', lambda x: x),
-    'min_split_loss': ('gamma', lambda x: x),
-    'n_estimators': ('num_boost_round', lambda x: x),
-    'random_state': ('seed', lambda x: x),
-    'early_stopping_rounds': ('stopping_rounds', lambda x: x),
-    'objective': ('objective', objective_conversion_function),
+    "max_leaves": ("max_leaf", lambda x: x),
+    "max_bin": ("sketch_eps", lambda x: 1 / x),
+    "subsample": ("rowsample_by_tree", lambda x: x),
+    "colsample_bytree": ("colsample_by_tree", lambda x: x),
+    "lambda": ("reg_lambda", lambda x: x),
+    "eta": ("learning_rate", lambda x: x),
+    "min_split_loss": ("gamma", lambda x: x),
+    "n_estimators": ("num_boost_round", lambda x: x),
+    "random_state": ("seed", lambda x: x),
+    "early_stopping_rounds": ("stopping_rounds", lambda x: x),
+    "objective": ("objective", objective_conversion_function),
 }
 
 
@@ -389,16 +389,16 @@ def xgb_params_converter(xgb_params: dict) -> dict:
             sgb_key, func = XGB_TO_SGB_PARAMS[k]
             sgb_params[sgb_key] = func(v)
             if k == "early_stopping_rounds" and v > 0:
-                sgb_params['enable_early_stop'] = True
-                sgb_params['save_best_model'] = True
+                sgb_params["enable_early_stop"] = True
+                sgb_params["save_best_model"] = True
             continue
     sgb_params.update(
         {
-            'wait_execution': False,
-            'first_tree_with_label_holder_feature': False,
-            'enable_quantization': False,
-            'enable_packbits': False,
-            'enable_monitor': True,
+            "wait_execution": False,
+            "first_tree_with_label_holder_feature": False,
+            "enable_quantization": False,
+            "enable_packbits": False,
+            "enable_monitor": True,
         }
     )
     return sgb_params
@@ -412,5 +412,5 @@ def apply_new_params(old_params: dict, new_params: dict) -> dict:
     return result_params
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     print(param_names)

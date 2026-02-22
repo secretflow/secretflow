@@ -18,8 +18,8 @@ from .plain_comparator import PlainComparator
 from .spu_comparator import SPUComparator
 
 __all__ = [
-    'Comparator',
-    'DeviceComparator',
-    'PlainComparator',
-    'SPUComparator',
+    "Comparator",
+    "DeviceComparator",
+    "PlainComparator",
+    "SPUComparator",
 ]

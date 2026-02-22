@@ -38,7 +38,7 @@ from secretflow.stats.biclassification_eval import (
 
 @register(domain="ml.eval", version="1.0.0", name="biclassification_eval")
 class BiClassificationEval(Component):
-    '''
+    """
     Statistics evaluation for a bi-classification model on a dataset.
         1. summary_report: SummaryReport
 
@@ -48,7 +48,7 @@ class BiClassificationEval(Component):
 
         4. head_report: List[PrReport]
             reports for fpr = 0.001, 0.005, 0.01, 0.05, 0.1, 0.2
-    '''
+    """
 
     bucket_size: int = Field.attr(
         desc="Number of buckets.",
@@ -132,29 +132,29 @@ class BiClassificationEval(Component):
             self.head_report_to_df(result.head_report), prefix="case_"
         )
         r.add_tab(head_report_table, name="head_report")
-        logging.info(f'\n--\n*report* \n\n{MessageToJson(r.report())}\n--\n')
+        logging.info(f"\n--\n*report* \n\n{MessageToJson(r.report())}\n--\n")
         self.report.data = r.to_distdata()
 
     @staticmethod
     def eq_bin_to_df(equal_bin_reports) -> pd.DataFrame:
         columns = [
-            'start_value',
-            'end_value',
-            'positive',
-            'negative',
-            'total',
-            'precision',
-            'recall',
-            'false_positive_rate',
-            'f1_score',
-            'lift',
-            'predicted_positive_ratio',
-            'predicted_negative_ratio',
-            'cumulative_percent_of_positive',
-            'cumulative_percent_of_negative',
-            'total_cumulative_percent',
-            'ks',
-            'avg_score',
+            "start_value",
+            "end_value",
+            "positive",
+            "negative",
+            "total",
+            "precision",
+            "recall",
+            "false_positive_rate",
+            "f1_score",
+            "lift",
+            "predicted_positive_ratio",
+            "predicted_negative_ratio",
+            "cumulative_percent_of_positive",
+            "cumulative_percent_of_negative",
+            "total_cumulative_percent",
+            "ks",
+            "avg_score",
         ]
         rows = []
         for bin_report in equal_bin_reports:

@@ -63,7 +63,7 @@ def calculate_stats_psi(
     feature_psi_infos = []
     for feature in feature_selects:
         for device, table in base_df.partitions.items():
-            assert device in test_df.partitions.keys(), f'{device} not in test df'
+            assert device in test_df.partitions.keys(), f"{device} not in test df"
             if feature in table.columns:
                 feature_psi_info: PsiInfos = reveal(
                     device(get_stats_psi_one_feature)(
@@ -93,7 +93,7 @@ def get_stats_psi_one_feature(
 def get_bin_counts_one_feature(rule_dict: dict, feature: str, df: pd.DataFrame):
     if feature != rule_dict["name"] or feature not in df.columns:
         raise InvalidArgumentError(
-            message=f"feature name mismatch or not in df.columns",
+            message="feature name mismatch or not in df.columns",
             detail={
                 "feature": feature,
                 "name": rule_dict["name"],
@@ -106,7 +106,7 @@ def get_bin_counts_one_feature(rule_dict: dict, feature: str, df: pd.DataFrame):
         counts = statistic_data_numeric(df, feature, split_points)
 
         for i in range(len(split_points) - 1):
-            from_val = f"({split_points[i]}, {split_points[i+1]}]"
+            from_val = f"({split_points[i]}, {split_points[i + 1]}]"
             to_val = str(rule_dict["filling_values"][i])
             rows.append([from_val, to_val, str(counts[i])])
         rows.append(
@@ -128,7 +128,7 @@ def get_bin_counts_one_feature(rule_dict: dict, feature: str, df: pd.DataFrame):
             [
                 "nan values",
                 str(rule_dict.get("else_filling_value", "null")),
-                str(counts_dict['nan']),
+                str(counts_dict["nan"]),
             ]
         )
     return rows
@@ -200,7 +200,7 @@ def statistic_data_numeric(df: pd.DataFrame, feature, bins):
 
 def statistic_data_category(df: pd.DataFrame, feature):
     counts_dict = df[feature].value_counts()
-    counts_dict['nan'] = df[feature].isna().sum()
+    counts_dict["nan"] = df[feature].isna().sum()
     return counts_dict
 
 
@@ -225,7 +225,7 @@ class PsiInfos:
 
 @register(domain="stats", version="1.0.0", name="stats_psi")
 class StatsPSI(Component):
-    '''population stability index.'''
+    """population stability index."""
 
     feature_selects: list[str] = Field.table_column_attr(
         "input_base_ds",
@@ -292,7 +292,7 @@ class StatsPSI(Component):
         total_tbl = Reporter.build_table(total_df, columns=total_hd)
         r.add_tab(
             total_tbl,
-            name='稳定性评估总表',
+            name="稳定性评估总表",
             desc="stats psi summary of all selected features",
         )
 

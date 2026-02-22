@@ -32,7 +32,7 @@ def merge_rules(rules: List[Dict]) -> Dict:
 
 def find_feature_index(variables: List[Dict], feature_name):
     for i, variable in enumerate(variables):
-        if variable['name'] == feature_name:
+        if variable["name"] == feature_name:
             return i
     raise ValueError("Feature name not found")
 
@@ -65,6 +65,10 @@ def dispatch_rules(
 
 def calculate_woe_from_ratios(rp: float, rn: float):
     return np.log(rp / rn)
+
+
+def calculate_iv_from_ratios(rp: float, rn: float):
+    return (rp - rn) * calculate_woe_from_ratios(rp, rn)
 
 
 FLOAT_TOLERANCE = 1e-6

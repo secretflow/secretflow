@@ -14,4 +14,4 @@
 
 from .factory import SGBFactory
 
-__all__ = ['SGBFactory']
+__all__ = ["SGBFactory"]

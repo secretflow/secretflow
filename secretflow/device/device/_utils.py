@@ -39,8 +39,8 @@ def check_num_returns(fn):
         num_returns = 1
     else:
         if (
-            hasattr(sig.return_annotation, '_name')
-            and sig.return_annotation._name == 'Tuple'
+            hasattr(sig.return_annotation, "_name")
+            and sig.return_annotation._name == "Tuple"
         ):
             num_returns = len(sig.return_annotation.__args__)
         elif isinstance(sig.return_annotation, tuple):

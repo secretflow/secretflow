@@ -81,7 +81,7 @@ def gen_vert_bin_rule(sf_production_setup_comp):
         name="vert_binning",
         version="1.0.0",
         attrs={
-            "input/input_ds/feature_selects": ['a0', 'a1', 'b0'],
+            "input/input_ds/feature_selects": ["a0", "a1", "b0"],
             "report_rules": True,
         },
         inputs=[
@@ -147,7 +147,7 @@ def test_stats_psi_input_bin_rule(sf_production_setup_comp):
         name="stats_psi",
         version="1.0.0",
         attrs={
-            'input/input_base_ds/feature_selects': [f"a{i}" for i in range(2)]
+            "input/input_base_ds/feature_selects": [f"a{i}" for i in range(2)]
             + [f"b{i}" for i in range(1)],
         },
         inputs=[
@@ -217,7 +217,7 @@ def gen_vert_woe_bin_rule(sf_production_setup_comp):
         name="vert_woe_binning",
         version="1.0.0",
         attrs={
-            "input/input_ds/feature_selects": ['a0', 'a1', 'b0'],
+            "input/input_ds/feature_selects": ["a0", "a1", "b0"],
             "label": ["y"],
             "bin_num": 8,
         },
@@ -282,7 +282,7 @@ def test_stats_psi_input_woe_bin_rule(sf_production_setup_comp):
         name="stats_psi",
         version="1.0.0",
         attrs={
-            'input/input_base_ds/feature_selects': [f"a{i}" for i in range(2)]
+            "input/input_base_ds/feature_selects": [f"a{i}" for i in range(2)]
             + [f"b{i}" for i in range(1)],
         },
         inputs=[
@@ -351,7 +351,7 @@ def test_stats_psi_woe_one_party_selected(sf_production_setup_comp):
         domain="stats",
         name="stats_psi",
         version="1.0.0",
-        attrs={'input/input_base_ds/feature_selects': [f"a{i}" for i in range(2)]},
+        attrs={"input/input_base_ds/feature_selects": [f"a{i}" for i in range(2)]},
         inputs=[
             DistData(
                 name="input_base_data",
@@ -392,63 +392,63 @@ def test_stats_psi_woe_one_party_selected(sf_production_setup_comp):
 
 
 def test_stats_psi_category():
-    df = pd.DataFrame({'gender': ['M', 'F', 'F', 'M', np.nan, 'M']})
+    df = pd.DataFrame({"gender": ["M", "F", "F", "M", np.nan, "M"]})
     rule_dict = {
         "name": "gender",
         "type": "category",
-        "categories": ['M', 'F'],
-        "filling_values": ['Male', 'Female'],
+        "categories": ["M", "F"],
+        "filling_values": ["Male", "Female"],
         "else_filling_value": "Unknown",
     }
 
     result = get_bin_counts_one_feature(rule_dict, "gender", df)
 
     expected = [
-        ['M', 'Male', '3'],
-        ['F', 'Female', '2'],
-        ['nan values', 'Unknown', '1'],
+        ["M", "Male", "3"],
+        ["F", "Female", "2"],
+        ["nan values", "Unknown", "1"],
     ]
     assert result == expected, "Test case for stats_psi_category failed"
 
 
 def test_stats_psi_category_not_exist():
-    df = pd.DataFrame({'gender': [-0.1, 2.0, 2.0, -0.1, np.nan, -0.1]})
+    df = pd.DataFrame({"gender": [-0.1, 2.0, 2.0, -0.1, np.nan, -0.1]})
     rule_dict = {
         "name": "gender",
         "type": "category",
         "categories": [-0.1, 2.0, -0.0796900233493871],
-        "filling_values": ['Male', 'Female', 'others'],
+        "filling_values": ["Male", "Female", "others"],
         "else_filling_value": "Unknown",
     }
 
     result = get_bin_counts_one_feature(rule_dict, "gender", df)
 
     expected = [
-        ['-0.1', 'Male', '3'],
-        ['2.0', 'Female', '2'],
-        ['-0.0796900233493871', 'others', '0'],
-        ['nan values', 'Unknown', '1'],
+        ["-0.1", "Male", "3"],
+        ["2.0", "Female", "2"],
+        ["-0.0796900233493871", "others", "0"],
+        ["nan values", "Unknown", "1"],
     ]
     assert result == expected, "Test case for test_stats_psi_category_not_exist failed"
 
 
 def test_stats_psi_0():
-    base_bin_stats = [("label0", '0', '2'), ('label1', '1', '2'), ('label2', '2', '2')]
-    test_bin_stats = [("label0", '0', '2'), ('label1', '1', '2'), ('label2', '2', '2')]
+    base_bin_stats = [("label0", "0", "2"), ("label1", "1", "2"), ("label2", "2", "2")]
+    test_bin_stats = [("label0", "0", "2"), ("label1", "1", "2"), ("label2", "2", "2")]
     psi, _ = calculate_stats_psi_one_feature(base_bin_stats, test_bin_stats)
     assert psi == 0.0
 
 
 def test_stats_psi_small_enough():
     base_bin_stats = [
-        ("label0", '0', '20'),
-        ('label1', '1', '20'),
-        ('label2', '2', '20'),
+        ("label0", "0", "20"),
+        ("label1", "1", "20"),
+        ("label2", "2", "20"),
     ]
     test_bin_stats = [
-        ("label0", '0', '19'),
-        ('label1', '1', '21'),
-        ('label2', '2', '20'),
+        ("label0", "0", "19"),
+        ("label1", "1", "21"),
+        ("label2", "2", "20"),
     ]
     psi, _ = calculate_stats_psi_one_feature(base_bin_stats, test_bin_stats)
     assert psi <= good_psi_threshold
@@ -456,14 +456,14 @@ def test_stats_psi_small_enough():
 
 def test_stats_psi_too_large():
     base_bin_stats = [
-        ("label0", '0', '20'),
-        ('label1', '1', '20'),
-        ('label2', '2', '20'),
+        ("label0", "0", "20"),
+        ("label1", "1", "20"),
+        ("label2", "2", "20"),
     ]
     test_bin_stats = [
-        ("label0", '0', '10'),
-        ('label1', '1', '30'),
-        ('label2', '2', '20'),
+        ("label0", "0", "10"),
+        ("label1", "1", "30"),
+        ("label2", "2", "20"),
     ]
     psi, _ = calculate_stats_psi_one_feature(base_bin_stats, test_bin_stats)
     assert psi >= good_psi_threshold
@@ -471,11 +471,11 @@ def test_stats_psi_too_large():
 
 def test_stats_psi_fail():
     base_bin_stats = [
-        ("label0", '0', '20'),
-        ('label1', '1', '20'),
-        ('label2', '2', '20'),
+        ("label0", "0", "20"),
+        ("label1", "1", "20"),
+        ("label2", "2", "20"),
     ]
-    test_bin_stats = [("label0", '0', '20'), ('label1', '1', '20')]
+    test_bin_stats = [("label0", "0", "20"), ("label1", "1", "20")]
 
     with pytest.raises(Exception):
         calculate_stats_psi_one_feature(base_bin_stats, test_bin_stats)

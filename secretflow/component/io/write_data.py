@@ -56,9 +56,9 @@ CURRENT_SUPPORTED_TYPES = [
 
 @register(domain="io", version="1.0.0")
 class WriteData(Component):
-    '''
+    """
     write model or rules back to sf cluster
-    '''
+    """
 
     write_data: str = Field.attr(
         desc="rule or model protobuf by json format",
@@ -115,7 +115,7 @@ class WriteData(Component):
             if self.input_data is None:
                 try:
                     glm_pb = Parse(self.write_data, GeneralizedLinearModel())
-                except:
+                except:  # noqa: E722
                     raise InvalidArgumentError(
                         f"write_data: {self.write_data} is not a valid GeneralizedLinearModel protobuf."
                     )
@@ -128,7 +128,7 @@ class WriteData(Component):
                 )
                 try:
                     lm_pb = Parse(self.write_data, LinearModel())
-                except:
+                except:  # noqa: E722
                     raise InvalidArgumentError(
                         f"write_data: {self.write_data} is not a valid LinearModel protobuf."
                     )

@@ -106,7 +106,7 @@ class PlPartDataFrame(PartDataFrameBase):
             elif isinstance(value, pl.Series):
                 assert (
                     len(key) == 1
-                ), f"to set a pl.Series, key must be str or ['xxx'] with len = 1"
+                ), "to set a pl.Series, key must be str or ['xxx'] with len = 1"
                 self.df = self.df.with_columns(value.alias(key[0]))
             elif not is_list_like(value):
                 # is a str or int to fullfill all values in this columns
@@ -170,9 +170,9 @@ class PlPartDataFrame(PartDataFrameBase):
 
     def sum(self, *args, **kwargs) -> pd.Series:
         self._collect()
-        axis = kwargs.get('axis', 0)
-        null_strategy = kwargs.get('null_strategy', 'ignore')
-        numeric_only = kwargs.get('numeric_only', False)
+        axis = kwargs.get("axis", 0)
+        null_strategy = kwargs.get("null_strategy", "ignore")
+        numeric_only = kwargs.get("numeric_only", False)
         if numeric_only:
             return self.__pd_series_convert(
                 self.df.select(pl.col(pl.NUMERIC_DTYPES)).sum(
@@ -186,8 +186,8 @@ class PlPartDataFrame(PartDataFrameBase):
 
     def min(self, *args, **kwargs) -> pd.Series:
         self._collect()
-        axis = kwargs.get('axis', 0)
-        numeric_only = kwargs.get('numeric_only', False)
+        axis = kwargs.get("axis", 0)
+        numeric_only = kwargs.get("numeric_only", False)
         if numeric_only:
             return self.__pd_series_convert(
                 self.df.select(pl.col(pl.NUMERIC_DTYPES)).min(axis=axis)
@@ -197,8 +197,8 @@ class PlPartDataFrame(PartDataFrameBase):
 
     def max(self, *args, **kwargs) -> pd.Series:
         self._collect()
-        axis = kwargs.get('axis', 0)
-        numeric_only = kwargs.get('numeric_only', False)
+        axis = kwargs.get("axis", 0)
+        numeric_only = kwargs.get("numeric_only", False)
         if numeric_only:
             return self.__pd_series_convert(
                 self.df.select(pl.col(pl.NUMERIC_DTYPES)).max(axis=axis)
@@ -208,9 +208,9 @@ class PlPartDataFrame(PartDataFrameBase):
 
     def mean(self, *args, **kwargs) -> pd.Series:
         self._collect()
-        axis = kwargs.get('axis', 0)
-        null_strategy = kwargs.get('null_strategy', 'ignore')
-        numeric_only = kwargs.get('numeric_only', False)
+        axis = kwargs.get("axis", 0)
+        null_strategy = kwargs.get("null_strategy", "ignore")
+        numeric_only = kwargs.get("numeric_only", False)
         if numeric_only:
             return self.__pd_series_convert(
                 self.df.select(pl.col(pl.NUMERIC_DTYPES)).mean(
@@ -224,8 +224,8 @@ class PlPartDataFrame(PartDataFrameBase):
 
     def var(self, *args, **kwargs) -> pd.Series:
         self._collect()
-        ddof = kwargs.get('ddof', 1)
-        numeric_only = kwargs.get('numeric_only', False)
+        ddof = kwargs.get("ddof", 1)
+        numeric_only = kwargs.get("numeric_only", False)
         if numeric_only:
             return self.__pd_series_convert(
                 self.df.select(pl.col(pl.NUMERIC_DTYPES)).var(ddof=ddof)
@@ -235,9 +235,9 @@ class PlPartDataFrame(PartDataFrameBase):
 
     def std(self, *args, **kwargs) -> pd.Series:
         self._collect()
-        ddof = kwargs.get('ddof', 1)
+        ddof = kwargs.get("ddof", 1)
 
-        numeric_only = kwargs.get('numeric_only', False)
+        numeric_only = kwargs.get("numeric_only", False)
         if numeric_only:
             return self.__pd_series_convert(
                 self.df.select(pl.col(pl.NUMERIC_DTYPES)).std(ddof=ddof)
@@ -256,10 +256,10 @@ class PlPartDataFrame(PartDataFrameBase):
 
     def quantile(self, *args, **kwargs) -> pd.Series:
         self._collect()
-        assert len(args) == 0, f"please use keyword arguments to input q and axis"
-        q = kwargs.get('q', 0.5)
-        interpolation = kwargs.get('interpolation', 'linear')
-        numeric_only = kwargs.get('numeric_only', False)
+        assert len(args) == 0, "please use keyword arguments to input q and axis"
+        q = kwargs.get("q", 0.5)
+        interpolation = kwargs.get("interpolation", "linear")
+        numeric_only = kwargs.get("numeric_only", False)
         if numeric_only:
             ret = self.__pd_series_convert(
                 self.df.select(pl.col(pl.NUMERIC_DTYPES)).quantile(
@@ -318,7 +318,7 @@ class PlPartDataFrame(PartDataFrameBase):
         columns=None,
         level=None,
         inplace=False,
-        errors='raise',
+        errors="raise",
     ) -> "PlPartDataFrame":
         self._collect()
         new_data = self.df.drop(columns=columns)
@@ -335,7 +335,7 @@ class PlPartDataFrame(PartDataFrameBase):
         inplace=False,
         limit=None,
         downcast=None,
-    ) -> Union['PlPartDataFrame', None]:
+    ) -> Union["PlPartDataFrame", None]:
         self._collect()
         logging.warning(
             "polars' fillna (actually pl.DataFrame.fill_null) does not act same as pandas, col whose tpye diffrent "
@@ -356,7 +356,7 @@ class PlPartDataFrame(PartDataFrameBase):
             Path(filepath).parent.mkdir(parents=True, exist_ok=True)
             self.df.write_csv(filepath)
 
-    def iloc(self, index: Union[int, slice, List[int]]) -> 'PlPartDataFrame':
+    def iloc(self, index: Union[int, slice, List[int]]) -> "PlPartDataFrame":
         raise NotImplementedError()
 
     def rename(
@@ -368,8 +368,8 @@ class PlPartDataFrame(PartDataFrameBase):
         copy=True,
         inplace=False,
         level=None,
-        errors='ignore',
-    ) -> Union['PlPartDataFrame', None]:
+        errors="ignore",
+    ) -> Union["PlPartDataFrame", None]:
         self._collect()
         if index is not None:
             logging.warning(
@@ -385,10 +385,10 @@ class PlPartDataFrame(PartDataFrameBase):
         if not inplace:
             return PlPartDataFrame(new_data)
 
-    def pow(self, *args, **kwargs) -> 'PlPartDataFrame':
+    def pow(self, *args, **kwargs) -> "PlPartDataFrame":
         raise NotImplementedError()
 
-    def round(self, decimals) -> 'PlPartDataFrame':
+    def round(self, decimals) -> "PlPartDataFrame":
         """
 
         Args:
@@ -413,11 +413,11 @@ class PlPartDataFrame(PartDataFrameBase):
             )
         return PlPartDataFrame(df)
 
-    def select_dtypes(self, include=None, exclude=None) -> 'PlPartDataFrame':
+    def select_dtypes(self, include=None, exclude=None) -> "PlPartDataFrame":
         self._collect()
-        assert exclude is None, f"does not support exclude dtypes in polars yet."
-        assert include is not None, f"inxlude must indicate"
-        if include == 'number':
+        assert exclude is None, "does not support exclude dtypes in polars yet."
+        assert include is not None, "inxlude must indicate"
+        if include == "number":
             include = pl.NUMERIC_DTYPES
         else:
             if not isinstance(include, (list, tuple)):
@@ -425,12 +425,12 @@ class PlPartDataFrame(PartDataFrameBase):
             include = [infer_pl_dtype(icld) for icld in include]
         return PlPartDataFrame(self.df.select(cs.by_dtype(include)))
 
-    def subtract(self, *args, **kwargs) -> 'PlPartDataFrame':
+    def subtract(self, *args, **kwargs) -> "PlPartDataFrame":
         raise NotImplementedError()
 
     def apply_func(
         self, func: Callable, *, nums_return: int = 1, **kwargs
-    ) -> Union['PlPartDataFrame', 'List[PlPartDataFrame]']:
+    ) -> Union["PlPartDataFrame", "List[PlPartDataFrame]"]:
         self._collect()
         dfs = func(self.df, **kwargs)
         if nums_return != 1:
@@ -455,6 +455,6 @@ class PlPartDataFrame(PartDataFrameBase):
                 else PdPartDataFrame(dfs)
             )
 
-    def to_pandas(self) -> 'PdPartDataFrame':
+    def to_pandas(self) -> "PdPartDataFrame":
         self._collect()
         return PdPartDataFrame(self.df.to_pandas())

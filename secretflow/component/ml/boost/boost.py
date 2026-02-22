@@ -53,7 +53,7 @@ def get_party_features_info(
 def build_tree_attrs(
     node_ids, split_feature_indices, split_values, tree_leaf_indices=None
 ):
-    assert len(node_ids) > 0, f"Too few nodes to form a tree structure."
+    assert len(node_ids) > 0, "Too few nodes to form a tree structure."
 
     lchild_ids = [idx * 2 + 1 for idx in node_ids]
     rchild_ids = [idx * 2 + 2 for idx in node_ids]
@@ -172,9 +172,9 @@ class TreeNodeContext:
             heu_weight_shard = party_shards_to_heu_plain_text(weights, heu, pyu.party)
             pyu_weights = heu_weight_shard.serialize_to_pyu(pyu)
 
-            self.party_select_kwargs[pyu]['select_col_name'] = 'selects'
-            self.party_select_kwargs[pyu]['weight_shard_col_name'] = 'weight_shards'
-            self.party_select_kwargs[pyu]['weight_shard'] = pyu_weights
+            self.party_select_kwargs[pyu]["select_col_name"] = "selects"
+            self.party_select_kwargs[pyu]["weight_shard_col_name"] = "weight_shards"
+            self.party_select_kwargs[pyu]["weight_shard"] = pyu_weights
             self.party_select_outputs[pyu] = Table.from_schema(
                 {"selects": np.bytes_, "weight_shards": np.bytes_}
             ).dump_serving_pb("tmp")[1]
@@ -190,7 +190,7 @@ class TreeNodeContext:
                 "weight_shard": pyu_weights,
             }
         else:
-            self.party_select_kwargs[pyu]['output_col_name'] = 'selects'
+            self.party_select_kwargs[pyu]["output_col_name"] = "selects"
             self.party_select_outputs[pyu] = Table.from_schema(
                 {"selects": np.uint64}
             ).dump_serving_pb("tmp")[1]

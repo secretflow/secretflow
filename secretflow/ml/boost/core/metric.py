@@ -67,36 +67,36 @@ def tweedie_negative_log_likelihood(tweedie_variance_power: float):
 
 
 _METRICS = {
-    'roc_auc': metric_wrapper(roc_auc_score, 'roc_auc'),
-    'rmse': metric_wrapper(root_mean_squared_error, 'rmse'),
-    'mse': metric_wrapper(mean_squared_error, 'mse'),
+    "roc_auc": metric_wrapper(roc_auc_score, "roc_auc"),
+    "rmse": metric_wrapper(root_mean_squared_error, "rmse"),
+    "mse": metric_wrapper(mean_squared_error, "mse"),
 }
 
 
 def MetricProducer(metric_name: str, **kwargs) -> Tuple[Union[Callable, None], str]:
-    if metric_name == 'tweedie_deviance':
+    if metric_name == "tweedie_deviance":
         assert (
-            'tweedie_variance_power' in kwargs
-        ), f'tweedie_deviance requires tweedie_variance_power'
-        tweedie_variance_power = kwargs['tweedie_variance_power']
+            "tweedie_variance_power" in kwargs
+        ), "tweedie_deviance requires tweedie_variance_power"
+        tweedie_variance_power = kwargs["tweedie_variance_power"]
         return (
             metric_wrapper(
                 tweedie_deviance_producer(tweedie_variance_power),
-                f'tweedie_deviance_{tweedie_variance_power}',
+                f"tweedie_deviance_{tweedie_variance_power}",
             ),
-            f'tweedie_deviance_{tweedie_variance_power}',
+            f"tweedie_deviance_{tweedie_variance_power}",
         )
-    elif metric_name == 'tweedie_nll':
+    elif metric_name == "tweedie_nll":
         assert (
-            'tweedie_variance_power' in kwargs
-        ), f'tweedie_nll requires tweedie_variance_power'
-        tweedie_variance_power = kwargs['tweedie_variance_power']
+            "tweedie_variance_power" in kwargs
+        ), "tweedie_nll requires tweedie_variance_power"
+        tweedie_variance_power = kwargs["tweedie_variance_power"]
         return (
             metric_wrapper(
                 tweedie_negative_log_likelihood(tweedie_variance_power),
-                f'tweedie_nll_{tweedie_variance_power}',
+                f"tweedie_nll_{tweedie_variance_power}",
             ),
-            f'tweedie_nll_{tweedie_variance_power}',
+            f"tweedie_nll_{tweedie_variance_power}",
         )
     else:
         return _METRICS.get(metric_name, None), metric_name

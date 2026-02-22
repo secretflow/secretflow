@@ -16,9 +16,6 @@ import functools
 import itertools
 import json
 import logging
-import os
-import struct
-import subprocess
 import sys
 import tempfile
 import time
@@ -43,7 +40,6 @@ from secretflow.distributed.ray_op import get_obj_ref
 from secretflow.utils import secure_pickle as pickle
 from secretflow.utils.errors import InvalidArgumentError, YACLError
 from secretflow.utils.ndarray_bigint import BigintNdArray
-from secretflow.utils.progress import ProgressData
 
 from ._utils import get_fn_code_name
 from .base import Device, DeviceObject, DeviceType
@@ -52,20 +48,20 @@ from .register import dispatch
 from .type_traits import spu_datatype_to_heu, spu_fxp_size
 
 _LINK_DESC_NAMES = [
-    'connect_retry_times',
-    'connect_retry_interval_ms',
-    'recv_timeout_ms',
-    'http_max_payload_size',
-    'http_timeout_ms',
-    'throttle_window_size',
-    'brpc_channel_protocol',
-    'brpc_channel_connection_type',
+    "connect_retry_times",
+    "connect_retry_interval_ms",
+    "recv_timeout_ms",
+    "http_max_payload_size",
+    "http_timeout_ms",
+    "throttle_window_size",
+    "brpc_channel_protocol",
+    "brpc_channel_connection_type",
 ]
 
 SPU_PROTOCOLS_MAP = {
-    spu.ProtocolKind.SEMI2K: 'semi2k',
-    spu.ProtocolKind.CHEETAH: 'cheetah',
-    spu.ProtocolKind.ABY3: 'aby3',
+    spu.ProtocolKind.SEMI2K: "semi2k",
+    spu.ProtocolKind.CHEETAH: "cheetah",
+    spu.ProtocolKind.ABY3: "aby3",
 }
 
 
@@ -73,7 +69,7 @@ def _fill_link_ssl_opts(tls_opts: Dict, link_ssl_opts: spu.link.SSLOptions):
     for name, value in tls_opts.items():
         assert (
             isinstance(name, str) and name
-        ), f'tls options name shall be a valid string but got {type(name)}.'
+        ), f"tls options name shall be a valid string but got {type(name)}."
         if hasattr(link_ssl_opts.cert, name):
             setattr(link_ssl_opts.cert, name, value)
         if hasattr(link_ssl_opts.verify, name):
@@ -85,24 +81,24 @@ def _fill_link_desc_attrs(link_desc: Dict, tls_opts: Dict, desc: spu.link.Desc):
         for name, value in link_desc.items():
             assert (
                 isinstance(name, str) and name
-            ), f'Link desc param name shall be a valid string but got {type(name)}.'
+            ), f"Link desc param name shall be a valid string but got {type(name)}."
             if name not in _LINK_DESC_NAMES:
                 raise InvalidArgumentError(
-                    f'Unsupported param {name} in link desc, '
-                    f'{_LINK_DESC_NAMES} are now available only.'
+                    f"Unsupported param {name} in link desc, "
+                    f"{_LINK_DESC_NAMES} are now available only."
                 )
             setattr(desc, name, value)
 
-    if not link_desc or 'recv_timeout_ms' not in link_desc.keys():
+    if not link_desc or "recv_timeout_ms" not in link_desc.keys():
         # set default timeout 120s
         desc.recv_timeout_ms = 120 * 1000
-    if not link_desc or 'http_timeout_ms' not in link_desc.keys():
+    if not link_desc or "http_timeout_ms" not in link_desc.keys():
         # set default timeout 120s
         desc.http_timeout_ms = 120 * 1000
 
     if tls_opts:
-        server_opts = tls_opts.get('server_ssl_opts')
-        client_opts = tls_opts.get('client_ssl_opts')
+        server_opts = tls_opts.get("server_ssl_opts")
+        client_opts = tls_opts.get("client_ssl_opts")
         _fill_link_ssl_opts(server_opts, desc.server_ssl_opts)
         _fill_link_ssl_opts(client_opts, desc.client_ssl_opts)
         desc.enable_ssl = True
@@ -349,13 +345,13 @@ class SPUIO:
 class SPUCompilerNumReturnsPolicy(Enum):
     """Tell SPU device how to decide num of returns of called function."""
 
-    FROM_COMPILER = 'from_compiler'
+    FROM_COMPILER = "from_compiler"
     """num of returns is from compiler result.
     """
-    FROM_USER = 'from_user'
+    FROM_USER = "from_user"
     """If users are sure that returns is a list, they could specify the length of list.
     """
-    SINGLE = 'single'
+    SINGLE = "single"
     """num of returns is fixed to 1.
     """
 
@@ -384,14 +380,14 @@ class SPURuntime:
 
         desc = spu.link.Desc()
         tls_opts = None
-        for i, node in enumerate(cluster_def['nodes']):
-            address = node['address']
+        for i, node in enumerate(cluster_def["nodes"]):
+            address = node["address"]
             if i == rank:
-                self.party = node['party']
-                tls_opts = node.get('tls_opts', None)
-                if node.get('listen_address', ''):
-                    address = node['listen_address']
-            desc.add_party(node['party'], address)
+                self.party = node["party"]
+                tls_opts = node.get("tls_opts", None)
+                if node.get("listen_address", ""):
+                    address = node["listen_address"]
+            desc.add_party(node["party"], address)
         _fill_link_desc_attrs(link_desc=link_desc, tls_opts=tls_opts, desc=desc)
         try:
             self.link = spu.link.create_brpc(desc, rank)
@@ -402,7 +398,7 @@ class SPURuntime:
         #     json.dumps(cluster_def['runtime_config']), spu.RuntimeConfig()
         # )
         conf = spu.RuntimeConfig()
-        conf.ParseFromJsonString(json.dumps(cluster_def['runtime_config']))
+        conf.ParseFromJsonString(json.dumps(cluster_def["runtime_config"]))
         self.conf = conf
         self.runtime = spu.Runtime(self.link, self.conf)
         self.share_seq_id = 0
@@ -483,26 +479,26 @@ class SPURuntime:
             # create parent folders.
             file = Path(path)
             file.parent.mkdir(parents=True, exist_ok=True)
-            with open(path, 'wb') as f:
-                pickle.dump({'meta': meta, 'shares': shares}, f)
+            with open(path, "wb") as f:
+                pickle.dump({"meta": meta, "shares": shares}, f)
         else:
             assert callable(path)
             with path() as w:
-                pickle.dump({'meta': meta, 'shares': shares}, w)
+                pickle.dump({"meta": meta, "shares": shares}, w)
 
         return None
 
     def load(self, path: Union[str, Callable]) -> Any:
         if isinstance(path, str):
-            with open(path, 'rb') as f:
+            with open(path, "rb") as f:
                 record = pickle.load(f, filter_type=pickle.FilterType.BLACKLIST)
         else:
             assert callable(path)
             with path() as f:
                 record = pickle.load(f, filter_type=pickle.FilterType.BLACKLIST)
 
-        meta = record['meta']
-        shares = record['shares']
+        meta = record["meta"]
+        shares = record["shares"]
 
         shares_name = []
         for share in shares:
@@ -575,16 +571,17 @@ class SPURuntime:
             return metadata + output_names
         elif num_returns_policy == SPUCompilerNumReturnsPolicy.FROM_USER:
             _, out_tree = jax.tree_util.tree_flatten(out_shape)
-            single_meta, single_share = jax.tree_util.tree_unflatten(
-                out_tree, metadata
-            ), jax.tree_util.tree_unflatten(out_tree, output_names)
+            single_meta, single_share = (
+                jax.tree_util.tree_unflatten(out_tree, metadata),
+                jax.tree_util.tree_unflatten(out_tree, output_names),
+            )
 
-            if hasattr(single_meta, '__iter__'):
+            if hasattr(single_meta, "__iter__"):
                 return (*(single_meta), *(single_share))
             else:
                 return single_meta, single_share
         else:
-            raise ValueError('unsupported SPUCompilerNumReturnsPolicy.')
+            raise ValueError("unsupported SPUCompilerNumReturnsPolicy.")
 
     def a2h(self, io_info, exp_heu_data_type: str, schema, *chunks):
         """Convert SPUObject to HEUObject.
@@ -662,7 +659,7 @@ class SPURuntime:
         key: Union[str, List[str]],
         data: pd.DataFrame,
         receiver: str,
-        protocol='PROTOCOL_RR22',
+        protocol="PROTOCOL_RR22",
         precheck_input=True,
         sort=True,
         broadcast_result=True,
@@ -696,8 +693,8 @@ class SPURuntime:
         # save key dataframe to temp file for streaming psi
         with tempfile.TemporaryDirectory() as data_dir:
             input_path, output_path = (
-                f'{data_dir}/psi-input.csv',
-                f'{data_dir}/psi-output.csv',
+                f"{data_dir}/psi-input.csv",
+                f"{data_dir}/psi-output.csv",
             )
             data.to_csv(input_path, index=False)
 
@@ -716,7 +713,7 @@ class SPURuntime:
                 dppsi_epsilon=dppsi_epsilon,
             )
 
-            if report['intersection_count'] == -1:
+            if report["intersection_count"] == -1:
                 # can not get result, return None
                 return None
             else:
@@ -767,17 +764,17 @@ class SPURuntime:
 
         left_side_rank = -1
         server_rank = -1
-        for i, node in enumerate(self.cluster_def['nodes']):
-            if node['party'] == left_side:
+        for i, node in enumerate(self.cluster_def["nodes"]):
+            if node["party"] == left_side:
                 left_side_rank = i
-            if node['party'] == self.party and role == "ROLE_SERVER":
+            if node["party"] == self.party and role == "ROLE_SERVER":
                 server_rank = i
             else:
-                server_rank = len(self.cluster_def['nodes']) - i
+                server_rank = len(self.cluster_def["nodes"]) - i
         if left_side_rank < 0 and left_side == "":
             # default is server
             left_side_rank = server_rank
-        assert left_side_rank >= 0, f'invalid `left_side` {left_side}'
+        assert left_side_rank >= 0, f"invalid `left_side` {left_side}"
 
         config = spu.psi.UbPsiExecuteConfig(
             mode=spu.psi.parse_ub_psi_mode(mode),
@@ -806,9 +803,9 @@ class SPURuntime:
         )
         report = spu.psi.ub_psi_execute(config, self.link)
         return {
-            'party': self.party,
-            'original_count': report.original_count,
-            'intersection_count': report.intersection_count,
+            "party": self.party,
+            "original_count": report.original_count,
+            "intersection_count": report.intersection_count,
         }
 
     def psi(
@@ -820,8 +817,8 @@ class SPURuntime:
         table_keys_duplicated: bool,
         output_csv_na_rep: str = "NULL",
         broadcast_result: bool = True,
-        protocol: str = 'PROTOCOL_RR22',
-        ecdh_curve: str = 'CURVE_FOURQ',
+        protocol: str = "PROTOCOL_RR22",
+        ecdh_curve: str = "CURVE_FOURQ",
         join_type: str = "JOIN_TYPE_UNSPECIFIED",
         left_side: str = "",
         disable_alignment: bool = False,
@@ -832,8 +829,8 @@ class SPURuntime:
         if protocol == "PROTOCOL_DP":
             assert (
                 0 < dppsi_bob_sub_sampling < 1
-            ), f'invalid bob_sub_sampling({dppsi_bob_sub_sampling}) for dp-psi'
-            assert 0 < dppsi_epsilon, f'invalid epsilon({dppsi_epsilon}) for dp-psi'
+            ), f"invalid bob_sub_sampling({dppsi_bob_sub_sampling}) for dp-psi"
+            assert 0 < dppsi_epsilon, f"invalid epsilon({dppsi_epsilon}) for dp-psi"
 
             config.dppsi_params = psi.DpPsiParams(
                 bob_sub_sampling=dppsi_bob_sub_sampling, epsilon=dppsi_epsilon
@@ -841,17 +838,17 @@ class SPURuntime:
 
         receiver_rank = -1
         left_side_rank = -1
-        for i, node in enumerate(self.cluster_def['nodes']):
-            if node['party'] == receiver:
+        for i, node in enumerate(self.cluster_def["nodes"]):
+            if node["party"] == receiver:
                 receiver_rank = i
-            if node['party'] == left_side:
+            if node["party"] == left_side:
                 left_side_rank = i
-        assert receiver_rank >= 0, f'invalid receiver {receiver}'
+        assert receiver_rank >= 0, f"invalid receiver {receiver}"
 
         if left_side_rank < 0 and left_side == "":
             # default left_side party is receiver party
             left_side_rank = receiver_rank
-        assert left_side_rank >= 0, f'invalid receiver {left_side}'
+        assert left_side_rank >= 0, f"invalid receiver {left_side}"
 
         config = spu.psi.PsiExecuteConfig(
             protocol_conf=spu.psi.PsiProtocolConfig(
@@ -884,9 +881,9 @@ class SPURuntime:
         report = spu.psi.psi_execute(config, self.link)
 
         return {
-            'party': self.party,
-            'original_count': report.original_count,
-            'intersection_count': report.intersection_count,
+            "party": self.party,
+            "original_count": report.original_count,
+            "intersection_count": report.intersection_count,
         }
 
 
@@ -896,7 +893,7 @@ def _argnames_partial_except(fn, static_argnames, kwargs):
 
     assert isinstance(
         static_argnames, (str, Iterable)
-    ), f'type of static_argnames is {type(static_argnames)} while str or Iterable is required here.'
+    ), f"type of static_argnames is {type(static_argnames)} while str or Iterable is required here."
     if isinstance(static_argnames, str):
         static_argnames = (static_argnames,)
 
@@ -905,11 +902,11 @@ def _argnames_partial_except(fn, static_argnames, kwargs):
 
 
 def _generate_input_uuid():
-    return f'input-{uuid.uuid4()}'
+    return f"input-{uuid.uuid4()}"
 
 
 def _generate_output_uuid():
-    return f'output-{uuid.uuid4()}'
+    return f"output-{uuid.uuid4()}"
 
 
 _spu_compile_lock = Lock()
@@ -1050,16 +1047,16 @@ class SPU(Device):
         """
         super().__init__(DeviceType.SPU)
         self.cluster_def = cluster_def
-        self.cluster_def['nodes'].sort(key=lambda x: x['party'])
+        self.cluster_def["nodes"].sort(key=lambda x: x["party"])
         self.link_desc = link_desc
         self.log_options = log_options
         conf = spu.RuntimeConfig()
-        conf.ParseFromJsonString(json.dumps(cluster_def['runtime_config']))
+        conf.ParseFromJsonString(json.dumps(cluster_def["runtime_config"]))
         # self.conf = json_format.Parse(
         #     json.dumps(cluster_def['runtime_config']), spu.RuntimeConfig()
         # )
         self.conf = conf
-        self.world_size = len(self.cluster_def['nodes'])
+        self.world_size = len(self.cluster_def["nodes"])
         self.actors = {}
         self._task_id = -1
         self.io = SPUIO(self.conf, self.world_size)
@@ -1068,10 +1065,10 @@ class SPU(Device):
 
     def init(self):
         """Init SPU runtime in each party"""
-        for rank, node in enumerate(self.cluster_def['nodes']):
-            self.actors[node['party']] = (
+        for rank, node in enumerate(self.cluster_def["nodes"]):
+            self.actors[node["party"]] = (
                 sfd.remote(SPURuntime)
-                .party(node['party'])
+                .party(node["party"])
                 .remote(
                     rank,
                     self.cluster_def,
@@ -1157,7 +1154,7 @@ class SPU(Device):
             # here we choose party 0.
             executable, out_shape = (
                 sfd.remote(compile_fn)
-                .party(self.cluster_def['nodes'][0]['party'])
+                .party(self.cluster_def["nodes"][0]["party"])
                 .options(num_returns=2)
                 .remote(fn, copts, fn_name, *meta_args, **meta_kwargs)
             )
@@ -1262,7 +1259,7 @@ class SPU(Device):
         key: Union[str, List[str], Dict[Device, List[str]]],
         dfs: List[PYUObject],
         receiver: str,
-        protocol='PROTOCOL_RR22',
+        protocol="PROTOCOL_RR22",
         precheck_input=True,
         sort=True,
         broadcast_result=True,
@@ -1297,7 +1294,7 @@ class SPU(Device):
             List[PYUObject]: Joined DataFrames with order reserved.
         """
         return dispatch(
-            'psi_df',
+            "psi_df",
             self,
             key,
             dfs,
@@ -1321,8 +1318,8 @@ class SPU(Device):
         table_keys_duplicated: Dict[str, bool] = None,
         output_csv_na_rep: str = "NULL",
         broadcast_result: bool = True,
-        protocol: str = 'PROTOCOL_RR22',
-        ecdh_curve: str = 'CURVE_FOURQ',
+        protocol: str = "PROTOCOL_RR22",
+        ecdh_curve: str = "CURVE_FOURQ",
         advanced_join_type: str = "JOIN_TYPE_INNER_JOIN",
         left_side: str = "",
         disable_alignment: bool = False,
@@ -1352,7 +1349,7 @@ class SPU(Device):
         """
 
         return dispatch(
-            'psi',
+            "psi",
             self,
             keys,
             input_path,
@@ -1377,7 +1374,7 @@ class SPU(Device):
         role: Dict[str, str],
         cache_path: Dict[str, str],
         input_path: Dict[str, str] = {},
-        server_secret_key_path: str = '',
+        server_secret_key_path: str = "",
         keys: Dict[str, List[str]] = None,
         server_get_result: bool = False,
         client_get_result: bool = False,
@@ -1420,7 +1417,7 @@ class SPU(Device):
             roles.add(r)
 
         return dispatch(
-            'ub_psi',
+            "ub_psi",
             self,
             mode=mode,
             role=role,

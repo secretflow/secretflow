@@ -85,7 +85,7 @@ class DebugStrategy(SFOpStrategy):
 
         cpu_counts = multiprocessing.cpu_count()
         available_resources = {party: cpu_counts for party in global_state.parties()}
-        available_resources['CPU'] = cpu_counts
+        available_resources["CPU"] = cpu_counts
         return available_resources
 
 
@@ -106,17 +106,17 @@ class ProdStrategy(SFOpStrategy):
 
         cross_silo_comm_options = cross_silo_comm_options or {}
         config = {
-            'cross_silo_comm': cross_silo_comm_options,
-            'barrier_on_initializing': enable_waiting_for_other_parties_ready,
-            'cross_silo_comm_backend': cross_silo_comm_backend,
+            "cross_silo_comm": cross_silo_comm_options,
+            "barrier_on_initializing": enable_waiting_for_other_parties_ready,
+            "cross_silo_comm_backend": cross_silo_comm_backend,
         }
 
         addresses = {}
         for party, addr in all_parties.items():
             if party == self_party:
-                addresses[party] = addr.get('listen_addr', addr['address'])
+                addresses[party] = addr.get("listen_addr", addr["address"])
             else:
-                addresses[party] = addr['address']
+                addresses[party] = addr["address"]
         sf_fed.init(
             addresses=addresses,
             party=self_party,

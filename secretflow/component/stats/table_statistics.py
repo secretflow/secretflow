@@ -34,7 +34,7 @@ from secretflow.stats.table_statistics import categorical_statistics, table_stat
 
 @register(domain="stats", version="1.0.2")
 class TableStatistics(Component):
-    '''
+    """
     Get a table of statistics,
     including each column's
 
@@ -80,7 +80,7 @@ class TableStatistics(Component):
     3. nunique (the number of unique values in this column)
 
     if no numeric or categorical columns, the report will be dummy report.
-    '''
+    """
 
     features: list[str] = Field.table_column_attr(
         "input_ds",
@@ -106,9 +106,9 @@ class TableStatistics(Component):
             stat = table_statistics(input_df)
             categorical_stat = categorical_statistics(input_df)
         if stat.empty:
-            stat = pd.DataFrame({'dummy': [0]})
+            stat = pd.DataFrame({"dummy": [0]})
         if categorical_stat.empty:
-            categorical_stat = pd.DataFrame({'dummy': [0]})
+            categorical_stat = pd.DataFrame({"dummy": [0]})
         stat_tbl = Reporter.build_table(stat.astype(str), index=stat.index.tolist())
         categorical_stat_tbl = Reporter.build_table(
             categorical_stat.astype(str), index=categorical_stat.index.tolist()
@@ -117,4 +117,4 @@ class TableStatistics(Component):
         r.add_tab(stat_tbl)
         r.add_tab(categorical_stat_tbl)
         self.report.data = r.to_distdata()
-        logging.info(f'\n--\n*report* \n\n{MessageToJson(r.report())}\n--\n')
+        logging.info(f"\n--\n*report* \n\n{MessageToJson(r.report())}\n--\n")

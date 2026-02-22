@@ -41,11 +41,12 @@ class TarFile(IDumper):
         self.system_info = system_info
 
     @staticmethod
-    def load(storage: Storage, dd: ObjectFile, base_dir: str = "/tmp") -> 'TarFile':
+    def load(storage: Storage, dd: ObjectFile, base_dir: str = "/tmp") -> "TarFile":
         def load_fn(storage: Storage, uri: str) -> list[str]:
-            with storage.get_reader(uri) as r, tarfile.open(
-                fileobj=r, mode='r:gz'
-            ) as tar:
+            with (
+                storage.get_reader(uri) as r,
+                tarfile.open(fileobj=r, mode="r:gz") as tar,
+            ):
                 assert isinstance(tar, tarfile.TarFile)
                 tar.extractall(base_dir)
                 return [os.path.join(m.name) for m in tar.getmembers()]
@@ -70,12 +71,13 @@ class TarFile(IDumper):
         )
 
     def dump(self, storage: Storage, output_uri: str) -> DistData:
-        assert output_uri, f"output_uri cannot be empty"
+        assert output_uri, "output_uri cannot be empty"
 
         def dump_fn(storage: Storage, uri: str, files: list[str]):
-            with storage.get_writer(uri) as w, tarfile.open(
-                fileobj=w, mode='w:gz'
-            ) as tar:
+            with (
+                storage.get_writer(uri) as w,
+                tarfile.open(fileobj=w, mode="w:gz") as tar,
+            ):
                 for f in files:
                     archive_name = os.path.basename(f)
                     tar.add(f, arcname=archive_name, recursive=True)

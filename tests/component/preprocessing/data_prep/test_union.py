@@ -65,7 +65,7 @@ def test_union_individual(sf_production_setup_comp):
         }
     )
 
-    if self_party == 'alice':
+    if self_party == "alice":
         for item in input_data_list:
             pd.DataFrame(item["data"]).to_csv(
                 storage.get_writer(item["path"]),
@@ -281,7 +281,7 @@ def test_union_load_table(sf_production_setup_comp):
         }
     )
 
-    if self_party == 'alice':
+    if self_party == "alice":
         for item in input_data_list:
             pd.DataFrame(item["data"]).to_csv(
                 storage.get_writer(item["path"]),

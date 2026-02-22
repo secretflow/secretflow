@@ -134,7 +134,7 @@ def united_median(
     # currently assume there are only 2 parties
     assert 2 == len(arrs) or 3 == len(
         arrs
-    ), 'united_median requires exactly two or three parties'
+    ), "united_median requires exactly two or three parties"
 
     if len(arrs) == 2:
         sizes = reveal([obj.device(lambda x: x.size)(obj) for obj in arrs])
@@ -191,9 +191,10 @@ def united_median(
             if reveal(
                 compute_device(lambda a, b: jnp.less_equal(a, b))(nums_im1, nums_j)
             ):
-                median1, median2 = compute_device(lambda a, b: jnp.maximum(a, b))(
-                    nums_im1, nums_jm1
-                ), compute_device(lambda a, b: jnp.minimum(a, b))(nums_i, nums_j)
+                median1, median2 = (
+                    compute_device(lambda a, b: jnp.maximum(a, b))(nums_im1, nums_jm1),
+                    compute_device(lambda a, b: jnp.minimum(a, b))(nums_i, nums_j),
+                )
                 left = i + 1
             else:
                 right = i - 1
@@ -208,7 +209,7 @@ def united_median(
 def _find_partitions_rank_r_in_two_sorted_arrs(
     arrs: List[PYUObject], rank: int, compute_device: Device
 ) -> Tuple[DeviceObject, DeviceObject]:
-    assert 2 == len(arrs), 'requires exactly two parties'
+    assert 2 == len(arrs), "requires exactly two parties"
 
     sizes = reveal([obj.device(lambda x: x.size)(obj) for obj in arrs])
     assert sizes[0] <= sizes[1], "assume size of first array is smaller than second one"
@@ -252,9 +253,10 @@ def _find_partitions_rank_r_in_two_sorted_arrs(
         )
 
         if reveal(compute_device(lambda a, b: jnp.less_equal(a, b))(nums_im1, nums_j)):
-            median1, median2 = compute_device(lambda a, b: jnp.maximum(a, b))(
-                nums_im1, nums_jm1
-            ), compute_device(lambda a, b: jnp.minimum(a, b))(nums_i, nums_j)
+            median1, median2 = (
+                compute_device(lambda a, b: jnp.maximum(a, b))(nums_im1, nums_jm1),
+                compute_device(lambda a, b: jnp.minimum(a, b))(nums_i, nums_j),
+            )
             left = i + 1
         else:
             right = i - 1

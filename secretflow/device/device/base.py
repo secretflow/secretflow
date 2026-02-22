@@ -38,11 +38,11 @@ class Device(ABC):
 
 
 def _name_of_to(device_type: DeviceType):
-    return f'to_{device_type.name}'
+    return f"to_{device_type.name}"
 
 
 class DeviceObject(ABC):
-    device: 'Device'
+    device: "Device"
 
     def __init__(self, device: Device):
         """Abstraction device object base class.

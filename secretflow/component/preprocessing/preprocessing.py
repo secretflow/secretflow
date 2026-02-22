@@ -385,7 +385,7 @@ class PreprocessingMixin:
                 node_name = f"{comp_name}_substitution_{builder.max_id()}"
             else:
                 node_name = f"{comp_name}_{builder.max_id()}"
-        except:
+        except:  # noqa: E722
             defi = Registry.get_definition_by_class(self)
             node_name = f"{defi.name}_{builder.max_id()}"
         node = ServingNode(

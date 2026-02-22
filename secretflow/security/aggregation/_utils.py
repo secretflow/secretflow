@@ -16,13 +16,13 @@ from typing import List
 
 
 def is_nesting_list(data: List) -> bool:
-    assert data, 'Data should not be None or empty.'
+    assert data, "Data should not be None or empty."
     is_list = isinstance(data[0], list)
     for datum in data[1:]:
         assert (
             isinstance(datum, list) == is_list
-        ), f'Some data are list while some others are not.'
+        ), "Some data are list while some others are not."
         assert not is_list or len(datum) == len(
             data[0]
-        ), f'Lengths of datum in data are different.'
+        ), "Lengths of datum in data are different."
     return is_list

@@ -33,7 +33,7 @@ class _DeviceObjectItem:
     data_ref_idxs: list[int]
 
     @staticmethod
-    def from_dict(v: dict) -> '_DeviceObjectItem':
+    def from_dict(v: dict) -> "_DeviceObjectItem":
         return _DeviceObjectItem(v["type"], v["data_ref_idxs"])
 
     def to_dict(self) -> dict:
@@ -77,7 +77,7 @@ class Model(IDumper):
         dd: ObjectFile,
         pyus: dict[str, PYU] = None,
         spu: SPU | Callable[[], SPU] = None,
-    ) -> 'Model':
+    ) -> "Model":
         if not dd.attributes or _DEVICE_OBJECTS_KEY not in dd.attributes:
             raise ValueError(f"{_DEVICE_OBJECTS_KEY} not in {dd.attributes}")
 
@@ -157,7 +157,7 @@ class Model(IDumper):
         )
 
     def dump(self, storage: Storage, output_uri: str) -> DistData:
-        assert output_uri, f"output_uri cannot be empty"
+        assert output_uri, "output_uri cannot be empty"
 
         objs_uri = []
         objs_party = []

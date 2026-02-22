@@ -203,10 +203,10 @@ def test_cast_error(sf_production_setup_comp):
 
 def test_cast_apply_table():
     good_cases = [
-        {"data": ["\' 1\' ", "\"2\"", " 3 "], "except": [1, 2, 3], "target": "int"},
+        {"data": ["' 1' ", '"2"', " 3 "], "except": [1, 2, 3], "target": "int"},
         {
-            "data": ["\' 1\' ", "\"2\"", " 1.7976931348623157e+309 "],
-            "except": [1.0, 2.0, float('inf')],
+            "data": ["' 1' ", '"2"', " 1.7976931348623157e+309 "],
+            "except": [1.0, 2.0, float("inf")],
             "target": "float",
         },
         {

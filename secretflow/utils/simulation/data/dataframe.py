@@ -89,7 +89,7 @@ def create_df(
     >>> hdf = create_df(df, [alice,bob], axis=0, split_method=SPLIT_METHOD.LABEL_SKEW, label_column='f3', skew_ratio=0.5)
     """
 
-    assert parts, 'Parts should not be none or empty!'
+    assert parts, "Parts should not be none or empty!"
     if isinstance(source, str):
         # engin="pyarrow" will lead to stuck in production tests.
         df = pd.read_csv(source)
@@ -99,10 +99,10 @@ def create_df(
         df = source()
         assert isinstance(
             df, pd.DataFrame
-        ), f'Callable source must return a pandas DataFrame but got {type(df)}'
+        ), f"Callable source must return a pandas DataFrame but got {type(df)}"
     else:
         raise InvalidArgumentError(
-            f'Unknown source type, expect a file or dataframe or callable but got {type(source)}'
+            f"Unknown source type, expect a file or dataframe or callable but got {type(source)}"
         )
     if not random_state:
         random_state = random.randint(0, 100000)
@@ -134,8 +134,8 @@ def create_df(
         )
     elif split_method == SPLIT_METHOD.LABEL_SCREW:
         assert axis == 0, "label screw only support horizontal partition"
-        num_classes = kwargs.pop('num_classes', 0)
-        max_class_nums = kwargs.pop('max_class_nums', num_classes)
+        num_classes = kwargs.pop("num_classes", 0)
+        max_class_nums = kwargs.pop("max_class_nums", num_classes)
 
         assert num_classes > 0, "dirichlet partition must supply num_classes"
         target = df[label_column].values

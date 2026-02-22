@@ -65,7 +65,7 @@ def build_sgb_model(snapshot: SGBSnapshot) -> SgbModel:
         and "tree_num" in model_meta["common"]
         and model_meta["label_holder"] in pyus
     ), f"{model_meta}, {pyus}"
-    logging.info(f"model_meta check success")
+    logging.info("model_meta check success")
     tree_num = model_meta["common"]["tree_num"]
     assert (
         tree_num > 0 and len(model_objs) % tree_num == 0
@@ -108,8 +108,8 @@ def snapshot_to_checkpoint_data(
     snapshot: SGBSnapshot, train_state: Dict
 ) -> SGBCheckpointData:
     combined = {
-        'model_meta': snapshot.model_meta,
-        'train_state': train_state,
+        "model_meta": snapshot.model_meta,
+        "train_state": train_state,
     }
 
     return SGBCheckpointData(snapshot.model_objs, combined)
@@ -127,8 +127,8 @@ def checkpoint_data_to_model_and_train_state(
     checkpoint_data: SGBCheckpointData,
 ) -> Tuple[SgbModel, Dict]:
     combined_dict = checkpoint_data.model_train_state_metas
-    model_meta = combined_dict['model_meta']
-    train_state = combined_dict['train_state']
+    model_meta = combined_dict["model_meta"]
+    train_state = combined_dict["train_state"]
     return (
         build_sgb_model(SGBSnapshot(checkpoint_data.model_objs, model_meta)),
         train_state,

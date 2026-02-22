@@ -14,4 +14,4 @@
 
 from .node_selector import NodeSelector
 
-__all__ = ['NodeSelector']
+__all__ = ["NodeSelector"]

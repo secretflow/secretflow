@@ -179,8 +179,8 @@ def test_sql_processor_run_sql():
         {
             "name": "case_when",
             "sql": "SELECT CASE WHEN a in (1,2) THEN 'one' WHEN b BETWEEN 4 AND 6 THEN 'five' ELSE 'other' END as c",
-            "data": {'a': [1, 0, 2], 'b': [3, 5, 7]},
-            "excepted": {'c': ['one', 'five', 'one']},
+            "data": {"a": [1, 0, 2], "b": [3, 5, 7]},
+            "excepted": {"c": ["one", "five", "one"]},
         },
         {
             "name": "null",

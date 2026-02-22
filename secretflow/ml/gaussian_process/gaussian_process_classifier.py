@@ -36,7 +36,7 @@ class GPC(_ModelBase):
 
     def _to_spu_dataset(self, x: Union[FedNdarray, VDataFrame]) -> SPUObject:
         x, _ = self._prepare_dataset(x)
-        return self.spu(self._concatenate, static_argnames=('axis'))(
+        return self.spu(self._concatenate, static_argnames=("axis"))(
             self._to_spu(x),
             axis=1,
         )
@@ -47,13 +47,13 @@ class GPC(_ModelBase):
         y: Union[FedNdarray, VDataFrame],
         max_iter_predict=20,
         n_classes=2,
-        poss='sigmoid',  # only support sigmoid now
+        poss="sigmoid",  # only support sigmoid now
         multi_class="one_vs_rest",  # only support one_vs_rest now
         kernel=None,  # only support RBF now
     ) -> None:
         if len(y.shape) == 2:
             if y.shape[1] != 1:
-                raise ValueError('y should be 1D array')
+                raise ValueError("y should be 1D array")
         spu_x = self._to_spu_dataset(x)
         spu_y = self._to_spu(y)[0]
 
@@ -63,7 +63,7 @@ class GPC(_ModelBase):
 
         spu_y = self.spu(adjust_label_shape)(spu_y)
 
-        logging.info(f'fit gpc model..., x_shape:{x.shape} y_shape:{y.shape}')
+        logging.info(f"fit gpc model..., x_shape:{x.shape} y_shape:{y.shape}")
 
         model = GaussianProcessClassifier(
             kernel=kernel,
@@ -76,7 +76,7 @@ class GPC(_ModelBase):
         wait([self.model])
 
     def predict(self, x: Union[FedNdarray, VDataFrame]) -> SPUObject:
-        assert hasattr(self, 'model'), 'please fit model first'
+        assert hasattr(self, "model"), "please fit model first"
 
         spu_x = self._to_spu_dataset(x)
 

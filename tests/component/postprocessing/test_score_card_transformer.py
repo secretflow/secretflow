@@ -55,7 +55,7 @@ def test_score_card_transformer(sf_production_setup_comp):
         }
     )
 
-    if self_party == 'alice':
+    if self_party == "alice":
         pd.DataFrame(input_data).to_csv(storage.get_writer(input_path), index=False)
 
     param = build_node_eval_param(

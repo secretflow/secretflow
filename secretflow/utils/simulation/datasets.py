@@ -31,85 +31,85 @@ from secretflow.security.compare import Comparator
 from secretflow.utils.hash import sha256sum
 from secretflow.utils.simulation.data.dataframe import create_df, create_vdf
 
-_CACHE_DIR = os.path.join(os.path.expanduser('~'), '.secretflow/datasets')
+_CACHE_DIR = os.path.join(os.path.expanduser("~"), ".secretflow", "datasets")
 
-_Dataset = namedtuple('_Dataset', ['filename', 'url', 'sha256'])
+_Dataset = namedtuple("_Dataset", ["filename", "url", "sha256"])
 
 _DATASETS = {
-    'iris': _Dataset(
-        'iris.csv',
-        'https://secretflow-data.oss-accelerate.aliyuncs.com/datasets/iris/iris.csv',
-        '92cae857cae978e0c25156265facc2300806cf37eb8700be094228b374f5188c',
+    "iris": _Dataset(
+        "iris.csv",
+        "https://secretflow-data.oss-accelerate.aliyuncs.com/datasets/iris/iris.csv",
+        "92cae857cae978e0c25156265facc2300806cf37eb8700be094228b374f5188c",
     ),
-    'dermatology': _Dataset(
-        'dermatology.csv',
-        'https://secretflow-data.oss-accelerate.aliyuncs.com/datasets/dermatology/dermatology.csv',
-        '76b63f6c2be12347b1b76f485c6e775e36d0ab5412bdff0e9df5a9885f5ae11e',
+    "dermatology": _Dataset(
+        "dermatology.csv",
+        "https://secretflow-data.oss-accelerate.aliyuncs.com/datasets/dermatology/dermatology.csv",
+        "76b63f6c2be12347b1b76f485c6e775e36d0ab5412bdff0e9df5a9885f5ae11e",
     ),
-    'bank_marketing': _Dataset(
-        'bank.csv',
-        'https://secretflow-data.oss-accelerate.aliyuncs.com/datasets/bank_marketing/bank.csv',
-        'dc8d576e9bda0f41ee891251bd84bab9a39ce576cba715aac08adc2374a01fde',
+    "bank_marketing": _Dataset(
+        "bank.csv",
+        "https://secretflow-data.oss-accelerate.aliyuncs.com/datasets/bank_marketing/bank.csv",
+        "dc8d576e9bda0f41ee891251bd84bab9a39ce576cba715aac08adc2374a01fde",
     ),
-    'mnist': _Dataset(
-        'mnist.npz',
-        'https://secretflow-data.oss-accelerate.aliyuncs.com/datasets/mnist/mnist.npz',
-        '731c5ac602752760c8e48fbffcf8c3b850d9dc2a2aedcf2cc48468fc17b673d1',
+    "mnist": _Dataset(
+        "mnist.npz",
+        "https://secretflow-data.oss-accelerate.aliyuncs.com/datasets/mnist/mnist.npz",
+        "731c5ac602752760c8e48fbffcf8c3b850d9dc2a2aedcf2cc48468fc17b673d1",
     ),
-    'linear': _Dataset(
-        'linear.csv',
-        'https://secretflow-data.oss-accelerate.aliyuncs.com/datasets/linear/linear.csv',
-        'bf269b267eb9e6985ae82467a4e1ece420de90f3107633cb9b9aeda6632c0052',
+    "linear": _Dataset(
+        "linear.csv",
+        "https://secretflow-data.oss-accelerate.aliyuncs.com/datasets/linear/linear.csv",
+        "bf269b267eb9e6985ae82467a4e1ece420de90f3107633cb9b9aeda6632c0052",
     ),
-    'cora': _Dataset(
-        'cora.zip',
-        'https://secretflow-data.oss-accelerate.aliyuncs.com/datasets/cora/cora.zip',
-        'd7018f2d7d2b693abff6f6f7ccaf9d70e2e428ca068830863f19a37d8575fd01',
+    "cora": _Dataset(
+        "cora.zip",
+        "https://secretflow-data.oss-accelerate.aliyuncs.com/datasets/cora/cora.zip",
+        "d7018f2d7d2b693abff6f6f7ccaf9d70e2e428ca068830863f19a37d8575fd01",
     ),
-    'bank_marketing_full': _Dataset(
-        'bank-full.csv',
-        'https://secretflow-data.oss-accelerate.aliyuncs.com/datasets/bank_marketing/bank-full.csv',
-        'd1513ec63b385506f7cfce9f2c5caa9fe99e7ba4e8c3fa264b3aaf0f849ed32d',
+    "bank_marketing_full": _Dataset(
+        "bank-full.csv",
+        "https://secretflow-data.oss-accelerate.aliyuncs.com/datasets/bank_marketing/bank-full.csv",
+        "d1513ec63b385506f7cfce9f2c5caa9fe99e7ba4e8c3fa264b3aaf0f849ed32d",
     ),
-    'ml-1m': _Dataset(
-        'ml-1m.zip',
-        'https://secretflow-data.oss-accelerate.aliyuncs.com/datasets/movielens/ml-1m.zip',
-        'a6898adb50b9ca05aa231689da44c217cb524e7ebd39d264c56e2832f2c54e20',
+    "ml-1m": _Dataset(
+        "ml-1m.zip",
+        "https://secretflow-data.oss-accelerate.aliyuncs.com/datasets/movielens/ml-1m.zip",
+        "a6898adb50b9ca05aa231689da44c217cb524e7ebd39d264c56e2832f2c54e20",
     ),
-    'pubmed': _Dataset(
-        'pubmed.zip',
-        'https://secretflow-data.oss-accelerate.aliyuncs.com/datasets/pubmed/pubmed.zip',
-        '04a5aa8b3b3432d617d35286e42011b64d58ac362a107d2c257d9da85bf0c021',
+    "pubmed": _Dataset(
+        "pubmed.zip",
+        "https://secretflow-data.oss-accelerate.aliyuncs.com/datasets/pubmed/pubmed.zip",
+        "04a5aa8b3b3432d617d35286e42011b64d58ac362a107d2c257d9da85bf0c021",
     ),
-    'citeseer': _Dataset(
-        'citeseer.zip',
-        'https://secretflow-data.oss-accelerate.aliyuncs.com/datasets/citeseer/citeseer.zip',
-        '8f0f1aba42c7be5818dc43d96913713a2ffc1c0d9dc09bef30d0432d2c102b49',
+    "citeseer": _Dataset(
+        "citeseer.zip",
+        "https://secretflow-data.oss-accelerate.aliyuncs.com/datasets/citeseer/citeseer.zip",
+        "8f0f1aba42c7be5818dc43d96913713a2ffc1c0d9dc09bef30d0432d2c102b49",
     ),
-    'drive_cleaned': _Dataset(
-        'drive_cleaned.csv',
-        'https://secretflow-data.oss-accelerate.aliyuncs.com/datasets/drive_cleaned/drive_cleaned.csv',
-        '324477fec24716097fbf0338d792d254f2a1d5f87faefb23f1842ecbb035930e',
+    "drive_cleaned": _Dataset(
+        "drive_cleaned.csv",
+        "https://secretflow-data.oss-accelerate.aliyuncs.com/datasets/drive_cleaned/drive_cleaned.csv",
+        "324477fec24716097fbf0338d792d254f2a1d5f87faefb23f1842ecbb035930e",
     ),
-    'criteo': _Dataset(
-        'criteo.csv',
-        'https://secretflow-data.oss-accelerate.aliyuncs.com/datasets/criteo/criteo.csv',
-        '5e6bc83ed1413a6cef82e82f91fe2584514a6084b889d24178ce8adc7397c849',
+    "criteo": _Dataset(
+        "criteo.csv",
+        "https://secretflow-data.oss-accelerate.aliyuncs.com/datasets/criteo/criteo.csv",
+        "5e6bc83ed1413a6cef82e82f91fe2584514a6084b889d24178ce8adc7397c849",
     ),
-    'creditcard': _Dataset(
-        'creditcard.csv',
-        'https://secretflow-data.oss-accelerate.aliyuncs.com/datasets/creditcard/creditcard.csv',
-        '76274b691b16a6c49d3f159c883398e03ccd6d1ee12d9d8ee38f4b4b98551a89',
+    "creditcard": _Dataset(
+        "creditcard.csv",
+        "https://secretflow-data.oss-accelerate.aliyuncs.com/datasets/creditcard/creditcard.csv",
+        "76274b691b16a6c49d3f159c883398e03ccd6d1ee12d9d8ee38f4b4b98551a89",
     ),
-    'creditcard_small': _Dataset(
-        'creditcard_small.csv',
-        'https://secretflow-data.oss-accelerate.aliyuncs.com/datasets/creditcard/creditcard_small.csv',
-        '0ff315b83ac183c9ac877c91a630a4dab717abc2f9882c87376a00a8cde5a8d3',
+    "creditcard_small": _Dataset(
+        "creditcard_small.csv",
+        "https://secretflow-data.oss-accelerate.aliyuncs.com/datasets/creditcard/creditcard_small.csv",
+        "0ff315b83ac183c9ac877c91a630a4dab717abc2f9882c87376a00a8cde5a8d3",
     ),
-    'fremtpl2freq': _Dataset(
-        'fremtpl2freq.csv',
-        'https://secretflow-data.oss-accelerate.aliyuncs.com/datasets/tweedie/freMTPL2freq.csv',
-        'c029e69d140f80a8d5bcc3dfcf94b1438d7f838d4d4d8263639780d26b1c5cc6',
+    "fremtpl2freq": _Dataset(
+        "fremtpl2freq.csv",
+        "https://secretflow-data.oss-accelerate.aliyuncs.com/datasets/tweedie/freMTPL2freq.csv",
+        "c029e69d140f80a8d5bcc3dfcf94b1438d7f838d4d4d8263639780d26b1c5cc6",
     ),
 }
 
@@ -117,7 +117,7 @@ _DATASETS = {
 def unzip(file, extract_path=None):
     if not extract_path:
         extract_path = str(Path(file).parent)
-    with zipfile.ZipFile(file, 'r') as zip_f:
+    with zipfile.ZipFile(file, "r") as zip_f:
         zip_f.extractall(extract_path)
 
 
@@ -129,9 +129,9 @@ def download(url: str, filepath: str, sha256: str):
     actual_sha256 = h.hexdigest()
     assert (
         sha256 == actual_sha256
-    ), f'Failed to check sha256 of {url}, expected {sha256}, got {actual_sha256}.'
+    ), f"Failed to check sha256 of {url}, expected {sha256}, got {actual_sha256}."
 
-    with open(filepath, 'wb') as f:
+    with open(filepath, "wb") as f:
         f.write(content)
 
 
@@ -139,12 +139,12 @@ def get_dataset(dataset: _Dataset, cache_dir: str = None):
     if not cache_dir:
         cache_dir = _CACHE_DIR
 
-    filepath = f'{cache_dir}/{dataset.filename}'
+    filepath = f"{cache_dir}/{dataset.filename}"
     Path(filepath).parent.mkdir(parents=True, exist_ok=True)
 
     import filelock
 
-    with filelock.FileLock(f'{filepath}.lock'):
+    with filelock.FileLock(f"{filepath}.lock"):
         needdownload = not Path(filepath).exists()
         if not needdownload:
             sha256 = sha256sum(filepath)
@@ -155,7 +155,7 @@ def get_dataset(dataset: _Dataset, cache_dir: str = None):
         if needdownload:
             assert (
                 dataset.url
-            ), f'{dataset.filename} does not exist locally, please give a download url.'
+            ), f"{dataset.filename} does not exist locally, please give a download url."
 
             download(dataset.url, filepath, dataset.sha256)
         return filepath
@@ -171,7 +171,7 @@ def dataset(name: str, cache_dir: str = None) -> str:
     Returns:
         the dataset file path.
     """
-    assert name and isinstance(name, str), 'Name shall be a valid string.'
+    assert name and isinstance(name, str), "Name shall be a valid string."
     name = name.lower()
     return get_dataset(_DATASETS[name], cache_dir)
 
@@ -211,7 +211,7 @@ def load_iris(
     Returns:
         return a HDataFrame if axis is 0 else VDataFrame.
     """
-    filepath = get_dataset(_DATASETS['iris'])
+    filepath = get_dataset(_DATASETS["iris"])
     return create_df(
         source=filepath,
         parts=parts,
@@ -223,7 +223,7 @@ def load_iris(
 
 
 def load_iris_unpartitioned():
-    filepath = get_dataset(_DATASETS['iris'])
+    filepath = get_dataset(_DATASETS["iris"])
     return pd.read_csv(filepath)
 
 
@@ -271,10 +271,10 @@ def load_dermatology(
 
 
 def load_dermatology_unpartitioned(class_starts_from_zero: bool = True):
-    filepath = get_dataset(_DATASETS['dermatology'])
+    filepath = get_dataset(_DATASETS["dermatology"])
     df = pd.read_csv(filepath)
     if class_starts_from_zero:
-        df['class'] = df['class'] - 1
+        df["class"] = df["class"] - 1
     return df
 
 
@@ -311,11 +311,11 @@ def load_bank_marketing(
         return a HDataFrame if axis is 0 else VDataFrame.
     """
     if full:
-        filepath = get_dataset(_DATASETS['bank_marketing_full'])
+        filepath = get_dataset(_DATASETS["bank_marketing_full"])
     else:
-        filepath = get_dataset(_DATASETS['bank_marketing'])
+        filepath = get_dataset(_DATASETS["bank_marketing"])
     return create_df(
-        lambda: pd.read_csv(filepath, sep=';'),
+        lambda: pd.read_csv(filepath, sep=";"),
         parts=parts,
         axis=axis,
         shuffle=False,
@@ -326,10 +326,10 @@ def load_bank_marketing(
 
 def load_bank_marketing_unpartitioned(full=False):
     if full:
-        filepath = get_dataset(_DATASETS['bank_marketing_full'])
+        filepath = get_dataset(_DATASETS["bank_marketing_full"])
     else:
-        filepath = get_dataset(_DATASETS['bank_marketing'])
-    return pd.read_csv(filepath, sep=';')
+        filepath = get_dataset(_DATASETS["bank_marketing"])
+    return pd.read_csv(filepath, sep=";")
 
 
 def load_linear(parts: Union[List[PYU], Dict[PYU, Union[float, Tuple]]]) -> VDataFrame:
@@ -350,16 +350,16 @@ def load_linear(parts: Union[List[PYU], Dict[PYU, Union[float, Tuple]]]) -> VDat
     Returns:
         return a VDataFrame.
     """
-    filepath = get_dataset(_DATASETS['linear'])
+    filepath = get_dataset(_DATASETS["linear"])
     return create_vdf(source=filepath, parts=parts, shuffle=False)
 
 
 def load_linear_unpartitioned():
-    filepath = get_dataset(_DATASETS['linear'])
+    filepath = get_dataset(_DATASETS["linear"])
     return pd.read_csv(filepath)
 
 
-def load_creditcard_unpartitioned(dataset_name: str = 'creditcard'):
+def load_creditcard_unpartitioned(dataset_name: str = "creditcard"):
     filepath = get_dataset(_DATASETS[dataset_name])
     raw_df = pd.read_csv(filepath)
     raw_df_neg = raw_df[raw_df["Class"] == 0]
@@ -381,7 +381,7 @@ def load_creditcard(
     num_sample: int = 284160,
     aggregator: Aggregator = None,
     comparator: Comparator = None,
-    dataset_name: str = 'creditcard',
+    dataset_name: str = "creditcard",
 ):
     if isinstance(parts, List):
         assert len(parts) == 2

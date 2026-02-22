@@ -29,7 +29,7 @@ def spu_fxp_precision(field_type):
     if field_type in field_precision_dict:
         return field_precision_dict[field_type]
 
-    raise ValueError(f'unsupported field type {field_type}')
+    raise ValueError(f"unsupported field type {field_type}")
 
 
 def spu_fxp_size(field_type):
@@ -45,7 +45,7 @@ def spu_fxp_size(field_type):
     if field_type in field_fxp_size_dict:
         return field_fxp_size_dict[field_type]
 
-    raise ValueError(f'unsupported field type {field_type}')
+    raise ValueError(f"unsupported field type {field_type}")
 
 
 HEU_SPU_DT_SWITCHER = {

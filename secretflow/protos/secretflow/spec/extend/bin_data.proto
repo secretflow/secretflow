@@ -24,8 +24,8 @@ message Bin {
   // only effective if not category
   float left_bound = 1;
   float right_bound = 2;
-
-  // note bin iv is hidden for security consideration
+   // note bin iv was hidden for security consideration, now required to expose for practical use
+  float iv = 3;
   float filling_value = 4;
   // note bad rate or positive count is hidden for security consideration
   uint64 total_count = 5;

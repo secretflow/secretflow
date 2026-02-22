@@ -31,12 +31,12 @@ from secretflow.stats.ss_vif_v import VIF
 
 @register(domain="stats", version="1.0.0", name="ss_vif")
 class SSVif(Component):
-    '''
+    """
     Calculate Variance Inflation Factor(VIF) for vertical partitioning dataset
     by using secret sharing.
 
     - For large dataset(large than 10w samples & 200 features), recommend to use [Ring size: 128, Fxp: 40] options for SPU device.
-    '''
+    """
 
     feature_selects: list[str] = Field.table_column_attr(
         "input_ds",

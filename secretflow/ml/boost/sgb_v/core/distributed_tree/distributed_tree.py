@@ -100,12 +100,12 @@ class DistributedTree:
             for device, tree in self.split_tree_dict.items()
         }
         return {
-            'split_tree_dict': split_tree_dict,
-            'leaf_weight': self.label_holder(lambda arr: arr.tolist())(
+            "split_tree_dict": split_tree_dict,
+            "leaf_weight": self.label_holder(lambda arr: arr.tolist())(
                 self.leaf_weight
             ),
-            'label_holder': self.label_holder,
-            'partition_column_counts': self.partition_column_counts,
+            "label_holder": self.label_holder,
+            "partition_column_counts": self.partition_column_counts,
         }
 
     def get_split_tree_dict(self):
@@ -136,9 +136,9 @@ def from_dict(tree_content: Dict) -> DistributedTree:
     dt = DistributedTree()
     dt.split_tree_dict = {
         device: device(split_tree_from_dict)(dict)
-        for device, dict in tree_content['split_tree_dict'].items()
+        for device, dict in tree_content["split_tree_dict"].items()
     }
-    dt.label_holder = tree_content['label_holder']
-    dt.leaf_weight = dt.label_holder(np.array)(tree_content['leaf_weight'])
-    dt.partition_column_counts = tree_content['partition_column_counts']
+    dt.label_holder = tree_content["label_holder"]
+    dt.leaf_weight = dt.label_holder(np.array)(tree_content["leaf_weight"])
+    dt.partition_column_counts = tree_content["partition_column_counts"]
     return dt

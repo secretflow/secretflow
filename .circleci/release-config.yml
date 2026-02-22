@@ -21,11 +21,6 @@ executors:
       - image: secretflow/release-ci:latest
     resource_class: 2xlarge
     shell: /bin/bash --login -eo pipefail
-  linux_aarch64_executor:
-    docker:
-      - image: secretflow/release-ci-aarch64:latest
-    resource_class: arm.2xlarge
-    shell: /bin/bash --login -eo pipefail
 
 commands:
   build_and_upload_full:
@@ -40,26 +35,12 @@ commands:
             conda create -n build python=<< parameters.python_ver >> -y
             conda activate build
 
-            python3 setup.py bdist_wheel
+            python3 -m pip install build
+            python3 -m build --wheel
 
             ls dist/*.whl
             python3 -m pip install twine
-            python3 -m twine upload -r pypi -u __token__ -p ${PYPI_TWINE_TOKEN} dist/*.whl
-
-  build_and_upload_lite:
-    steps:
-      - checkout
-      - run:
-          name: "build lite package and publish"
-          command: |
-            conda create -n build python=3.10 -y
-            conda activate build
-
-            python3 setup.py bdist_wheel --lite
-
-            ls dist/*.whl
-            python3 -m pip install twine
-            python3 -m twine upload -r pypi -u __token__ -p ${PYPI_TWINE_TOKEN} dist/*.whl
+            python3 -m twine upload --skip-existing -r pypi -u __token__ -p ${PYPI_TWINE_TOKEN} dist/*.whl
 
 # Define a job to be invoked later in a workflow.
 # See: https://circleci.com/docs/2.0/configuration-reference/#jobs
@@ -75,54 +56,6 @@ jobs:
       - checkout
       - build_and_upload_full:
           python_ver: <<parameters.python_ver>>
-  linux_publish_lite:
-    parameters:
-      executor:
-        type: string
-    executor: <<parameters.executor>>
-    steps:
-      - checkout
-      - build_and_upload_lite
-  macOS_arm64_publish_full:
-    macos:
-      xcode: 15.1.0
-    resource_class: macos.m1.large.gen1
-    parameters:
-      python_ver:
-        type: string
-    steps:
-      - checkout
-      - run:
-          name: Install dependencies
-          command: |
-            brew install cmake ninja libomp wget bazelisk
-      - run:
-          name: Install Miniconda
-          command: |
-            wget https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-arm64.sh -O ~/miniconda.sh
-            bash ~/miniconda.sh -b -p $HOME/miniconda
-            source $HOME/miniconda/bin/activate
-            conda init bash zsh
-      - build_and_upload_full:
-          python_ver: <<parameters.python_ver>>
-  macOS_arm64_publish_lite:
-    macos:
-      xcode: 15.1.0
-    resource_class: macos.m1.large.gen1
-    steps:
-      - checkout
-      - run:
-          name: Install dependencies
-          command: |
-            brew install cmake ninja libomp wget bazelisk
-      - run:
-          name: Install Miniconda
-          command: |
-            wget https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-arm64.sh -O ~/miniconda.sh
-            bash ~/miniconda.sh -b -p $HOME/miniconda
-            source $HOME/miniconda/bin/activate
-            conda init bash zsh
-      - build_and_upload_lite
   docker_image_publish:
     docker:
       - image: cimg/deploy:2023.06.1
@@ -167,34 +100,6 @@ jobs:
           paths:
             - sf.version
 
-  copy_sf_lite_image_to_aliyun:
-    docker:
-      - image: cimg/deploy:2023.06.1
-    resource_class: medium
-    steps:
-      - setup_remote_docker
-      - attach_workspace:
-          at: .
-      - run:
-          name: Cancel build after set time
-          background: true
-          command: |
-            sleep 1200
-            echo "Canceling workflow as too much time has elapsed"
-            curl -X POST --header "Content-Type: application/json" "https://circleci.com/api/v2/workflow/${CIRCLE_WORKFLOW_ID}/cancel?circle-token=${BUILD_TIMER_TOKEN}"
-      - run:
-          name: Copy secretflow lite image
-          command: |
-            VERSION=`cat sf.version`
-
-            # login docker - aliyun
-            docker login -u ${ALIYUN_DOCKER_USERNAME} -p ${ALIYUN_DOCKER_PASSWORD} secretflow-registry.cn-hangzhou.cr.aliyuncs.com
-
-            SF_LITE_IMAGE=secretflow-registry.cn-hangzhou.cr.aliyuncs.com/secretflow/secretflow-lite-ubuntu
-
-            docker buildx imagetools create --tag ${SF_LITE_IMAGE}:${VERSION} secretflow/secretflow-lite-ubuntu:${VERSION}
-            docker buildx imagetools create --tag ${SF_LITE_IMAGE}:latest secretflow/secretflow-lite-ubuntu:latest
-
   copy_sf_image_to_aliyun:
     docker:
       - image: cimg/deploy:2023.06.1
@@ -231,41 +136,14 @@ workflows:
       - linux_publish_full:
           matrix:
             parameters:
-              python_ver: ["3.9", "3.10", "3.11"]
-              executor: ["linux_x64_executor", "linux_aarch64_executor"]
-          filters:
-            tags:
-              only: /.*/
-      - linux_publish_lite:
-          matrix:
-            parameters:
-              executor: ["linux_x64_executor", "linux_aarch64_executor"]
-          filters:
-            tags:
-              only: /.*/
-      - macOS_arm64_publish_full:
-          matrix:
-            parameters:
-              python_ver: ["3.9", "3.10", "3.11"]
-          filters:
-            tags:
-              only: /.*/
-      - macOS_arm64_publish_lite:
+              python_ver: ["3.10"]
+              executor: ["linux_x64_executor"]
           filters:
             tags:
               only: /.*/
       - docker_image_publish:
           requires:
             - linux_publish_full
-            - linux_publish_lite
-            - macOS_arm64_publish_full
-            - macOS_arm64_publish_lite
-          filters:
-            tags:
-              only: /.*/
-      - copy_sf_lite_image_to_aliyun:
-          requires:
-            - docker_image_publish
           filters:
             tags:
               only: /.*/

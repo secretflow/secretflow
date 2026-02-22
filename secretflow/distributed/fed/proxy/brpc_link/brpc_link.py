@@ -52,8 +52,8 @@ class BrpcLinkCrossSiloMessageConfig(CrossSiloMessageConfig):
             link_desc.recv_timeout_ms = self.recv_timeout_ms
         if self.http_timeout_ms is not None:
             logging.warning(
-                'http_timeout_ms and timeout_ms are set at the same time, '
-                f'http_timeout_ms {self.http_timeout_ms} will be used.'
+                "http_timeout_ms and timeout_ms are set at the same time, "
+                f"http_timeout_ms {self.http_timeout_ms} will be used."
             )
             link_desc.http_timeout_ms = self.http_timeout_ms
         if self.http_max_payload_size is not None:
@@ -71,18 +71,18 @@ class BrpcLinkCrossSiloMessageConfig(CrossSiloMessageConfig):
         if self.brpc_retry_interval_ms is not None:
             link_desc.brpc_retry_interval_ms = self.brpc_retry_interval_ms
 
-        if not hasattr(link_desc, 'recv_timeout_ms'):
+        if not hasattr(link_desc, "recv_timeout_ms"):
             # set default timeout 3600s
             link_desc.recv_timeout_ms = 3600 * 1000
-        if not hasattr(link_desc, 'http_timeout_ms'):
+        if not hasattr(link_desc, "http_timeout_ms"):
             # set default timeout 120s
             link_desc.http_timeout_ms = 120 * 1000
 
 
 def _fill_link_ssl_opts(tls_config: Dict, link_ssl_opts: link.SSLOptions):
-    ca_cert = tls_config['ca_cert']
-    cert = tls_config['cert']
-    key = tls_config['key']
+    ca_cert = tls_config["ca_cert"]
+    cert = tls_config["cert"]
+    key = tls_config["key"]
     link_ssl_opts.cert.certificate_path = cert
     link_ssl_opts.cert.private_key_path = key
     link_ssl_opts.verify.ca_file_path = ca_cert
@@ -98,7 +98,7 @@ class BrpcLinkProxy(SenderReceiverProxy):
         tls_config: Dict = None,
         proxy_config: Dict = None,
     ) -> None:
-        logging.info(f'brpc options: {proxy_config}')
+        logging.info(f"brpc options: {proxy_config}")
         proxy_config = BrpcLinkCrossSiloMessageConfig.from_dict(proxy_config)
         super().__init__(job_name, addresses, self_party, tls_config, proxy_config)
         self._parties_rank = {
@@ -124,15 +124,15 @@ class BrpcLinkProxy(SenderReceiverProxy):
     def start(self):
         try:
             self._linker = link.create_brpc(self._desc, self._rank)
-            logger.info(f'Succeeded to listen on {self._addresses[self._party]}.')
+            logger.info(f"Succeeded to listen on {self._addresses[self._party]}.")
         except Exception as e:
             raise YACLError(
-                f'Failed to listen on {self._addresses[self._party]} as exception:\n{e}'
+                f"Failed to listen on {self._addresses[self._party]} as exception:\n{e}"
             )
 
     def send(self, dest_party, data, seq_id):
         msg_bytes = secure_pickle.dumps(
-            {'seq_id': seq_id, 'payload': data, 'job': self._job_name}
+            {"seq_id": seq_id, "payload": data, "job": self._job_name}
         )
         self._linker.send_async(self._parties_rank[dest_party], msg_bytes)
 
@@ -153,10 +153,10 @@ class BrpcLinkProxy(SenderReceiverProxy):
             msg = secure_pickle.loads(
                 msg, filter_type=secure_pickle.FilterType.BLACKLIST
             )
-            seq_id = msg['seq_id']
-            data = msg['payload']
-            job_name = msg['job']
-            logger.debug(f'Received data for seq id {seq_id} from {src_party}.')
+            seq_id = msg["seq_id"]
+            data = msg["payload"]
+            job_name = msg["job"]
+            logger.debug(f"Received data for seq id {seq_id} from {src_party}.")
             if job_name == self._job_name:
                 # Avoid bug in unittest, not for production environment.
                 # In the unit test, we will repeatedly create and destroy SF clusters.

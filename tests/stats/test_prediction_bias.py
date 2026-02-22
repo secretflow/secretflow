@@ -34,7 +34,7 @@ label = jnp.array([1, 0, 0, 0, 0, 1, 1, 1])
 def prod_env_and_data(sf_production_setup_devices):
     pyu_alice = sf_production_setup_devices.alice
 
-    y_actual_pd_dataframe = pd.DataFrame({'y_actual': label})
+    y_actual_pd_dataframe = pd.DataFrame({"y_actual": label})
     y_actual = VDataFrame(
         partitions={
             pyu_alice: partition(data=pyu_alice(lambda x: x)(y_actual_pd_dataframe)),
@@ -47,7 +47,7 @@ def prod_env_and_data(sf_production_setup_devices):
     )
 
     return sf_production_setup_devices, {
-        'y_actual': y_actual,
+        "y_actual": y_actual,
         "y_prediction": y_prediction,
     }
 
@@ -57,7 +57,7 @@ def test_eval(prod_env_and_data):
     env, data = prod_env_and_data
     report = reveal(
         prediction_bias_eval(
-            data['y_prediction'], data['y_actual'], 4, True, 'equal_frequency'
+            data["y_prediction"], data["y_actual"], 4, True, "equal_frequency"
         )
     )
 

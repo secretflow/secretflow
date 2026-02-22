@@ -52,7 +52,7 @@ def test_linear_vif(sf_production_setup_devices):
             sf_production_setup_devices.bob: (11, 21),
         }
     ).astype(np.float32)
-    data = pd.read_csv(dataset('linear'), usecols=[f'x{i}' for i in range(1, 21)])
+    data = pd.read_csv(dataset("linear"), usecols=[f"x{i}" for i in range(1, 21)])
     _run_vif(sf_production_setup_devices, vdata, data)
 
 
@@ -60,7 +60,7 @@ def test_linear_vif(sf_production_setup_devices):
 def test_breast_cancer(sf_production_setup_devices):
     from sklearn.datasets import load_breast_cancer
 
-    nd_data = load_breast_cancer()['data']
+    nd_data = load_breast_cancer()["data"]
 
     alice_df = pd.DataFrame(nd_data[:, :15], copy=True)
     bob_df = pd.DataFrame(nd_data[:, 15:], copy=True)

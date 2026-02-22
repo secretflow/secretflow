@@ -44,25 +44,25 @@ def prod_env_and_data(sf_production_setup_devices):
     )
 
     return sf_production_setup_devices, {
-        'sc': sc,
-        'ds1': ds1,
-        'ds2': ds2,
-        'pred1': pred1,
-        'alice_pred2': alice_pred2,
-        'bob_pred2': bob_pred2,
+        "sc": sc,
+        "ds1": ds1,
+        "ds2": ds2,
+        "pred1": pred1,
+        "alice_pred2": alice_pred2,
+        "bob_pred2": bob_pred2,
     }
 
 
 @pytest.mark.mpc
 def test_sc(prod_env_and_data):
     env, data = prod_env_and_data
-    scord = data['sc'].transform(data['ds1'])
+    scord = data["sc"].transform(data["ds1"])
     assert scord.shape[0] == 10
     assert len(scord.partitions) == 1
     scord1 = sf.reveal(list(scord.partitions.items())[0])
     print(f"pred  \n{data['pred1']}\n -> \n{scord1}")
 
-    scord = data['sc'].transform(data['ds2'])
+    scord = data["sc"].transform(data["ds2"])
     assert scord.shape[0] == 20
     assert len(scord.partitions) == 2
     scord2_alice = sf.reveal(list(scord.partitions.items())[0])

@@ -26,8 +26,8 @@ import pandas as pd
 
 @unique
 class PredictionBiasBucketMethod(Enum):
-    EQUAL_FREQUENCY = 'equal_frequency'
-    EQUAL_WIDTH = 'equal_width'
+    EQUAL_FREQUENCY = "equal_frequency"
+    EQUAL_WIDTH = "equal_width"
 
 
 @dataclass
@@ -80,12 +80,12 @@ def prediction_bias(
 
     if bucket_num < 1:
         bucket_num = 1
-        logging.warning('bucket_num is less than 1. Changed to 1.')
+        logging.warning("bucket_num is less than 1. Changed to 1.")
 
     if bucket_num > prediction.size:
         bucket_num = prediction.size
         logging.warning(
-            'bucket_num is greater than number of prediction. Changed to number of prediction.'
+            "bucket_num is greater than number of prediction. Changed to number of prediction."
         )
 
     index = jnp.argsort(prediction, axis=0)
@@ -107,7 +107,7 @@ def prediction_bias(
             if min_item_cnt_per_bucket is not None:
                 if cnt < min_item_cnt_per_bucket and cnt > 0:
                     raise RuntimeError(
-                        f"One bin doesn't meet min_item_cnt_per_bucket requirement."
+                        "One bin doesn't meet min_item_cnt_per_bucket requirement."
                     )
 
             if cnt == 0:
@@ -156,7 +156,7 @@ def prediction_bias(
                 < min_item_cnt_per_bucket
             ):
                 raise RuntimeError(
-                    f"One bin doesn't meet min_item_cnt_per_bucket requirement."
+                    "One bin doesn't meet min_item_cnt_per_bucket requirement."
                 )
 
         for i in range(bucket_num):

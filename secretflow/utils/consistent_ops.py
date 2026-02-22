@@ -41,7 +41,7 @@ def cast_float(a: Union[np.ndarray, float, jax.Array]):
             return float(a.flatten()[0])
         else:
             raise ValueError(
-                f'Expected scalar-like value, got {a}, {type(a)}, {a.shape}, {a.size}'
+                f"Expected scalar-like value, got {a}, {type(a)}, {a.shape}, {a.size}"
             )
     else:
         return float(a)

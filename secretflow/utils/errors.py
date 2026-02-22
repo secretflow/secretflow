@@ -13,6 +13,9 @@
 # limitations under the License.
 
 
+import json
+
+
 class SFException(Exception):
     def __init__(self, message: str, detail: dict = None):
         self.message = message

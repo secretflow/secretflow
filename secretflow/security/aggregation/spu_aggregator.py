@@ -47,7 +47,7 @@ class SPUAggregator(Aggregator):
     """
 
     def __init__(self, device: SPU):
-        assert isinstance(device, SPU), f'Accepts SPU only but got {type(self.device)}.'
+        assert isinstance(device, SPU), f"Accepts SPU only but got {type(self.device)}."
         self.device = device
 
     def sum(self, data: List[DeviceObject], axis=None) -> SPUObject:
@@ -60,7 +60,7 @@ class SPUAggregator(Aggregator):
         Returns:
             a device object holds the sum.
         """
-        assert data, 'Data to aggregate should not be None or empty!'
+        assert data, "Data to aggregate should not be None or empty!"
         data = [d.to(self.device) for d in data]
 
         def _sum(*data, axis):
@@ -71,7 +71,7 @@ class SPUAggregator(Aggregator):
             else:
                 return jnp.sum(jnp.array(data), axis=axis)
 
-        return self.device(_sum, static_argnames='axis')(*data, axis=axis)
+        return self.device(_sum, static_argnames="axis")(*data, axis=axis)
 
     def average(self, data: List[DeviceObject], axis=None, weights=None) -> SPUObject:
         """Compute the weighted average along the specified axis.
@@ -84,7 +84,7 @@ class SPUAggregator(Aggregator):
         Returns:
             a device object holds the weighted average.
         """
-        assert data, 'Data to aggregate should not be None or empty!'
+        assert data, "Data to aggregate should not be None or empty!"
         data = [d.to(self.device) for d in data]
         if isinstance(weights, (list, tuple)):
             weights = [
@@ -108,6 +108,6 @@ class SPUAggregator(Aggregator):
                     weights=jnp.array(weights) if weights is not None else None,
                 )
 
-        return self.device(_average, static_argnames='axis')(
+        return self.device(_average, static_argnames="axis")(
             *data, axis=axis, weights=weights
         )

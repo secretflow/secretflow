@@ -14,4 +14,4 @@
 
 from .order_map_manager import OrderMapManager
 
-__all__ = ['OrderMapManager']
+__all__ = ["OrderMapManager"]

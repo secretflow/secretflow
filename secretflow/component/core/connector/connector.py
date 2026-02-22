@@ -26,9 +26,9 @@ class TableInfo:
 
 
 class IConnector(abc.ABC):
-    '''
+    """
     like flink, connector provide code for interfacing with various third-party systems
-    '''
+    """
 
     @abc.abstractmethod
     def download_table(

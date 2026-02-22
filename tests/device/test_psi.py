@@ -126,12 +126,6 @@ def prod_env_and_model(sf_production_setup_devices):
     yield sf_production_setup_devices, data
 
 
-@pytest.fixture(scope="function")
-def sim_env_and_model(sf_simulation_setup_devices):
-    data = set_up(sf_simulation_setup_devices)
-    yield sf_simulation_setup_devices, data
-
-
 def _test_single_col(devices, data):
     da, db = devices.spu.psi_df("c1", [data["da"], data["db"]], "alice")
 
@@ -152,11 +146,6 @@ def test_single_col_prod(prod_env_and_model):
     _test_single_col(devices, data)
 
 
-def test_single_col_sim(sim_env_and_model):
-    devices, data = sim_env_and_model
-    _test_single_col(devices, data)
-
-
 def _test_multiple_col(devices, data):
     da, db = devices.spu.psi_df(["c1", "c2"], [data["da"], data["db"]], "alice")
 
@@ -168,11 +157,6 @@ def _test_multiple_col(devices, data):
 @pytest.mark.mpc
 def test_multiple_col_prod(prod_env_and_model):
     devices, data = prod_env_and_model
-    _test_multiple_col(devices, data)
-
-
-def test_multiple_col_sim(sim_env_and_model):
-    devices, data = sim_env_and_model
     _test_multiple_col(devices, data)
 
 
@@ -195,11 +179,6 @@ def test_different_cols_prod(prod_env_and_model):
     _test_different_cols(devices, data)
 
 
-def test_different_cols_sim(sim_env_and_model):
-    devices, data = sim_env_and_model
-    _test_different_cols(devices, data)
-
-
 def _test_invalid_device(devices, data):
     with pytest.raises(AssertionError, match="not co-located"):
         da, dc = devices.spu.psi_df(["c1", "c2"], [data["da"], data["dc"]], "alice")
@@ -209,11 +188,6 @@ def _test_invalid_device(devices, data):
 @pytest.mark.mpc
 def test_invalid_device_prod(prod_env_and_model):
     devices, data = prod_env_and_model
-    _test_invalid_device(devices, data)
-
-
-def test_invalid_device_sim(sim_env_and_model):
-    devices, data = sim_env_and_model
     _test_invalid_device(devices, data)
 
 
@@ -227,11 +201,6 @@ def _test_no_intersection(devices, data):
 @pytest.mark.mpc
 def test_no_intersection_prod(prod_env_and_model):
     devices, data = prod_env_and_model
-    _test_no_intersection(devices, data)
-
-
-def test_no_intersection_sim(sim_env_and_model):
-    devices, data = sim_env_and_model
     _test_no_intersection(devices, data)
 
 
@@ -254,62 +223,52 @@ def test_no_broadcast_prod(prod_env_and_model):
     _test_no_broadcast(devices, data)
 
 
-def test_no_broadcast_sim(sim_env_and_model):
-    devices, data = sim_env_and_model
-    _test_no_broadcast(devices, data)
-
-
 def _test_psi_v2(devices, data):
     with tempfile.TemporaryDirectory() as data_dir:
         input_path = {
-            'alice': f"{data_dir}/alice_2.csv",
-            'bob': f"{data_dir}/bob_2.csv",
+            "alice": f"{data_dir}/alice_2.csv",
+            "bob": f"{data_dir}/bob_2.csv",
         }
         output_path = {
-            'alice': f"{data_dir}/alice_psi_2.csv",
-            'bob': f"{data_dir}/bob_psi_2.csv",
+            "alice": f"{data_dir}/alice_psi_2.csv",
+            "bob": f"{data_dir}/bob_psi_2.csv",
         }
 
         sf.reveal(
             devices.alice(lambda df, save_path: df.to_csv(save_path, index=False))(
-                data["da"], input_path['alice']
+                data["da"], input_path["alice"]
             )
         )
         sf.reveal(
             devices.bob(lambda df, save_path: df.to_csv(save_path, index=False))(
-                data["db"], input_path['bob']
+                data["db"], input_path["bob"]
             )
         )
 
         devices.spu.psi(
-            keys={'alice': ["c1", "c2"], 'bob': ["c1", "c2"]},
+            keys={"alice": ["c1", "c2"], "bob": ["c1", "c2"]},
             input_path=input_path,
             output_path=output_path,
             receiver="alice",
-            table_keys_duplicated={'alice': True, 'bob': True},
+            table_keys_duplicated={"alice": True, "bob": True},
             broadcast_result=True,
-            protocol='PROTOCOL_ECDH',
-            ecdh_curve='CURVE_25519',
+            protocol="PROTOCOL_ECDH",
+            ecdh_curve="CURVE_25519",
         )
 
         expected = pd.DataFrame({"c1": ["K1", "K4"], "c2": ["A1", "A4"], "c3": [1, 4]})
 
         pd.testing.assert_frame_equal(
-            sf.reveal(devices.alice(pd.read_csv)(output_path['alice'])), expected
+            sf.reveal(devices.alice(pd.read_csv)(output_path["alice"])), expected
         )
         pd.testing.assert_frame_equal(
-            sf.reveal(devices.bob(pd.read_csv)(output_path['bob'])), expected
+            sf.reveal(devices.bob(pd.read_csv)(output_path["bob"])), expected
         )
 
 
 @pytest.mark.mpc
 def test_psi_v2_prod(prod_env_and_model):
     devices, data = prod_env_and_model
-    _test_psi_v2(devices, data)
-
-
-def test_psi_v2_sim(sim_env_and_model):
-    devices, data = sim_env_and_model
     _test_psi_v2(devices, data)
 
 

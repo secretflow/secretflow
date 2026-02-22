@@ -89,16 +89,16 @@ def test_condition_filter(sf_production_setup_comp):
     test_cases = [
         {
             "attrs": {
-                'input/input_ds/feature': ["b4"],
-                'comparator': "<",
-                'bound_value': "11",
-                'float_epsilon': 0.01,
+                "input/input_ds/feature": ["b4"],
+                "comparator": "<",
+                "bound_value": "11",
+                "float_epsilon": 0.01,
             },
             "expected": [["1", "4"], ["2", "3"]],
             "desc": "test filter",
         },
         {
-            "attrs": {'input/input_ds/feature': ["a1"], 'comparator': "NOTNULL"},
+            "attrs": {"input/input_ds/feature": ["a1"], "comparator": "NOTNULL"},
             "expected": [["1", "2", "4"], ["3"]],
             "desc": "test null",
         },

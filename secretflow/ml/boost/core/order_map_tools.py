@@ -23,7 +23,7 @@ def skew_dist_split_points_search(x: np.ndarray, bucket_num: int) -> List:
     sorted_x = np.sort(x, axis=0)
     sorted_x_len = len(sorted_x)
     remained_count = sorted_x_len
-    assert remained_count > 0, 'can not split empty x'
+    assert remained_count > 0, "can not split empty x"
 
     value_category = list()
     last_value = None

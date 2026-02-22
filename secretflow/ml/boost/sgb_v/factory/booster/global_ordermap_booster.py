@@ -163,7 +163,7 @@ class GlobalOrdermapBooster(Composite, CallBackCompatibleModel):
                 if sample_weight is not None
                 else None
             )
-            y = y.device(lambda y: y.reshape(-1, 1, order='F'))(y)
+            y = y.device(lambda y: y.reshape(-1, 1, order="F"))(y)
             sample_num = y.device(lambda y: y.shape[0])(y)
         else:
             x, x_shape, y, _, sample_weight_object = (
@@ -208,7 +208,7 @@ class GlobalOrdermapBooster(Composite, CallBackCompatibleModel):
             if self.params.first_tree_with_label_holder_feature and tree_index == 0:
                 # we are sure the config is small, so ok to copy
                 config = copy.deepcopy(self.user_config)
-                config['label_holder_feature_only'] = True
+                config["label_holder_feature_only"] = True
                 self.tree_trainer.set_params(config)
                 logging.info("training the first tree with label holder only.")
             tree = self.tree_trainer.train_tree(
@@ -220,7 +220,7 @@ class GlobalOrdermapBooster(Composite, CallBackCompatibleModel):
                 sample_weight=sample_weight_object,
             )
             if self.params.first_tree_with_label_holder_feature and tree_index == 0:
-                config['label_holder_feature_only'] = False
+                config["label_holder_feature_only"] = False
                 self.tree_trainer.set_params(config)
 
             # check if the tree is meaningful
@@ -233,7 +233,7 @@ class GlobalOrdermapBooster(Composite, CallBackCompatibleModel):
             cur_tree_num = self.components.model_builder.get_tree_num()
 
             if cur_tree_num < self.params.num_boost_round:
-                pred = y.device(lambda x, y: x + np.array(y, order='F'))(
+                pred = y.device(lambda x, y: x + np.array(y, order="F"))(
                     pred, tree.predict(x.partitions)
                 )
                 wait([pred])

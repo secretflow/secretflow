@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, Dict, List, Union
+from typing import Dict, List, Union
 
 import secretflow.distributed as sfd
 from secretflow.device import (
@@ -29,12 +29,11 @@ from secretflow.device import (
 )
 from secretflow.device.device.base import register_to
 from secretflow.device.device.heu import HEUMoveConfig
-from secretflow.utils.progress import ProgressData
 
 
 @register_to(DeviceType.SPU, DeviceType.PYU)
 def spu_to_pyu(self: SPUObject, pyu: Device, config: HEUMoveConfig = None):
-    assert isinstance(pyu, PYU), f'Expect a PYU but got {type(pyu)}.'
+    assert isinstance(pyu, PYU), f"Expect a PYU but got {type(pyu)}."
     if config is None:
         config = HEUMoveConfig()
 
@@ -53,7 +52,7 @@ def spu_to_pyu(self: SPUObject, pyu: Device, config: HEUMoveConfig = None):
 # WARNING: you may need to wait spu to spu for following applications
 @register_to(DeviceType.SPU, DeviceType.SPU)
 def spu_to_spu(self: SPUObject, spu: SPU):
-    assert isinstance(spu, SPU), f'Expect an SPU but got {type(spu)}.'
+    assert isinstance(spu, SPU), f"Expect an SPU but got {type(spu)}."
     # same spu
     if self.device == spu:
         return self
@@ -75,7 +74,7 @@ def spu_to_spu(self: SPUObject, spu: SPU):
 
 @register_to(DeviceType.SPU, DeviceType.HEU)
 def spu_to_heu(self: SPUObject, heu: Device, config: HEUMoveConfig = None):
-    assert isinstance(heu, HEU), f'Expect an HEU but got {type(heu)}.'
+    assert isinstance(heu, HEU), f"Expect an HEU but got {type(heu)}."
     if config is None:
         config = HEUMoveConfig()
 
@@ -92,7 +91,7 @@ def spu_to_heu(self: SPUObject, heu: Device, config: HEUMoveConfig = None):
     heu_parties = list(heu.evaluator_names()) + [heu.sk_keeper_name()]
     assert set(self.device.actors.keys()).issubset(
         heu_parties
-    ), f'Mismatch SPU and HEU parties, spu: {list(self.device.actors.keys())}, heu:{heu_parties}'
+    ), f"Mismatch SPU and HEU parties, spu: {list(self.device.actors.keys())}, heu:{heu_parties}"
 
     # TODO(@xibin.wxb): support pytree
     io_info, shares_chunk = self.device.outfeed_shares(self.shares_name)
@@ -125,9 +124,9 @@ def spu_to_heu(self: SPUObject, heu: Device, config: HEUMoveConfig = None):
 def psi_df(
     device: SPU,
     key: Union[str, List[str], Dict[Device, List[str]]],
-    dfs: List['PYUObject'],
+    dfs: List["PYUObject"],
     receiver: str,
-    protocol='PROTOCOL_RR22',
+    protocol="PROTOCOL_RR22",
     precheck_input=True,
     sort=True,
     broadcast_result=True,
@@ -136,22 +135,22 @@ def psi_df(
     dppsi_bob_sub_sampling=0.9,
     dppsi_epsilon=3,
 ) -> List[PYUObject]:
-    assert isinstance(device, SPU), f'device must be SPU device'
+    assert isinstance(device, SPU), "device must be SPU device"
     assert isinstance(
         key, (str, List, Dict)
-    ), f'invalid key, must be str of list of str or dict of str list'
+    ), "invalid key, must be str of list of str or dict of str list"
     assert len(set([df.device for df in dfs])) == len(
         dfs
-    ), f'dataframe should not be in same PYU device'
+    ), "dataframe should not be in same PYU device"
     assert len(dfs) == len(
         device.actors
-    ), f'unexpected number of dataframes, should be {len(device.actors)}'
+    ), f"unexpected number of dataframes, should be {len(device.actors)}"
 
     for df in dfs:
-        assert isinstance(df, PYUObject), f'dataframe must be in PYU device'
+        assert isinstance(df, PYUObject), "dataframe must be in PYU device"
         assert (
             df.device.party in device.actors
-        ), f'{df.device} not co-located with {device}'
+        ), f"{df.device} not co-located with {device}"
 
     res = []
     for df in dfs:
@@ -196,8 +195,8 @@ def ub_psi(
     disable_alignment: bool,
     null_rep: str,
 ):
-    assert isinstance(device, SPU), 'device must be SPU device'
-    assert device.world_size == 2, 'only 2pc is allowed.'
+    assert isinstance(device, SPU), "device must be SPU device"
+    assert device.world_size == 2, "only 2pc is allowed."
     res = []
     for party, actor in device.actors.items():
         res.append(
@@ -205,12 +204,12 @@ def ub_psi(
                 mode=mode,
                 role=role[party],
                 input_path=(
-                    input_path[party] if input_path and party in input_path else ''
+                    input_path[party] if input_path and party in input_path else ""
                 ),
                 keys=keys[party] if keys and party in keys else [],
                 server_secret_key_path=server_secret_key_path,
                 cache_path=(
-                    cache_path[party] if cache_path and party in cache_path else ''
+                    cache_path[party] if cache_path and party in cache_path else ""
                 ),
                 server_get_result=server_get_result,
                 client_get_result=client_get_result,
@@ -218,7 +217,7 @@ def ub_psi(
                 output_path=(
                     output_path[party]
                     if (output_path and (party in output_path))
-                    else ''
+                    else ""
                 ),
                 join_type=join_type,
                 left_side=left_side,
@@ -239,8 +238,8 @@ def psi(
     table_keys_duplicated: Dict[str, str],
     output_csv_na_rep: str,
     broadcast_result: bool = True,
-    protocol: str = 'PROTOCOL_RR22',
-    ecdh_curve: str = 'CURVE_FOURQ',
+    protocol: str = "PROTOCOL_RR22",
+    ecdh_curve: str = "CURVE_FOURQ",
     advanced_join_type: str = "JOIN_TYPE_UNSPECIFIED",
     left_side: str = "ROLE_RECEIVER",
     disable_alignment: bool = False,
@@ -248,9 +247,9 @@ def psi(
     dppsi_bob_sub_sampling=0.9,
     dppsi_epsilon=3,
 ):
-    assert isinstance(device, SPU), 'device must be SPU device'
+    assert isinstance(device, SPU), "device must be SPU device"
 
-    assert receiver in device.actors, f'receiver {receiver} is not found in spu nodes.'
+    assert receiver in device.actors, f"receiver {receiver} is not found in spu nodes."
 
     res = []
     for party, actor in device.actors.items():

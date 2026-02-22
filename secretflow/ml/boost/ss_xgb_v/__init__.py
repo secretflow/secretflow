@@ -16,6 +16,6 @@ from .booster import Xgb
 from .model import XgbModel
 
 __all__ = [
-    'XgbModel',
-    'Xgb',
+    "XgbModel",
+    "Xgb",
 ]

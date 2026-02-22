@@ -262,7 +262,7 @@ class PartitionAgent(PartitionAgentBase):
         columns=None,
         level=None,
         inplace=False,
-        errors='raise',
+        errors="raise",
     ) -> AgentIndex:
         working_object = self.working_objects[idx]
         data = working_object.drop(labels, axis, index, columns, level, inplace, errors)
@@ -315,7 +315,7 @@ class PartitionAgent(PartitionAgentBase):
         copy=True,
         inplace=False,
         level=None,
-        errors='ignore',
+        errors="ignore",
     ) -> Union[AgentIndex, None]:
         """See :py:meth:`pandas.DataFrame.rename`"""
 

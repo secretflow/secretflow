@@ -42,13 +42,13 @@ class DeviceComparator(Comparator):
         Returns:
             a device object holds the minimum.
         """
-        assert data, f'Data to get min can not be None or empty'
+        assert data, "Data to get min can not be None or empty"
         data = [d.to(self.device) for d in data]
 
         def _min(*data, axis):
             return jnp.min(jnp.array(data), axis=axis)
 
-        return self.device(_min, static_argnames='axis')(*data, axis=axis)
+        return self.device(_min, static_argnames="axis")(*data, axis=axis)
 
     def max(self, data: List[DeviceObject], axis=None):
         """The maximum of array over a given axis.
@@ -60,10 +60,10 @@ class DeviceComparator(Comparator):
         Returns:
             a device object holds the maximum.
         """
-        assert data, f'Data to get max can not be None or empty'
+        assert data, "Data to get max can not be None or empty"
         data = [d.to(self.device) for d in data]
 
         def _max(*data, axis):
             return jnp.max(jnp.array(data), axis=axis)
 
-        return self.device(_max, static_argnames='axis')(*data, axis=axis)
+        return self.device(_max, static_argnames="axis")(*data, axis=axis)

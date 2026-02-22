@@ -26,7 +26,7 @@ class AgentIndex:
     def __init__(self, idx: int):
         self.idx = idx
 
-    def __eq__(self, other: 'AgentIndex'):
+    def __eq__(self, other: "AgentIndex"):
         return self.idx == other.idx
 
     def __hash__(self):
@@ -48,7 +48,7 @@ class PartitionAgentBase:
 
     @abstractmethod
     def append_data(
-        self, source: Union[Callable, 'AnyDataFrame'], backend="pandas", **kwargs
+        self, source: Union[Callable, "AnyDataFrame"], backend="pandas", **kwargs
     ) -> AgentIndex:
         """
         Append data or construct data into this remote agent.
@@ -237,7 +237,7 @@ class PartitionAgentBase:
         columns=None,
         level=None,
         inplace=False,
-        errors='raise',
+        errors="raise",
     ) -> PYUObject:
         pass
 
@@ -283,7 +283,7 @@ class PartitionAgentBase:
         copy=True,
         inplace=False,
         level=None,
-        errors='ignore',
+        errors="ignore",
     ) -> Union[PYUObject, None]:
         """See :py:meth:`pandas.DataFrame.rename`"""
 
@@ -506,7 +506,7 @@ class PartDataFrameBase(DataFrameBase, ABC):
         columns=None,
         level=None,
         inplace=False,
-        errors='raise',
+        errors="raise",
     ) -> "PartDataFrameBase":
         pass
 
@@ -519,7 +519,7 @@ class PartDataFrameBase(DataFrameBase, ABC):
         inplace=False,
         limit=None,
         downcast=None,
-    ) -> Union['PartDataFrameBase', None]:
+    ) -> Union["PartDataFrameBase", None]:
         pass
 
     @abstractmethod
@@ -528,7 +528,7 @@ class PartDataFrameBase(DataFrameBase, ABC):
         pass
 
     @abstractmethod
-    def iloc(self, index: Union[int, slice, List[int]]) -> 'PartDataFrameBase':
+    def iloc(self, index: Union[int, slice, List[int]]) -> "PartDataFrameBase":
         """Integer-location based indexing for selection by position.
 
         Args:
@@ -549,14 +549,14 @@ class PartDataFrameBase(DataFrameBase, ABC):
         copy=True,
         inplace=False,
         level=None,
-        errors='ignore',
-    ) -> Union['PartDataFrameBase', None]:
+        errors="ignore",
+    ) -> Union["PartDataFrameBase", None]:
         """See :py:meth:`pandas.DataFrame.rename`"""
 
         pass
 
     @abstractmethod
-    def pow(self, *args, **kwargs) -> 'PartDataFrameBase':
+    def pow(self, *args, **kwargs) -> "PartDataFrameBase":
         """Gets Exponential power of (partition of) dataframe and other, element-wise (binary operator pow).
         Equivalent to dataframe ** other, but with support to substitute a fill_value for missing data in one of the inputs.
         With reverse version, rpow.
@@ -565,17 +565,17 @@ class PartDataFrameBase(DataFrameBase, ABC):
         pass
 
     @abstractmethod
-    def round(self, *args, **kwargs) -> 'PartDataFrameBase':
+    def round(self, *args, **kwargs) -> "PartDataFrameBase":
         """Round the (partition of) DataFrame to a variable number of decimal places."""
         pass
 
     @abstractmethod
-    def select_dtypes(self, *args, **kwargs) -> 'PartDataFrameBase':
+    def select_dtypes(self, *args, **kwargs) -> "PartDataFrameBase":
         """Returns a subset of the DataFrame's columns based on the column dtypes."""
         pass
 
     @abstractmethod
-    def subtract(self, *args, **kwargs) -> 'PartDataFrameBase':
+    def subtract(self, *args, **kwargs) -> "PartDataFrameBase":
         """Gets Subtraction of (partition of) dataframe and other, element-wise (binary operator sub).
         Equivalent to dataframe - other, but with support to substitute a fill_value for missing data in one of the inputs.
         With reverse version, rsub.
@@ -586,7 +586,7 @@ class PartDataFrameBase(DataFrameBase, ABC):
     @abstractmethod
     def apply_func(
         self, func: Callable, *, nums_return: int = 1, **kwargs
-    ) -> 'PartDataFrameBase':
+    ) -> "PartDataFrameBase":
         """
         Apply any function inside the dataframe actor.
         Please make sure the function retures a dataframe type same as the type of the self.data
@@ -600,7 +600,7 @@ class PartDataFrameBase(DataFrameBase, ABC):
         pass
 
     @abstractmethod
-    def to_pandas(self) -> 'PartDataFrameBase':
+    def to_pandas(self) -> "PartDataFrameBase":
         """
         Convert myself to pandas type.
         Returns:

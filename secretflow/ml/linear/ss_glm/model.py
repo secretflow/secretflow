@@ -306,7 +306,7 @@ class SSGLM:
     ) -> Tuple[FedNdarray, Tuple[int, int]]:
         assert isinstance(
             ds, (FedNdarray, VDataFrame)
-        ), f"ds should be FedNdarray or VDataFrame"
+        ), "ds should be FedNdarray or VDataFrame"
         ds = ds if isinstance(ds, FedNdarray) else ds.values
         shapes = ds.partition_shape()
         assert len(shapes) > 0, "input dataset is empty"
@@ -450,11 +450,11 @@ class SSGLM:
 
         assert (
             irls_epochs >= 0 and sgd_epochs >= 0 and (irls_epochs + sgd_epochs) > 0
-        ), f"epochs should >0"
+        ), "epochs should >0"
         self.irls_epochs = irls_epochs
         self.sgd_epochs = sgd_epochs
         self.epochs = irls_epochs + sgd_epochs
-        assert sgd_learning_rate > 0, f"learning_rate should >0"
+        assert sgd_learning_rate > 0, "learning_rate should >0"
         self.sgd_learning_rate = sgd_learning_rate
 
         self.link = get_link(link)
@@ -465,7 +465,7 @@ class SSGLM:
             self.eps_scale = 2 ** math.floor(-math.log2(stopping_tolerance))
             self.norm_eps = stopping_tolerance * self.eps_scale
 
-        assert sgd_batch_size > 0, f"sgd_batch_size should >0"
+        assert sgd_batch_size > 0, "sgd_batch_size should >0"
         self.sgd_batch_size = sgd_batch_size
         # for large dataset, batch infeed data for each 8w*100d size.
         infeed_rows = math.ceil(infeed_batch_size_limit / self.num_feat)
@@ -510,11 +510,11 @@ class SSGLM:
         spu_model = self.spu(
             _sgd_update_w,
             static_argnames=(
-                'learning_rate',
-                'link',
-                'dist',
-                'batch_size',
-                'l2_lambda',
+                "learning_rate",
+                "link",
+                "dist",
+                "batch_size",
+                "l2_lambda",
             ),
         )(
             spu_x,
@@ -553,7 +553,7 @@ class SSGLM:
         elif isinstance(ds, PYUObject):
             return ds.device(lambda x, begin, end: x[begin:end])(ds, begin, end)
         else:
-            raise TypeError(f'unsupported type of ds: {type(ds)}')
+            raise TypeError(f"unsupported type of ds: {type(ds)}")
 
     def _to_spu(self, d: FedNdarray):
         return [d.partitions[pyu].to(self.spu) for pyu in d.partitions]
@@ -581,7 +581,7 @@ class SSGLM:
         y = self._next_infeed_batch(y, infeed_step, samples)
 
         spu_x = self.spu(
-            _concatenate, static_argnames=('axis', 'pad_ones', 'enable_spu_cache')
+            _concatenate, static_argnames=("axis", "pad_ones", "enable_spu_cache")
         )(
             self._to_spu(x),
             axis=1,
@@ -670,7 +670,7 @@ class SSGLM:
             logging.info("irls updating weights...")
             spu_model = self.spu(
                 _irls_update_w_from_accumulated_partials,
-                static_argnames=('l2_lambda',),
+                static_argnames=("l2_lambda",),
             )(
                 inv_J.to(self.spu),
                 XTWZ,
@@ -701,7 +701,7 @@ class SSGLM:
     ):
         change_rate, max_w = self.spu(
             _change_rate,
-            static_argnames=('eps_scale'),
+            static_argnames=("eps_scale"),
             num_returns_policy=sf.device.SPUCompilerNumReturnsPolicy.FROM_USER,
             user_specified_num_returns=2,
         )(old_w, current_w, eps_scale=self.eps_scale)
@@ -716,7 +716,7 @@ class SSGLM:
                 }
             )
 
-        spu_converged = self.spu(_convergence, static_argnames=('norm_eps'))(
+        spu_converged = self.spu(_convergence, static_argnames=("norm_eps"))(
             change_rate, max_w, norm_eps=self.norm_eps
         )
         return reveal(spu_converged)
@@ -725,20 +725,20 @@ class SSGLM:
         self,
         stopping_metric: str,
         dist: Distribution,
-        dataset_type: str = 'val',
+        dataset_type: str = "val",
     ):
-        assert dataset_type in ['val', 'train']
+        assert dataset_type in ["val", "train"]
         infeed_total_batch = (
             self.infeed_total_batch_val
-            if dataset_type == 'val'
+            if dataset_type == "val"
             else self.infeed_total_batch
         )
-        samples = self.samples_val if dataset_type == 'val' else self.samples
+        samples = self.samples_val if dataset_type == "val" else self.samples
         assert stopping_metric in SUPPORTED_METRICS
 
         y_pred = self._predict_on_dataset(dataset=dataset_type)
 
-        if stopping_metric == 'deviance':
+        if stopping_metric == "deviance":
             # deviance can be calculated by y device if weight is already at the label holder device
             if (
                 self.weight is None
@@ -746,7 +746,7 @@ class SSGLM:
             ):
                 y = (
                     self.y_val_object_not_scaled
-                    if dataset_type == 'val'
+                    if dataset_type == "val"
                     else self.y_object_not_scaled
                 )
                 if self.weight is None:
@@ -754,7 +754,7 @@ class SSGLM:
                 else:
                     weight = (
                         list(self.weight_val.partitions.values())[0]
-                        if dataset_type == 'val'
+                        if dataset_type == "val"
                         else list(self.weight.partitions.values())[0]
                     )
                 metric = self.y_device(deviance)(
@@ -774,7 +774,7 @@ class SSGLM:
                     spu_y_pred = self._next_infeed_batch(y_pred, infeed_step, samples)
                     spu_y = self.spu(lambda y, scale: y * scale)(spu_y, self.y_scale)
 
-                    metric_ = self.spu(deviance, static_argnames=('dist'))(
+                    metric_ = self.spu(deviance, static_argnames=("dist"))(
                         spu_y,
                         spu_y_pred,
                         spu_w,
@@ -786,7 +786,7 @@ class SSGLM:
         else:
             y = (
                 self.y_val_object_not_scaled
-                if dataset_type == 'val'
+                if dataset_type == "val"
                 else self.y_object_not_scaled
             )
             metric = self.y_device(SUPPORTED_METRICS[stopping_metric])(
@@ -820,14 +820,14 @@ class SSGLM:
             metric = self._metric(
                 stopping_metric,
                 dist_,
-                dataset_type='val',
+                dataset_type="val",
             )
 
             if report_metric:
                 train_metric = self._metric(
                     stopping_metric,
                     dist_,
-                    dataset_type='train',
+                    dataset_type="train",
                 )
 
             if self.best_metric is not None:
@@ -854,7 +854,7 @@ class SSGLM:
             )
             if report_metric:
                 logging.info(
-                    f'stopping_metric_type {stopping_metric}:train {train_metric:.6f}, validation {metric:.6f}'
+                    f"stopping_metric_type {stopping_metric}:train {train_metric:.6f}, validation {metric:.6f}"
                 )
                 self.train_metric_history.append(
                     {
@@ -933,7 +933,7 @@ class SSGLM:
         # 10w * 100d
         infeed_batch_size_limit: int = 8000000,
         fraction_of_validation_set: float = 0.2,
-        stopping_metric: str = 'deviance',
+        stopping_metric: str = "deviance",
         stopping_rounds: int = 0,
         stopping_tolerance: float = 0.001,
         report_metric: bool = False,
@@ -1028,7 +1028,7 @@ class SSGLM:
         infeed_batch_size_limit: int = 8000000,
         fraction_of_validation_set: float = 0.2,
         random_state: int = 1212,
-        stopping_metric: str = 'deviance',
+        stopping_metric: str = "deviance",
         stopping_rounds: int = 0,
         stopping_tolerance: float = 0.001,
         report_metric: bool = False,
@@ -1123,7 +1123,7 @@ class SSGLM:
         infeed_batch_size_limit: int = 8000000,
         fraction_of_validation_set: float = 0.2,
         random_state: int = 1212,
-        stopping_metric: str = 'deviance',
+        stopping_metric: str = "deviance",
         stopping_rounds: int = 0,
         stopping_tolerance: float = 0.001,
         report_metric: bool = False,
@@ -1204,14 +1204,14 @@ class SSGLM:
             recovery_checkpoint=recovery_checkpoint,
         )
 
-    def _predict_on_dataset(self, dataset: str = 'val') -> Union[SPUObject, PYUObject]:
-        assert hasattr(self, 'spu_w'), 'please fit model first'
-        assert hasattr(self, 'link'), 'please fit model first'
-        assert hasattr(self, 'y_scale'), 'please fit model first'
+    def _predict_on_dataset(self, dataset: str = "val") -> Union[SPUObject, PYUObject]:
+        assert hasattr(self, "spu_w"), "please fit model first"
+        assert hasattr(self, "link"), "please fit model first"
+        assert hasattr(self, "y_scale"), "please fit model first"
 
-        assert dataset in ['train', 'val']
+        assert dataset in ["train", "val"]
         infeed_total_batch = (
-            self.infeed_total_batch_val if dataset == 'val' else self.infeed_total_batch
+            self.infeed_total_batch_val if dataset == "val" else self.infeed_total_batch
         )
 
         spu_preds = []
@@ -1221,7 +1221,7 @@ class SSGLM:
             )
             spu_pred = self.spu(
                 _predict_on_padded_array,
-                static_argnames=('link', 'y_scale'),
+                static_argnames=("link", "y_scale"),
             )(
                 spu_x,
                 spu_o,
@@ -1259,9 +1259,9 @@ class SSGLM:
         Return:
             pred scores in SPUObject, shape (n_samples,)
         """
-        assert hasattr(self, 'spu_w'), 'please fit model first'
-        assert hasattr(self, 'link'), 'please fit model first'
-        assert hasattr(self, 'y_scale'), 'please fit model first'
+        assert hasattr(self, "spu_w"), "please fit model first"
+        assert hasattr(self, "link"), "please fit model first"
+        assert hasattr(self, "y_scale"), "please fit model first"
 
         x, shape = self._prepare_dataset(x)
         if o is not None:
@@ -1286,7 +1286,7 @@ class SSGLM:
                 spu_o = None
             spu_pred = self.spu(
                 _predict,
-                static_argnames=('link', 'y_scale'),
+                static_argnames=("link", "y_scale"),
             )(
                 spu_x,
                 spu_o,
@@ -1332,7 +1332,7 @@ class SSGLM:
             end = cum_index + party_feat_num
             fed_w[party_device] = self.spu(
                 slice_x,
-                static_argnames=('beg', 'end'),
+                static_argnames=("beg", "end"),
             )(
                 spu_w, beg=beg, end=end
             ).to(party_device)
@@ -1341,7 +1341,7 @@ class SSGLM:
             partitions=fed_w, partition_way=PartitionWay.VERTICAL
         ), self.spu(
             slice_x,
-            static_argnames=('beg', 'end'),
+            static_argnames=("beg", "end"),
         )(
             spu_w, beg=num_feat, end=num_feat + 1
         ).to(
@@ -1377,9 +1377,9 @@ class SSGLM:
         Return:
             pred scores in PYUObject, shape (n_samples,)
         """
-        assert hasattr(self, 'spu_w'), 'please fit model first'
-        assert hasattr(self, 'link'), 'please fit model first'
-        assert hasattr(self, 'y_scale'), 'please fit model first'
+        assert hasattr(self, "spu_w"), "please fit model first"
+        assert hasattr(self, "link"), "please fit model first"
+        assert hasattr(self, "y_scale"), "please fit model first"
 
         x, shape = self._prepare_dataset(x)
         if o is not None:

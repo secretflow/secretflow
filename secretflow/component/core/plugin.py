@@ -22,9 +22,9 @@ from .resources import Resources
 
 
 class Plugin(abc.ABC):
-    '''
+    """
     Users can inherit from the Plugin for custom development and return a Plugin instance at the entry point.
-    '''
+    """
 
     @abc.abstractmethod
     def get_resources(self) -> Resources: ...
@@ -64,7 +64,7 @@ class PluginManager:
             else:
                 logging.error(f"{ep.value} is not callable in plugin of {ep.name}")
 
-            root_package = ep.module.split('.')[0]
+            root_package = ep.module.split(".")[0]
             resource = plugin.get_resources() if isinstance(plugin, Plugin) else None
             if resource is None:
                 resource = Resources.from_package(root_package)

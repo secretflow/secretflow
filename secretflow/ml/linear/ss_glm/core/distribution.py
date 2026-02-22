@@ -174,10 +174,10 @@ class DistributionTweedie(Distribution):
 
 @unique
 class DistributionType(Enum):
-    Bernoulli = 'Bernoulli'
-    Poisson = 'Poisson'
-    Gamma = 'Gamma'
-    Tweedie = 'Tweedie'
+    Bernoulli = "Bernoulli"
+    Poisson = "Poisson"
+    Gamma = "Gamma"
+    Tweedie = "Tweedie"
 
 
 def get_dist(
@@ -203,4 +203,4 @@ def get_dist(
         ), f"tweedie_power should in [1, 2] or 0, got {tweedie_power}"
         return DistributionTweedie(scale, tweedie_power)
     else:
-        raise InvalidArgumentError(f'Unsupported link: {t}')
+        raise InvalidArgumentError(f"Unsupported link: {t}")

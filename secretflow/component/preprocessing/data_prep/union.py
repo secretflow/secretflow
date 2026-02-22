@@ -29,9 +29,9 @@ from secretflow.utils.errors import InvalidArgumentError
 
 @register(domain="data_prep", version="1.0.0")
 class Union(Component):
-    '''
+    """
     Perform a horizontal merge of two data tables, supporting the individual table or vertical table on the same node.
-    '''
+    """
 
     input_ds1: Input = Field.input(
         desc="The first input table",

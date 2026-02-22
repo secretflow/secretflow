@@ -70,7 +70,7 @@ def test_should_fail_when_load_disallowed_class_with_blacklist():
         def __reduce__(self):
             import os
 
-            return (os.system, ('whoami',))
+            return (os.system, ("whoami",))
 
     serialized_obj = pickle.dumps(EvilObject())
 

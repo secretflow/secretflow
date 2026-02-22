@@ -14,4 +14,4 @@
 
 from .sampler import Sampler
 
-__all__ = ['Sampler']
+__all__ = ["Sampler"]

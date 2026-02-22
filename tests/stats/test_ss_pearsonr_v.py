@@ -38,7 +38,7 @@ def prod_env_and_data(sf_production_setup_devices):
 
 def scipy_pearsonr():
     ret = np.ones((20, 20))
-    data = pd.read_csv(dataset('linear'), usecols=[f'x{i}' for i in range(1, 21)])
+    data = pd.read_csv(dataset("linear"), usecols=[f"x{i}" for i in range(1, 21)])
 
     for i in range(20):
         for j in range(i, 20):

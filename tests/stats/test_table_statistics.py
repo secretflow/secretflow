@@ -33,7 +33,7 @@ def prod_env_and_data(sf_production_setup_devices):
     data.iloc[100, 1] = None
 
     # Restore target to its original name.
-    data['target'] = data['target'].map({0: 'setosa', 1: 'versicolor', 2: 'virginica'})
+    data["target"] = data["target"].map({0: "setosa", 1: "versicolor", 2: "virginica"})
     # Vertical partitioning.
     v_alice, v_bob = data.iloc[:, :2], data.iloc[:, 2:]
     df_v = VDataFrame(
@@ -43,7 +43,7 @@ def prod_env_and_data(sf_production_setup_devices):
         }
     )
     df = data
-    return sf_production_setup_devices, {'df_v': df_v, 'df': df}
+    return sf_production_setup_devices, {"df_v": df_v, "df": df}
 
 
 def assert_summary_equal(summary, correct_summary):
@@ -67,9 +67,9 @@ def test_table_statistics(prod_env_and_data):
         i.e. all APIs align and the result is correct.
     """
     _, data = prod_env_and_data
-    correct_summary = table_statistics(data['df'])
-    summary = table_statistics(data['df_v'])
+    correct_summary = table_statistics(data["df"])
+    summary = table_statistics(data["df_v"])
     assert_summary_equal(summary, correct_summary)
-    categorical_summary = categorical_statistics(data['df'])
-    correct_categorical_summary = categorical_statistics(data['df_v'])
+    categorical_summary = categorical_statistics(data["df"])
+    correct_categorical_summary = categorical_statistics(data["df_v"])
     assert_summary_equal(categorical_summary, correct_categorical_summary)

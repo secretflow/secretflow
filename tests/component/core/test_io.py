@@ -33,9 +33,9 @@ from secretflow.component.core import (
 
 def test_csv():
     data = {
-        'column1': [1, None, 3],
-        'column2': ['a', 'b', None],
-        'column3': [3.5, None, 5.5],
+        "column1": [1, None, 3],
+        "column2": ["a", "b", None],
+        "column3": [3.5, None, 5.5],
     }
     excepted_data = "column1,column2,column3\n1,a,3.5\nNULL,b,NULL\n3,NULL,5.5\n"
     schema = pa.schema(
@@ -48,7 +48,7 @@ def test_csv():
     tbl = pa.table(data)
     buffer = io.BytesIO()
     write_csv(tbl, buffer, CSVWriteOptions(na_rep="NULL"))
-    assert buffer.getvalue().decode('utf-8') == excepted_data
+    assert buffer.getvalue().decode("utf-8") == excepted_data
 
     read_options = CSVReadOptions(null_values=["NULL"])
     out_tbl = read_csv(buffer, schema, read_options)
@@ -78,9 +78,9 @@ def test_csv():
 
 def test_orc():
     data = {
-        'column1': [1, None, 3],
-        'column2': ['a', 'b', None],
-        'column3': [3.5, None, 5.5],
+        "column1": [1, None, 3],
+        "column2": ["a", "b", None],
+        "column3": [3.5, None, 5.5],
     }
 
     tbl = pa.table(data)

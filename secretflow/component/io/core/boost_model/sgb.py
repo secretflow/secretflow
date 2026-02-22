@@ -49,10 +49,10 @@ def get_sgb_snapshot_from_pb(write_data) -> SGBSnapshot:
 
 def get_sgb_model_dict(sgb_model: SgbModelPb):
     return {
-        'label_holder': get_label_holder(sgb_model.label_holder),
-        'common': get_common(sgb_model.common),
-        'leaf_weights': get_leaf_weights(sgb_model.ensemble_leaf_weights),
-        'split_trees': get_split_trees(sgb_model.ensemble_split_trees),
+        "label_holder": get_label_holder(sgb_model.label_holder),
+        "common": get_common(sgb_model.common),
+        "leaf_weights": get_leaf_weights(sgb_model.ensemble_leaf_weights),
+        "split_trees": get_split_trees(sgb_model.ensemble_split_trees),
     }
 
 
@@ -66,10 +66,10 @@ def get_common(common: Common):
         parties_count[party] = len(features.feature_names)
 
     common_params = {}
-    common_params['base'] = common.base
-    common_params['objective'] = convert_link_2_objective(common.link)
-    common_params['partition_column_counts'] = parties_count
-    common_params['tree_num'] = common.tree_num
+    common_params["base"] = common.base
+    common_params["objective"] = convert_link_2_objective(common.link)
+    common_params["partition_column_counts"] = parties_count
+    common_params["tree_num"] = common.tree_num
     return common_params
 
 
@@ -90,10 +90,10 @@ def get_split_trees(all_party_ensemble_split_trees_pb: EnsembleSplitTrees):
         ensemble_split_trees = []
         for _, split_tree_pb in enumerate(ensemble_split_trees_pb.split_trees):
             split_tree = {
-                'split_features': list(split_tree_pb.split_features),
-                'split_values': list(split_tree_pb.split_values),
-                'split_indices': list(split_tree_pb.split_indices),
-                'leaf_indices': list(split_tree_pb.leaf_indices),
+                "split_features": list(split_tree_pb.split_features),
+                "split_values": list(split_tree_pb.split_values),
+                "split_indices": list(split_tree_pb.split_indices),
+                "leaf_indices": list(split_tree_pb.leaf_indices),
             }
             ensemble_split_trees.append(split_tree)
         all_party_ensemble_split_trees[PYU(party)] = ensemble_split_trees
@@ -133,8 +133,8 @@ def convert_link_2_objective(link: str):
 
 objective_link = {
     "linear": "identity",
-    'logistic': 'logit',
-    'tweedie': 'log',
+    "logistic": "logit",
+    "tweedie": "log",
 }
 
 
@@ -142,11 +142,11 @@ def sgb_model_to_pb(model: SgbModel, model_meta: dict) -> SgbModelPb:
     sgb_model = SgbModelPb()
 
     sgb_model.label_holder = model.label_holder.party
-    feature_names = model_meta['feature_names']
+    feature_names = model_meta["feature_names"]
     sgb_model.common.CopyFrom(get_common_pb(model, feature_names))
 
     distributed_tree_dicts = [dt.to_dict() for dt in model.trees]
-    device_list = [*distributed_tree_dicts[0]['split_tree_dict'].keys()]
+    device_list = [*distributed_tree_dicts[0]["split_tree_dict"].keys()]
 
     sgb_model.ensemble_leaf_weights.CopyFrom(
         get_ensemble_leaf_weights_pb(distributed_tree_dicts)
@@ -175,7 +175,7 @@ def get_common_pb(model: SgbModel, feature_names: list[str]):
 
 def get_ensemble_leaf_weights_pb(distributed_tree_dicts):
     ensemble_leaf_weights_data = [
-        tree_dict['leaf_weight'] for tree_dict in distributed_tree_dicts
+        tree_dict["leaf_weight"] for tree_dict in distributed_tree_dicts
     ]
     ensemble_leaf_weights_data = reveal(ensemble_leaf_weights_data)
     ensemble_leaf_weights = EnsembleLeafWeights()
@@ -195,7 +195,7 @@ def get_ensemble_leaf_weights_pb(distributed_tree_dicts):
 def set_ensemble_split_trees(sgb_model, distributed_tree_dicts, device_list):
     split_trees_data = {
         device: [
-            tree_dict['split_tree_dict'][device] for tree_dict in distributed_tree_dicts
+            tree_dict["split_tree_dict"][device] for tree_dict in distributed_tree_dicts
         ]
         for device in device_list
     }
@@ -204,9 +204,9 @@ def set_ensemble_split_trees(sgb_model, distributed_tree_dicts, device_list):
         ensemble_trees = reveal(ensemble_trees)
         for split_tree_data in ensemble_trees:
             split_tree = SplitTree()
-            split_tree.split_features.extend(split_tree_data['split_features'])
-            split_tree.split_values.extend(split_tree_data['split_values'])
-            split_tree.split_indices.extend(split_tree_data['split_indices'])
-            split_tree.leaf_indices.extend(split_tree_data['leaf_indices'])
+            split_tree.split_features.extend(split_tree_data["split_features"])
+            split_tree.split_values.extend(split_tree_data["split_values"])
+            split_tree.split_indices.extend(split_tree_data["split_indices"])
+            split_tree.leaf_indices.extend(split_tree_data["leaf_indices"])
             ensemble_split_trees.split_trees.append(split_tree)
         sgb_model.ensemble_split_trees[pyu.party].CopyFrom(ensemble_split_trees)

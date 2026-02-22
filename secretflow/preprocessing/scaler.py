@@ -49,7 +49,7 @@ class _STDScaler:
             self.scale_ = None
 
     def transform(self, X: pd.DataFrame):
-        if not hasattr(self, 'mean_') or not hasattr(self, 'scale_'):
+        if not hasattr(self, "mean_") or not hasattr(self, "scale_"):
             raise RuntimeError("You must fit the scaler before calling transform.")
         if self.with_mean:
             X = X - self.mean_
@@ -62,7 +62,7 @@ class _STDScaler:
         return self.transform(X)
 
     def inverse_transform(self, X: pd.DataFrame) -> pd.DataFrame:
-        if not hasattr(self, 'mean_') or not hasattr(self, 'scale_'):
+        if not hasattr(self, "mean_") or not hasattr(self, "scale_"):
             raise RuntimeError(
                 "You must fit the scaler before calling inverse_transform."
             )
@@ -119,7 +119,7 @@ class StandardScaler(_PreprocessBase):
     def _check_dataframe(df):
         assert isinstance(
             df, (HDataFrame, VDataFrame, MixDataFrame)
-        ), f'Accepts HDataFrame/VDataFrame/MixDataFrame only but got {type(df)}'
+        ), f"Accepts HDataFrame/VDataFrame/MixDataFrame only but got {type(df)}"
 
     def _fit_horizontal(
         self, partitions: List[Partition], aggregator: Aggregator = None
@@ -182,8 +182,8 @@ class StandardScaler(_PreprocessBase):
             if df.partition_way == PartitionWay.HORIZONTAL:
                 if self._with_mean or self._with_std:
                     assert aggregator is not None, (
-                        'Should provide a aggregator for horizontal partitioned'
-                        'MixDataFrame when with_mean or with_std is true'
+                        "Should provide a aggregator for horizontal partitioned"
+                        "MixDataFrame when with_mean or with_std is true"
                     )
 
                 parts_list = [list(part.partitions.values()) for part in df.partitions]
@@ -256,7 +256,7 @@ class StandardScaler(_PreprocessBase):
                 start_idx = end_idx
         else:
             raise InvalidArgumentError(
-                f'_transform accepts HDataFrame/VDataFrame only but got {type(df)}'
+                f"_transform accepts HDataFrame/VDataFrame only but got {type(df)}"
             )
 
         new_df = df.copy()
@@ -275,7 +275,7 @@ class StandardScaler(_PreprocessBase):
             a federated dataframe corresponding to the input X.
         """
         # Sanity check.
-        assert hasattr(self, '_scaler'), 'Scaler has not been fit yet.'
+        assert hasattr(self, "_scaler"), "Scaler has not been fit yet."
         self._check_dataframe(df)
         features_num = None
         if self._with_mean:
@@ -284,8 +284,8 @@ class StandardScaler(_PreprocessBase):
             features_num = len(self._scaler.var_)
         if features_num is not None:
             assert len(df.columns) == features_num, (
-                f'X has {len(df.columns)} features, but StandardScaler '
-                f'is expecting {features_num} features as input.'
+                f"X has {len(df.columns)} features, but StandardScaler "
+                f"is expecting {features_num} features as input."
             )
 
         if isinstance(df, (HDataFrame, VDataFrame)):
@@ -319,12 +319,12 @@ class StandardScaler(_PreprocessBase):
         return self.transform(df)
 
     def get_params(self) -> Dict[str, Any]:
-        assert hasattr(self, '_scaler'), 'Scaler has not been fit yet.'
+        assert hasattr(self, "_scaler"), "Scaler has not been fit yet."
 
         return {
-            'columns': self._columns,
-            'with_mean': self._scaler.with_mean,
-            'mean': self._scaler.mean_,
-            'with_std': self._scaler.with_std,
-            'scale': self._scaler.scale_,
+            "columns": self._columns,
+            "with_mean": self._scaler.with_mean,
+            "mean": self._scaler.mean_,
+            "with_std": self._scaler.with_std,
+            "scale": self._scaler.scale_,
         }

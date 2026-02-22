@@ -39,9 +39,9 @@ from .ss_glm import SSGLMExportMixin
 
 @register(domain="ml.predict", version="1.1.0", name="ss_glm_predict")
 class SSGLMPredict(SSGLMExportMixin, Component, IServingExporter):
-    '''
+    """
     Predict using the SSGLM model.
-    '''
+    """
 
     receiver: str = Field.party_attr(desc="Party of receiver.")
     pred_name: str = Field.attr(desc="Column name for predictions.", default="pred")
@@ -109,8 +109,8 @@ class SSGLMPredict(SSGLMExportMixin, Component, IServingExporter):
         glm.link = get_link(model_meta["link"])
         glm.y_scale = float(model_meta["y_scale"])
 
-        feature_names = model_meta['feature_names']
-        offset_col = model_meta['offset_col']
+        feature_names = model_meta["feature_names"]
+        offset_col = model_meta["offset_col"]
         feature_names.extend(offset_col)
         receiver_pyu = PYU(self.receiver)
 
@@ -134,7 +134,7 @@ class SSGLMPredict(SSGLMExportMixin, Component, IServingExporter):
             list(model_meta["party_features_length"].keys()),
             self.input_ds,
             self.saved_features,
-            model_meta['label_col'] if self.save_label else [],
+            model_meta["label_col"] if self.save_label else [],
             self.save_ids,
         )
         self.output_ds.data = y_db

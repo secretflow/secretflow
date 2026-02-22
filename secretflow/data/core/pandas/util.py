@@ -17,10 +17,10 @@ import pandas as pd
 
 def read_pandas_csv(filepath, *args, **kwargs):
     header_row = 0
-    if 'header' in kwargs and kwargs['header'] is None:
+    if "header" in kwargs and kwargs["header"] is None:
         header_row = -1
 
-    skiprows = kwargs.pop('skip_rows_after_header', None)
+    skiprows = kwargs.pop("skip_rows_after_header", None)
     if skiprows is not None:
         assert isinstance(skiprows, int)
         skiprows += header_row + 1
@@ -28,7 +28,7 @@ def read_pandas_csv(filepath, *args, **kwargs):
         def skip_rows(r):
             return r > header_row and r < skiprows
 
-        kwargs['skiprows'] = skip_rows
+        kwargs["skiprows"] = skip_rows
         try:
             df = pd.read_csv(filepath, *args, **kwargs)
         except pd.errors.EmptyDataError:
@@ -37,7 +37,7 @@ def read_pandas_csv(filepath, *args, **kwargs):
     else:
         df = pd.read_csv(filepath, *args, **kwargs)
 
-    if 'usecols' in kwargs and kwargs['usecols'] is not None:
-        return df[kwargs['usecols']]
+    if "usecols" in kwargs and kwargs["usecols"] is not None:
+        return df[kwargs["usecols"]]
     else:
         return df

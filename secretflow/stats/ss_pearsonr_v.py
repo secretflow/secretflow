@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import math
-from typing import List, Union
+from typing import Union
 
 import secretflow as sf
 from secretflow.data.vertical import VDataFrame

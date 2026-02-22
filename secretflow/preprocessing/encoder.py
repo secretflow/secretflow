@@ -29,7 +29,7 @@ from secretflow.preprocessing.base import _PreprocessBase
 def _check_dataframe(df):
     assert isinstance(
         df, (HDataFrame, VDataFrame, MixDataFrame)
-    ), f'Accepts HDataFrame/VDataFrame/MixDataFrame only but got {type(df)}'
+    ), f"Accepts HDataFrame/VDataFrame/MixDataFrame only but got {type(df)}"
 
 
 class VOrdinalEncoder(_PreprocessBase):
@@ -87,7 +87,7 @@ class VOrdinalEncoder(_PreprocessBase):
 
     def inverse_transform(self, df: VDataFrame) -> VDataFrame:
         """Transform labels back to original encoding."""
-        assert hasattr(self, '_encoders'), 'Encoder has not been fit yet.'
+        assert hasattr(self, "_encoders"), "Encoder has not been fit yet."
         _check_dataframe(df)
         if isinstance(df, VDataFrame):
             return self._transform(df, inverse=True)
@@ -100,7 +100,7 @@ class VOrdinalEncoder(_PreprocessBase):
 
     def transform(self, df: VDataFrame) -> VDataFrame:
         """Transform labels to ordinal encoding."""
-        assert hasattr(self, '_encoders'), 'Encoder has not been fit yet.'
+        assert hasattr(self, "_encoders"), "Encoder has not been fit yet."
         assert isinstance(df, VDataFrame), "Currently only supports VDataFrame"
         return self._transform(df)
 
@@ -177,7 +177,7 @@ class OneHotEncoder(_PreprocessBase):
             return encoder
 
         # reuse these encoders when min_frequency or max_categories are set
-        self._encoders: Dict[str, 'SkOneHotEncoder'] = reveal(
+        self._encoders: Dict[str, "SkOneHotEncoder"] = reveal(
             {
                 device.party: device(_df_fit)(part.data)
                 for device, part in df.partitions.items()
@@ -200,7 +200,7 @@ class OneHotEncoder(_PreprocessBase):
                 feature_names_in.extend(encoder.feature_names_in_)
         assert len(feature_names_in) == len(
             categories
-        ), f'Feature names length not equals to categories: {len(feature_names_in)} vs {len(categories)}'
+        ), f"Feature names length not equals to categories: {len(feature_names_in)} vs {len(categories)}"
         return {
             feature: category for feature, category in zip(feature_names_in, categories)
         }
@@ -213,7 +213,7 @@ class OneHotEncoder(_PreprocessBase):
         if self.min_frequency or self.max_categories:
             assert isinstance(
                 df, VDataFrame
-            ), f'Args min_frequency/max_categories are only supported in VDataFrame'
+            ), "Args min_frequency/max_categories are only supported in VDataFrame"
 
         self._columns = df.columns
         if isinstance(df, (HDataFrame, VDataFrame)):
@@ -285,7 +285,7 @@ class OneHotEncoder(_PreprocessBase):
         self, df: Union[HDataFrame, VDataFrame, MixDataFrame]
     ) -> Union[HDataFrame, VDataFrame, MixDataFrame]:
         """Transform X using one-hot encoding."""
-        assert hasattr(self, '_fitted'), 'Encoder has not been fit yet.'
+        assert hasattr(self, "_fitted"), "Encoder has not been fit yet."
         _check_dataframe(df)
         if isinstance(df, (HDataFrame, VDataFrame)):
             return self._transform(df)
@@ -302,18 +302,18 @@ class OneHotEncoder(_PreprocessBase):
         return self.transform(df)
 
     def get_params(self) -> Dict[str, Any]:
-        assert hasattr(self, '_fitted'), 'Encoder has not been fit yet.'
+        assert hasattr(self, "_fitted"), "Encoder has not been fit yet."
 
         categories = []
         infrequent_categories = []
         feature_names_in = []
         feature_names_out = []
 
-        if hasattr(self, '_encoder'):
+        if hasattr(self, "_encoder"):
             categories = list(self._encoder.categories_)
             infrequent_categories = (
                 list(self._encoder.infrequent_categories_)
-                if hasattr(self._encoder, '_infrequent_indices')
+                if hasattr(self._encoder, "_infrequent_indices")
                 else []
             )
             feature_names_in = list(self._encoder.feature_names_in_)
@@ -323,7 +323,7 @@ class OneHotEncoder(_PreprocessBase):
                 categories.extend(encoder.categories_)
                 infre_cat = (
                     encoder.infrequent_categories_
-                    if hasattr(encoder, '_infrequent_indices')
+                    if hasattr(encoder, "_infrequent_indices")
                     else []
                 )
                 infrequent_categories.extend(infre_cat)
@@ -331,9 +331,9 @@ class OneHotEncoder(_PreprocessBase):
                 feature_names_out.extend(encoder.get_feature_names_out())
 
         return {
-            'columns': self._columns,
-            'feature_names_in': feature_names_in,  # should same as columns
-            'feature_names_out': feature_names_out,
-            'categories': categories,
-            'infrequent_categories': infrequent_categories,
+            "columns": self._columns,
+            "feature_names_in": feature_names_in,  # should same as columns
+            "feature_names_out": feature_names_out,
+            "categories": categories,
+            "infrequent_categories": infrequent_categories,
         }

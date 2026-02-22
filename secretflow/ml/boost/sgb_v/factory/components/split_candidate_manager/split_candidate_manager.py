@@ -56,7 +56,7 @@ class SplitCandidateManager(Component):
             if actor.device == self.label_holder:
                 self.heap = actor
                 break
-        self.heap.register_class('SplitCandidateHeap', SplitCandidateHeap)
+        self.heap.register_class("SplitCandidateHeap", SplitCandidateHeap)
 
     def del_actors(self):
         del self.heap
@@ -70,8 +70,8 @@ class SplitCandidateManager(Component):
         gain_is_cost_effective: List[bool],
     ):
         self.heap.invoke_class_method(
-            'SplitCandidateHeap',
-            'batch_push',
+            "SplitCandidateHeap",
+            "batch_push",
             node_indices,
             node_sample_selects,
             split_buckets,
@@ -87,8 +87,8 @@ class SplitCandidateManager(Component):
         split_bucket: int,
     ):
         self.heap.invoke_class_method(
-            'SplitCandidateHeap',
-            'push',
+            "SplitCandidateHeap",
+            "push",
             node_index,
             sample_selects,
             max_gain,
@@ -96,18 +96,18 @@ class SplitCandidateManager(Component):
         )
 
     def is_no_candidate_left(self) -> bool:
-        return self.heap.invoke_class_method('SplitCandidateHeap', 'is_heap_empty')
+        return self.heap.invoke_class_method("SplitCandidateHeap", "is_heap_empty")
 
     def extract_best_split_info(self) -> Tuple[int, np.ndarray, int, float]:
         return self.heap.invoke_class_method_four_ret(
-            'SplitCandidateHeap', 'extract_best_split_info'
+            "SplitCandidateHeap", "extract_best_split_info"
         )
 
     def extract_all_nodes(self) -> Tuple[List[int], List[np.ndarray]]:
         """Get all sample ids and sample selects and clean the heap"""
         return self.heap.invoke_class_method_two_ret(
-            'SplitCandidateHeap', 'extract_all_nodes'
+            "SplitCandidateHeap", "extract_all_nodes"
         )
 
     def reset(self):
-        self.heap.invoke_class_method('SplitCandidateHeap', 'reset')
+        self.heap.invoke_class_method("SplitCandidateHeap", "reset")

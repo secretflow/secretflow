@@ -59,17 +59,17 @@ for i in range(len4, len3):
 print(len(row_list2))
 print(len(row_list3))
 
-with open('psi_1.csv', 'w', newline='') as file:
+with open("psi_1.csv", "w", newline="") as file:
     writer = csv.writer(file)
     writer.writerow(["id"])
     writer.writerows(row_list)
 
-with open('psi_2.csv', 'w', newline='') as file:
+with open("psi_2.csv", "w", newline="") as file:
     writer = csv.writer(file)
     writer.writerow(["id"])
     writer.writerows(row_list2)
 
-with open('psi_3.csv', 'w', newline='') as file:
+with open("psi_3.csv", "w", newline="") as file:
     writer = csv.writer(file)
     writer.writerow(["id"])
     writer.writerows(row_list3)

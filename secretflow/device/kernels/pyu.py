@@ -41,12 +41,12 @@ from secretflow.device.device.heu import HEUMoveConfig
 
 @register_to(DeviceType.PYU, DeviceType.PYU)
 def pyu_to_pyu(self: PYUObject, pyu: PYU) -> PYUObject:
-    assert isinstance(pyu, PYU), f'Expect a PYU but got {type(pyu)}.'
+    assert isinstance(pyu, PYU), f"Expect a PYU but got {type(pyu)}."
     return PYUObject(pyu, self.data)
 
 
 @register_to(DeviceType.PYU, DeviceType.SPU)
-def pyu_to_spu(self: PYUObject, spu: SPU, spu_vis: str = 'secret') -> SPUObject:
+def pyu_to_spu(self: PYUObject, spu: SPU, spu_vis: str = "secret") -> SPUObject:
     """Transfer pyuobject to the spu.
 
     Args:
@@ -59,10 +59,10 @@ def pyu_to_spu(self: PYUObject, spu: SPU, spu_vis: str = 'secret') -> SPUObject:
     Returns:
         the transferred SPUObject.
     """
-    assert isinstance(spu, SPU), f'Expect an SPU but got {type(spu)}'
-    assert spu_vis in ('secret', 'public'), f'vis must be public or secret'
+    assert isinstance(spu, SPU), f"Expect an SPU but got {type(spu)}"
+    assert spu_vis in ("secret", "public"), "vis must be public or secret"
 
-    vtype = Visibility.VIS_PUBLIC if spu_vis == 'public' else Visibility.VIS_SECRET
+    vtype = Visibility.VIS_PUBLIC if spu_vis == "public" else Visibility.VIS_SECRET
 
     def get_shares_chunk_count(data, runtime_config, world_size, vtype) -> int:
         io = SPUIO(runtime_config, world_size)
@@ -91,11 +91,11 @@ def pyu_to_spu(self: PYUObject, spu: SPU, spu_vis: str = 'secret') -> SPUObject:
 
 @register_to(DeviceType.PYU, DeviceType.HEU)
 def pyu_to_heu(self: PYUObject, heu: HEU, config: HEUMoveConfig = None):
-    assert isinstance(heu, HEU), f'Expect an HEU but got {type(heu)}'
+    assert isinstance(heu, HEU), f"Expect an HEU but got {type(heu)}"
     if config is None:
         config = HEUMoveConfig()
 
-    if config.heu_dest_party == 'auto':
+    if config.heu_dest_party == "auto":
         config.heu_dest_party = list(heu.evaluator_names())[0]
 
     data = heu.get_participant(self.device.party).encode.remote(
@@ -126,9 +126,9 @@ def pyu_to_teeu(
     Returns:
         A TEEUObject whose underlying data is ciphertext.
     """
-    assert isinstance(teeu, TEEU), f'Expect a TEEU but got {type(teeu)}'
+    assert isinstance(teeu, TEEU), f"Expect a TEEU but got {type(teeu)}"
     logging.debug(
-        f'Transfer PYU object from {self.device.party} to TEEU of {teeu.party}.'
+        f"Transfer PYU object from {self.device.party} to TEEU of {teeu.party}."
     )
 
     def create_auth(
@@ -156,9 +156,9 @@ def pyu_to_teeu(
         allow_funcs_bytes = [dumps(func, protocol=4) for func in allow_funcs]
         if auth_ca_cert:
             credentials = CredentialsConf(
-                root_ca=auth_ca_cert.encode('utf-8'),
-                private_key=tls_key.encode('utf-8') if tls_key else None,
-                cert_chain=tls_cert.encode('utf-8') if tls_cert else None,
+                root_ca=auth_ca_cert.encode("utf-8"),
+                private_key=tls_key.encode("utf-8") if tls_key else None,
+                cert_chain=tls_cert.encode("utf-8") if tls_cert else None,
             )
         else:
             credentials = None
@@ -180,7 +180,7 @@ def pyu_to_teeu(
 
         aesgcm = AESGCM(data_key)
         nonce = secrets.token_bytes(12)
-        aad = data_uuid.encode('utf-8')
+        aad = data_uuid.encode("utf-8")
 
         # TODO by jzc: verify if cloudpickle.dump is the same as ray.cloudpickle.dumps
         import secretflow.utils.secure_pickle as pickle
@@ -199,8 +199,8 @@ def pyu_to_teeu(
     party = self.device.party
     if party == global_state.self_party():
         assert party in global_state.party_key_pairs(), (
-            f'Can not find key pair of {party}, '
-            'you can provide it through `party_key_pair` when calling `sf.init`'
+            f"Can not find key pair of {party}, "
+            "you can provide it through `party_key_pair` when calling `sf.init`"
         )
         party_key_pair = global_state.party_key_pairs()[party]
     else:

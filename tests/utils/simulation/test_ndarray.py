@@ -22,7 +22,7 @@ from secretflow.utils.simulation.datasets import dataset
 
 
 def get_ndarray():
-    npz = np.load(dataset('mnist'))
+    npz = np.load(dataset("mnist"))
     x_test = npz["x_test"]
     y_test = npz["y_test"]
     return x_test, y_test

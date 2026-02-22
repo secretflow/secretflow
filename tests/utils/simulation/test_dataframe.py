@@ -26,7 +26,7 @@ from tests.sf_fixtures import mpc_fixture
 
 @mpc_fixture
 def df():
-    yield pd.read_csv(dataset('iris'))
+    yield pd.read_csv(dataset("iris"))
 
 
 @pytest.mark.mpc(parties=3)
@@ -134,7 +134,7 @@ def test_create_hdataframe_label_skew_sample_method_should_ok_when_input_datafra
 def test_create_hdataframe_should_ok_when_input_file(df, sf_production_setup_devices):
     # WHEN
     hdf = create_df(
-        dataset('iris'),
+        dataset("iris"),
         parts=[
             sf_production_setup_devices.alice,
             sf_production_setup_devices.bob,
@@ -226,7 +226,7 @@ def test_create_vdataframe_should_ok_when_input_callable(
 ):
     # WHEN
     hdf = create_df(
-        lambda: pd.read_csv(dataset('iris')),
+        lambda: pd.read_csv(dataset("iris")),
         parts=[
             sf_production_setup_devices.alice,
             sf_production_setup_devices.bob,
@@ -248,14 +248,14 @@ def test_create_vdataframe_should_error_when_illegal_source(
     sf_production_setup_devices,
 ):
     with pytest.raises(
-        AssertionError, match='Callable source must return a pandas DataFrame'
+        AssertionError, match="Callable source must return a pandas DataFrame"
     ):
         create_df(
             lambda: 1,
             parts=[sf_production_setup_devices.alice, sf_production_setup_devices.bob],
         )
 
-    with pytest.raises(InvalidArgumentError, match='Unknown source type'):
+    with pytest.raises(InvalidArgumentError, match="Unknown source type"):
         create_df(
             {},
             parts=[sf_production_setup_devices.alice, sf_production_setup_devices.bob],
@@ -266,16 +266,16 @@ def test_create_vdataframe_should_error_when_illegal_source(
 def test_create_vdataframe_should_error_when_illegal_parts(
     df, sf_production_setup_devices
 ):
-    with pytest.raises(AssertionError, match='Parts should not be none or empty!'):
+    with pytest.raises(AssertionError, match="Parts should not be none or empty!"):
         create_df(df, parts=None)
 
-    with pytest.raises(AssertionError, match='Parts shall be list like of PYUs'):
+    with pytest.raises(AssertionError, match="Parts shall be list like of PYUs"):
         create_df(df, parts=[1, 2])
 
-    with pytest.raises(AssertionError, match='Keys of parts shall be PYU'):
+    with pytest.raises(AssertionError, match="Keys of parts shall be PYU"):
         create_df(df, parts={1: 0.1})
 
-    with pytest.raises(AssertionError, match='Sum of percentages shall be 1.0.'):
+    with pytest.raises(AssertionError, match="Sum of percentages shall be 1.0."):
         create_df(
             df,
             parts={
@@ -284,11 +284,11 @@ def test_create_vdataframe_should_error_when_illegal_parts(
             },
         )
 
-    with pytest.raises(AssertionError, match='Not all dict values are percentages.'):
+    with pytest.raises(AssertionError, match="Not all dict values are percentages."):
         create_df(
             df,
             parts={
                 sf_production_setup_devices.alice: 0.1,
-                sf_production_setup_devices.bob: '3',
+                sf_production_setup_devices.bob: "3",
             },
         )

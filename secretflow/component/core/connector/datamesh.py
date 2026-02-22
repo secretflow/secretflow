@@ -47,9 +47,9 @@ def new_dataproxy_client():
     dp_config = DataProxyConfig(
         data_proxy_addr=os.environ.get("DATAMESH_ADDRESS", ""),
         tls_config=TlSConfig(
-            certificate_path=os.environ.get("CLIENT_CERT_FILE", ''),
-            private_key_path=os.environ.get("CLIENT_PRIVATE_KEY_FILE", ''),
-            ca_file_path=os.environ.get("TRUSTED_CA_FILE", ''),
+            certificate_path=os.environ.get("CLIENT_CERT_FILE", ""),
+            private_key_path=os.environ.get("CLIENT_PRIVATE_KEY_FILE", ""),
+            ca_file_path=os.environ.get("TRUSTED_CA_FILE", ""),
         ),
     )
 
@@ -58,15 +58,17 @@ def new_dataproxy_client():
 
 def create_channel():
     address = os.environ.get("DATAMESH_ADDRESS", "")
-    env_client_cert_file = os.environ.get("CLIENT_CERT_FILE", '')
-    env_client_key_file = os.environ.get("CLIENT_PRIVATE_KEY_FILE", '')
-    env_trusted_ca_file = os.environ.get("TRUSTED_CA_FILE", '')
+    env_client_cert_file = os.environ.get("CLIENT_CERT_FILE", "")
+    env_client_key_file = os.environ.get("CLIENT_PRIVATE_KEY_FILE", "")
+    env_trusted_ca_file = os.environ.get("TRUSTED_CA_FILE", "")
 
     if env_client_cert_file:
         # mTLS enabled.
-        with open(env_client_cert_file, 'rb') as client_cert, open(
-            env_client_key_file, 'rb'
-        ) as client_key, open(env_trusted_ca_file, 'rb') as trusted_ca:
+        with (
+            open(env_client_cert_file, "rb") as client_cert,
+            open(env_client_key_file, "rb") as client_key,
+            open(env_trusted_ca_file, "rb") as trusted_ca,
+        ):
             credentials = grpc.ssl_channel_credentials(
                 trusted_ca.read(), client_key.read(), client_cert.read()
             )
@@ -116,7 +118,7 @@ class DataMesh(IConnector):
         domaindata_id = input_params.pop("domaindata_id", "")
         partition_spec = input_params.pop("partition_spec", "")
         if domaindata_id == "":
-            raise ValueError(f"empty domaindata id")
+            raise ValueError("empty domaindata id")
 
         channel = create_channel()
         stub = create_domain_data_service_stub(channel)

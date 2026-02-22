@@ -42,9 +42,9 @@ OP_MAP = {
 
 @register(domain="preprocessing", version="1.0.0")
 class BinaryOp(PreprocessingMixin, Component, IServingExporter):
-    '''
+    """
     Perform binary operation binary_op(f1, f2) and assign the result to f3, f3 can be new or old. Currently f1, f2 and f3 all belong to a single party.
-    '''
+    """
 
     binary_op: str = Field.attr(
         desc="What kind of binary operation we want to do, currently only supports +, -, *, /",

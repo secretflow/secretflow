@@ -1,3 +1,0 @@
-train_dir: ${dataset.dataset_dir}/train
-val_dir: ${dataset.dataset_dir}/val
-test_dir: ${dataset.dataset_dir}/test

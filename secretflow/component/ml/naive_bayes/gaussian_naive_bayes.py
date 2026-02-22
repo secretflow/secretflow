@@ -35,16 +35,11 @@ from secretflow.device.device.pyu import PYU
 from secretflow.ml.naive_bayes import GNB
 
 
-@register(
-    domain="ml.train",
-    version="1.0.0",
-    name="gnb_train",
-    labels={"experimental": True, "package": "sml"},
-)
+@register(domain="ml.train", version="1.0.0", name="gnb_train")
 class GaussianNaiveBayes(Component):
-    '''
-    Provide gaussian naive bayes training. This component is currently experimental.
-    '''
+    """
+    Provide gaussian naive bayes training.
+    """
 
     var_smoothing: float = Field.attr(
         desc="""Portion of the largest variance of all features that is added to
@@ -119,16 +114,11 @@ variances for calculation stability.""",
         ctx.dump_to(model_db, self.output_model)
 
 
-@register(
-    domain="ml.predict",
-    version="1.0.0",
-    name="gnb_predict",
-    labels={"experimental": True, "package": "sml"},
-)
+@register(domain="ml.predict", version="1.0.0", name="gnb_predict")
 class GaussianNaiveBayesPredict(Component):
-    '''
-    Predict using the gaussian naive bayes model. This component is currently experimental.
-    '''
+    """
+    Predict using the gaussian naive bayes model.
+    """
 
     receiver: str = Field.party_attr(desc="Party of receiver.")
     pred_name: str = Field.attr(desc="Column name for predictions.", default="pred")
@@ -200,7 +190,7 @@ class GaussianNaiveBayesPredict(Component):
             pred_partitions_order=None,
             feature_dataset=self.input_ds,
             saved_features=self.saved_features,
-            saved_labels=[model_public_info['label']] if self.save_label else None,
+            saved_labels=[model_public_info["label"]] if self.save_label else None,
             save_ids=self.save_ids,
         )
 

@@ -90,9 +90,9 @@ source .venv/bin/activate
 
 2. Install SecretFlow
 
-```bash
-# use pip
-python -m pip install .
+```sh
+
+python -m build --wheel
 
 # use uv
 uv pip install .

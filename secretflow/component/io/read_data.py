@@ -41,9 +41,9 @@ from secretflow.ml.boost.sgb_v.checkpoint import SGBSnapshot, build_sgb_model
 
 @register(domain="io", version="1.0.0")
 class ReadData(Component):
-    '''
+    """
     read model or rules from sf cluster
-    '''
+    """
 
     generalized_linear_model: bool = Field.attr(
         desc="Whether to dump the complete generalized linear model. The complete generalized linear model contains link, y_scale, offset_col, and so on.",

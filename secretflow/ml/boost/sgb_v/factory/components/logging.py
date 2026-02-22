@@ -53,7 +53,7 @@ class LoggingParams:
     wait_execution: bool = False
 
 
-logging_params_names = {'verbose', 'wait_execution'}
+logging_params_names = {"verbose", "wait_execution"}
 
 
 class LoggingTools:

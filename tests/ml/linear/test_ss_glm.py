@@ -121,7 +121,7 @@ def test_breast_cancer(sf_production_setup_devices):
     start = time.time()
 
     ds = load_breast_cancer()
-    x, y = _transform(ds['data']), ds['target']
+    x, y = _transform(ds["data"]), ds["target"]
 
     v_data = FedNdarray(
         partitions={
@@ -145,8 +145,8 @@ def test_breast_cancer(sf_production_setup_devices):
         label_data,
         y,
         128,
-        'Logit',
-        'Bernoulli',
+        "Logit",
+        "Bernoulli",
         l2_lambda=1.0,
     )
 
@@ -185,8 +185,8 @@ def test_gamma_data(sf_production_setup_devices):
         label_data,
         y,
         32,
-        'Log',
-        'Gamma',
+        "Log",
+        "Gamma",
     )
 
 

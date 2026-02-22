@@ -39,8 +39,8 @@ def woe_almost_equal(a, b):
     a_list = a["variables"]
     b_list = b["variables"]
 
-    a_dict = {f['name']: f for f in a_list}
-    b_dict = {f['name']: f for f in b_list}
+    a_dict = {f["name"]: f for f in a_list}
+    b_dict = {f["name"]: f for f in b_list}
 
     assert a_dict.keys() == b_dict.keys()
 
@@ -61,13 +61,13 @@ def prod_env_and_data(sf_production_setup_devices):
     pyu_bob = sf_production_setup_devices.bob
 
     normal_data = pd.read_csv(
-        dataset('linear'),
-        usecols=['id'] + [f'x{i}' for i in range(1, 11)] + ['y'],
+        dataset("linear"),
+        usecols=["id"] + [f"x{i}" for i in range(1, 11)] + ["y"],
     )
     row_num = normal_data.shape[0]
     np.random.seed(0)
-    normal_data['x1'] = np.random.randint(0, 2, (row_num,))
-    normal_data['x2'] = np.random.randint(0, 5, (row_num,))
+    normal_data["x1"] = np.random.randint(0, 2, (row_num,))
+    normal_data["x2"] = np.random.randint(0, 5, (row_num,))
     v_float_data = VDataFrame(
         {
             pyu_alice: partition(data=pyu_alice(lambda: normal_data)()),
@@ -91,11 +91,11 @@ def prod_env_and_data(sf_production_setup_devices):
     )
 
     nan_str_data = pd.read_csv(StringIO(nan_str))
-    assert nan_str_data['f1'].dtype == np.dtype(object)
-    assert nan_str_data['f2'].dtype == np.float64
-    assert nan_str_data['f3'].dtype == np.float64
-    assert pd.isna(nan_str_data['f3'][8])
-    assert pd.isna(nan_str_data['f1'][8])
+    assert nan_str_data["f1"].dtype == np.dtype(object)
+    assert nan_str_data["f2"].dtype == np.float64
+    assert nan_str_data["f3"].dtype == np.float64
+    assert pd.isna(nan_str_data["f3"][8])
+    assert pd.isna(nan_str_data["f1"][8])
 
     v_nan_data = VDataFrame(
         {
@@ -120,12 +120,12 @@ def prod_env_and_data(sf_production_setup_devices):
         return res
 
     return sf_production_setup_devices, {
-        'normal_data': normal_data,
-        'v_float_data': CompVDataFrame.from_pandas(
+        "normal_data": normal_data,
+        "v_float_data": CompVDataFrame.from_pandas(
             v_float_data, schemas=_build_schema(v_float_data)
         ),
-        'nan_str_data': nan_str_data,
-        'v_nan_data': CompVDataFrame.from_pandas(
+        "nan_str_data": nan_str_data,
+        "v_nan_data": CompVDataFrame.from_pandas(
             v_nan_data, schemas=_build_schema(v_nan_data)
         ),
     }
@@ -143,7 +143,7 @@ def test_binning_nan(prod_env_and_data):
     env, data = prod_env_and_data
     ss_binning = VertWoeBinning(env.spu)
     bin_rules = ss_binning.binning(
-        data['v_nan_data'],
+        data["v_nan_data"],
         binning_method="chimerge",
         bin_names={env.alice: ["f1", "f3", "f2"], env.bob: ["f1", "f3", "f2"]},
         label_name="y",
@@ -151,22 +151,22 @@ def test_binning_nan(prod_env_and_data):
     )
 
     woe_sub = VertBinSubstitution()
-    sub_data = woe_sub.substitution(data['v_nan_data'], bin_rules).to_pandas()
+    sub_data = woe_sub.substitution(data["v_nan_data"], bin_rules).to_pandas()
     alice_data = reveal(sub_data.partitions[env.alice].data).drop("y", axis=1)
     bob_data = reveal(sub_data.partitions[env.bob].data)
-    rules = {v['name']: v for v in reveal(bin_rules[env.alice])["variables"]}
+    rules = {v["name"]: v for v in reveal(bin_rules[env.alice])["variables"]}
 
     assert alice_data.equals(bob_data), str(alice_data) + "\n,,,,,,\n" + str(bob_data)
-    f1_categories = _f32(list(set(alice_data['f1'])))
-    assert np.isin(_f32(rules['f1']['filling_values']), f1_categories).all(), (
-        str(rules['f1']['filling_values']) + "\n,,,,,,\n" + str(f1_categories)
+    f1_categories = _f32(list(set(alice_data["f1"])))
+    assert np.isin(_f32(rules["f1"]["filling_values"]), f1_categories).all(), (
+        str(rules["f1"]["filling_values"]) + "\n,,,,,,\n" + str(f1_categories)
     )
-    assert _f32(rules['f1']['else_filling_value']) in _f32(f1_categories)
-    f2_categories = _f32(list(set(alice_data['f2'])))
-    assert np.isin(f2_categories, _f32(rules['f2']['filling_values'])).all()
-    f3_categories = _f32(list(set(alice_data['f3'])))
-    assert np.isin(_f32(rules['f3']['filling_values']), f3_categories).all()
-    assert _f32(rules['f3']['else_filling_value']) in f3_categories
+    assert _f32(rules["f1"]["else_filling_value"]) in _f32(f1_categories)
+    f2_categories = _f32(list(set(alice_data["f2"])))
+    assert np.isin(f2_categories, _f32(rules["f2"]["filling_values"])).all()
+    f3_categories = _f32(list(set(alice_data["f3"])))
+    assert np.isin(_f32(rules["f3"]["filling_values"]), f3_categories).all()
+    assert _f32(rules["f3"]["else_filling_value"]) in f3_categories
 
 
 """

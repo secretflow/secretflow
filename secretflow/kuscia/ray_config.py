@@ -59,7 +59,7 @@ class RayConfig:
             ray_cmd.append(f"--ray-client-server-port={self.ray_client_server_port}")
         if self.ray_worker_ports:
             ray_cmd.append(
-                f'--worker-port-list={",".join(map(str, self.ray_worker_ports))}'
+                f"--worker-port-list={','.join(map(str, self.ray_worker_ports))}"
             )
         elif self.ray_min_worker_port & self.ray_max_worker_port:
             ray_cmd.append(f"--min-worker-port={self.ray_min_worker_port}")

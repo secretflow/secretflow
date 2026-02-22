@@ -42,11 +42,11 @@ class Shuffler(Component):
         print_params(self.params)
 
     def set_params(self, params: dict):
-        if 'seed' in params:
-            self.params.seed = params['seed']
+        if "seed" in params:
+            self.params.seed = params["seed"]
 
     def get_params(self, params: dict):
-        params['seed'] = self.params.seed
+        params["seed"] = self.params.seed
 
     def set_devices(self, devices: Devices):
         self.workers = devices.workers
@@ -56,20 +56,20 @@ class Shuffler(Component):
         self.worker_shufflers = actors
         for worker in self.worker_shufflers:
             # may change random state initialie methods latter
-            worker.register_class('WorkerShuffler', WorkerShuffler, self.params.seed)
+            worker.register_class("WorkerShuffler", WorkerShuffler, self.params.seed)
 
     def del_actors(self):
         del self.worker_shufflers
 
     def reset_shuffle_masks(self):
         for ws in self.worker_shufflers:
-            ws.invoke_class_method('WorkerShuffler', 'reset_shuffle_mask')
+            ws.invoke_class_method("WorkerShuffler", "reset_shuffle_mask")
 
     def create_shuffle_mask(
         self, worker_index: int, key: int, bucket_list: List[PYUObject]
     ) -> List[int]:
         return self.worker_shufflers[worker_index].invoke_class_method(
-            'WorkerShuffler', 'create_shuffle_mask', key, bucket_list
+            "WorkerShuffler", "create_shuffle_mask", key, bucket_list
         )
 
     def unshuffle_split_buckets(
@@ -85,7 +85,7 @@ class Shuffler(Component):
         """
         return [
             worker_shuffler.invoke_class_method(
-                'WorkerShuffler', 'undo_shuffle_mask_list_wise', split_buckets
+                "WorkerShuffler", "undo_shuffle_mask_list_wise", split_buckets
             )
             for worker_shuffler, split_buckets in zip(
                 self.worker_shufflers, split_buckets_parition_wise
@@ -108,8 +108,8 @@ class Shuffler(Component):
         """
         return [
             worker_shuffler.invoke_class_method(
-                'WorkerShuffler',
-                'undo_shuffle_mask_with_keys',
+                "WorkerShuffler",
+                "undo_shuffle_mask_with_keys",
                 split_buckets,
                 (
                     keys.to(worker_shuffler.device)

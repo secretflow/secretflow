@@ -23,7 +23,7 @@ def chi_merge(
     chimerge_target_bins: int,
     chimerge_target_chi: float,
 ) -> Tuple[List[Tuple[float, float]], List[int]]:
-    '''
+    """
     apply ChiMerge on one feature. ChiMerge proposed by paper AAAI92-019.
     merge adjacent bins by their samples' Chi-Square Statistic.
     Attributes:
@@ -33,7 +33,7 @@ def chi_merge(
 
     Return:
         Tuple[bins after merge, removed bin indices in input bins]
-    '''
+    """
 
     def get_chi(bin1: Tuple[float, float], bin2: Tuple[float, float]):
         total = bin1[0] + bin2[0]
@@ -102,7 +102,7 @@ def apply_chimerge(
     chimerge_target_bins: int,
     chimerge_target_chi: float,
 ) -> Tuple[List[Tuple[float, float]], List[Union[None, int]]]:
-    '''
+    """
     apply ChiMerge on all number type features.
     Attributes:
         bins_stat: bins for all features build by initialization cut.
@@ -112,7 +112,7 @@ def apply_chimerge(
         chimerge_target_chi: target chi
     Return:
         Tuple[bins after merge, split point indices for merge]
-    '''
+    """
     pos = 0
     merged_bins_stat = []
     merged_split_point_indices = []

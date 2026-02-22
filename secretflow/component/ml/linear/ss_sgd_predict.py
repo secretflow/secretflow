@@ -37,9 +37,9 @@ from .ss_sgd import SSSGDExportMixin
 
 @register(domain="ml.predict", version="1.0.0", name="ss_sgd_predict")
 class SSSGDPredict(SSSGDExportMixin, Component, IServingExporter):
-    '''
+    """
     Predict using the SS-SGD model.
-    '''
+    """
 
     batch_size: int = Field.attr(
         desc="The number of training examples utilized in one iteration.",

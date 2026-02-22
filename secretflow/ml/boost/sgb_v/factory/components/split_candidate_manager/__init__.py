@@ -15,4 +15,4 @@
 from .split_candidate_heap import SplitCandidate
 from .split_candidate_manager import SplitCandidateManager
 
-__all__ = ['SplitCandidateManager', 'SplitCandidate']
+__all__ = ["SplitCandidateManager", "SplitCandidate"]

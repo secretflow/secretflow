@@ -60,7 +60,7 @@ class Checkpoint:
                         break
                     check_points.append(cp)
                     step += 1
-                except:
+                except:  # noqa: E722
                     break
 
             return check_points
@@ -93,7 +93,7 @@ class Checkpoint:
             return check_points[0]["payload"]
 
         # no usable checkpoint
-        logging.info(f"no usable checkpoint")
+        logging.info("no usable checkpoint")
         return None
 
     def _step_uri(self, step: int):

@@ -50,7 +50,7 @@ class PlainAggregator(Aggregator):
     """
 
     def __init__(self, device: PYU):
-        assert isinstance(device, PYU), f'Accepts PYU only but got {type(device)}.'
+        assert isinstance(device, PYU), f"Accepts PYU only but got {type(device)}."
         self.device = device
 
     def sum(self, data: List[DeviceObject], axis=None) -> PYUObject:
@@ -63,7 +63,7 @@ class PlainAggregator(Aggregator):
         Returns:
             a device object holds the sum.
         """
-        assert data, 'Data to aggregate should not be None or empty!'
+        assert data, "Data to aggregate should not be None or empty!"
         data = [d.to(self.device) for d in data]
 
         def _sum(*data, axis):
@@ -85,7 +85,7 @@ class PlainAggregator(Aggregator):
         Returns:
             a device object holds the weighted average.
         """
-        assert data, 'Data to aggregate should not be None or empty!'
+        assert data, "Data to aggregate should not be None or empty!"
         data = [d.to(self.device) for d in data]
         if isinstance(weights, (list, tuple)):
             weights = [

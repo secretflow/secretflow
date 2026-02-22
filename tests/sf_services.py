@@ -49,10 +49,10 @@ def minio_server_is_ready(config: dict):
         anon=False,
         key=config["access_key"],
         secret=config["access_secret"],
-        client_kwargs={'endpoint_url': endpoint_url},
+        client_kwargs={"endpoint_url": endpoint_url},
         config_kwargs={
-            'signature_version': config["version"],
-            's3': {
+            "signature_version": config["version"],
+            "s3": {
                 "addressing_style": (
                     "virtual" if config.get("virtual_host", False) else "path"
                 )

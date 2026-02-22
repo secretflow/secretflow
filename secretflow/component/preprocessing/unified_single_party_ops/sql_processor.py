@@ -73,11 +73,11 @@ RULES = (
 )
 
 
-@register(domain='preprocessing', version='1.0.0', name="sql_processor")
+@register(domain="preprocessing", version="1.0.0", name="sql_processor")
 class SQLProcessor(PreprocessingMixin, Component, IServingExporter):
-    '''
+    """
     sql processor
-    '''
+    """
 
     sql: str = Field.attr(desc="sql for preprocessing, for example SELECT a, b, a+b")
 
@@ -107,8 +107,8 @@ class SQLProcessor(PreprocessingMixin, Component, IServingExporter):
 
     @staticmethod
     def parse_sql(sql: str, schema: VTableSchema) -> sqlglot_expr.Expression:
-        sql = sql.rstrip('; \t\n\r')
-        if sql.endswith(','):
+        sql = sql.rstrip("; \t\n\r")
+        if sql.endswith(","):
             raise InvalidArgumentError(
                 "the sql cannot have commas.", detail={"sql": sql}
             )
@@ -315,7 +315,7 @@ _binary_mapping = {
     "lt": sc.less,
     "lte": sc.less_equal,
     "like": sc.match_like,
-    "ilike": lambda l, r: sc.match_like(l, r, ignore_case=True),
+    "ilike": lambda l, r: sc.match_like(l, r, ignore_case=True),  # noqa: E741
     "similarto": sc.match_substring_regex,
     "is": _is_null,
     # bitwise
@@ -330,11 +330,13 @@ _binary_mapping = {
     "mul": sc.multiply,
     "div": sc.divide,
     # intdiv return types are floating Current
-    "intdiv": lambda l, r: sc.floor(sc.divide(l, r)),
-    "mod": lambda l, r: sc.subtract(l, sc.multiply(sc.divide(l, r), r)),
+    "intdiv": lambda l, r: sc.floor(sc.divide(l, r)),  # noqa: E741
+    "mod": lambda l, r: sc.subtract(l, sc.multiply(sc.divide(l, r), r)),  # noqa: E741
     "pow": sc.power,
     # string
-    "dpipe": lambda l, r: sc.binary_join_element_wise(l, r, ""),  # operator ||
+    "dpipe": lambda l, r: sc.binary_join_element_wise(
+        l, r, ""
+    ),  # operator ||  # noqa: E741
 }
 
 
@@ -613,8 +615,8 @@ def convert(tbl: sc.Table, expr: sqlglot_expr.Expression):
             ), f"unknown type<{type(if_expr)}> {if_expr}"
             conds.append(convert(tbl, if_expr.this))
             cases.append(convert(tbl, if_expr.args["true"]))
-        if 'default' in expr.args:
-            cases.append(convert(tbl, expr.args['default']))
+        if "default" in expr.args:
+            cases.append(convert(tbl, expr.args["default"]))
         conds = sc.make_struct(*conds)
         return sc.case_when(conds, *cases)
     elif isinstance(expr, sqlglot_expr.Cast):

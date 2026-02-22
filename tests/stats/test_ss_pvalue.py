@@ -114,7 +114,7 @@ def _run_ss(
         if sample_weights is not None:
             sample_weights = env.alice(lambda w: np.array(w))(sample_weights)
             sample_weights_df = env.alice(
-                lambda w: pd.DataFrame(w.reshape(-1), columns=['w'])
+                lambda w: pd.DataFrame(w.reshape(-1), columns=["w"])
             )(sample_weights)
             sample_weights = VDataFrame({env.alice: partition(data=sample_weights_df)})
 
@@ -293,9 +293,9 @@ def test_random_tests(prod_env_and_data, dist, use_sample_weights):
 @pytest.mark.mpc(parties=3)
 def test_linear_ds(prod_env_and_data):
     env, data = prod_env_and_data
-    ds = pd.read_csv(dataset('linear'))
-    y = ds['y'].values
-    x = ds.drop(['y', 'id'], axis=1).values
+    ds = pd.read_csv(dataset("linear"))
+    y = ds["y"].values
+    x = ds.drop(["y", "id"], axis=1).values
 
     _run_test(env, data, x, y, RegType.Logistic)
     _run_test(env, data, x, y, RegType.Linear)
@@ -307,7 +307,7 @@ def test_breast_cancer_ds(prod_env_and_data):
     from sklearn.datasets import load_breast_cancer
 
     ds = load_breast_cancer()
-    x, y = ds['data'], ds['target']
+    x, y = ds["data"], ds["target"]
 
     _run_test(env, data, x, y, RegType.Logistic)
     _run_test(env, data, x, y, RegType.Linear)
@@ -316,13 +316,13 @@ def test_breast_cancer_ds(prod_env_and_data):
 @pytest.mark.mpc
 def test_ss_lr_logistic(prod_env_and_data):
     env, data = prod_env_and_data
-    ds = pd.read_csv(dataset('linear'))
-    y = ds['y'].values
-    x = ds.drop(['y', 'id'], axis=1).values
+    ds = pd.read_csv(dataset("linear"))
+    y = ds["y"].values
+    x = ds.drop(["y", "id"], axis=1).values
     x, y = _build_splited_ds(data, x, y, 2)
 
     sslr = SSRegression(env.spu)
-    sslr.fit(x, y, 3, 0.3, 128, 't1', 'logistic', 'l2', 0.5)
+    sslr.fit(x, y, 3, 0.3, 128, "t1", "logistic", "l2", 0.5)
     yhat = sslr.predict(x)
     sspv = SSPValue(env.spu)
     pvalues = sspv.z_statistic_p_value(
@@ -340,13 +340,13 @@ def test_ss_lr_logistic(prod_env_and_data):
 @pytest.mark.mpc
 def test_ss_lr_linear(prod_env_and_data):
     env, data = prod_env_and_data
-    ds = pd.read_csv(dataset('linear'))
-    y = ds['y'].values
-    x = ds.drop(['y', 'id'], axis=1).values
+    ds = pd.read_csv(dataset("linear"))
+    y = ds["y"].values
+    x = ds.drop(["y", "id"], axis=1).values
     x, y = _build_splited_ds(data, x, y, 2)
 
     sslr = SSRegression(env.spu)
-    sslr.fit(x, y, 3, 0.3, 128, 't1', 'linear', 'l2', 0.5)
+    sslr.fit(x, y, 3, 0.3, 128, "t1", "linear", "l2", 0.5)
     yhat = sslr.predict(x)
     sspv = SSPValue(env.spu)
     pvalues = sspv.t_statistic_p_value(

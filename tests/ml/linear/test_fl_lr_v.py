@@ -48,7 +48,7 @@ def _gen_data(devices):
         partitions={devices.alice: partition(devices.alice(lambda: label)())}
     )
 
-    return {'x': x, 'y': y, 'label': label}
+    return {"x": x, "y": y, "label": label}
 
 
 _MPC_PARAMS_HEU = {"heu_config": {"schema": "paillier"}}
@@ -66,11 +66,11 @@ def test_model_should_ok_when_fit_dataframe(sf_production_setup_devices):
     )
 
     # WHEN
-    model.fit(data['x'], data['y'], epochs=3, batch_size=64)
+    model.fit(data["x"], data["y"], epochs=3, batch_size=64)
 
-    y_pred = model.predict(data['x'])
+    y_pred = model.predict(data["x"])
 
-    y = data['y'].values.partitions[devices.alice]
+    y = data["y"].values.partitions[devices.alice]
     auc = devices.alice(roc_auc_score)(y, y_pred)
     acc = devices.alice(lambda y_true, y_pred: np.mean((y_pred > 0.5) == y_true))(
         y, y_pred
@@ -79,7 +79,7 @@ def test_model_should_ok_when_fit_dataframe(sf_production_setup_devices):
     # THEN
     auc = sf.reveal(auc)
     acc = sf.reveal(acc)
-    print(f'auc={auc}, acc={acc}')
+    print(f"auc={auc}, acc={acc}")
 
     assert auc > 0.97  # TODO:change to 98
     assert acc > 0.94
@@ -95,8 +95,8 @@ def test_model_should_ok_when_fit_ndarray(sf_production_setup_devices):
     model = FlLogisticRegressionVertical(
         [devices.alice, devices.bob, devices.carol], aggregator, devices.heu
     )
-    x = data['x'].values
-    y = data['y'].values
+    x = data["x"].values
+    y = data["y"].values
 
     # WHEN
     model.fit(x, y, epochs=3, batch_size=64)
@@ -112,7 +112,7 @@ def test_model_should_ok_when_fit_ndarray(sf_production_setup_devices):
     # THEN
     auc = sf.reveal(auc)
     acc = sf.reveal(acc)
-    print(f'auc={auc}, acc={acc}')
+    print(f"auc={auc}, acc={acc}")
 
     assert auc > 0.99
     assert acc > 0.94
@@ -128,13 +128,13 @@ def test_fit_should_error_when_mismatch_heu_sk_keeper(sf_production_setup_device
     model = FlLogisticRegressionVertical(
         [devices.alice, devices.bob, devices.carol], aggregator, devices.heu
     )
-    x = data['x'].values
+    x = data["x"].values
     y = VDataFrame(
         partitions={devices.bob: partition(devices.bob(lambda: [1, 2, 3])())}
     )
 
     # WHEN
     with pytest.raises(
-        AssertionError, match='Y party shoule be same with heu sk keeper'
+        AssertionError, match="Y party shoule be same with heu sk keeper"
     ):
         model.fit(x, y, epochs=3, batch_size=64)

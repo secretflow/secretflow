@@ -20,11 +20,11 @@ from .ss_glm import SSGLM
 from .ss_sgd import SSRegression
 
 __all__ = [
-    'FlLogisticRegressionMix',
-    'FlLogisticRegressionVertical',
-    'HESSLogisticRegression',
-    'SSRegression',
-    'LinearModel',
-    'RegType',
-    'SSGLM',
+    "FlLogisticRegressionMix",
+    "FlLogisticRegressionVertical",
+    "HESSLogisticRegression",
+    "SSRegression",
+    "LinearModel",
+    "RegType",
+    "SSGLM",
 ]

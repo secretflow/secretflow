@@ -24,7 +24,7 @@ from secretflow.ml.boost.ss_xgb_v import Xgb
 from secretflow.utils.simulation.datasets import load_dermatology, load_linear
 from tests.sf_fixtures import SFProdParams
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
 
 def _run_xgb(env, test_name, v_data, label_data, y, logistic, subsample, colsample):
@@ -32,14 +32,14 @@ def _run_xgb(env, test_name, v_data, label_data, y, logistic, subsample, colsamp
     xgb02 = Xgb([env.spu, env.spu])
     start = time.time()
     params = {
-        'num_boost_round': 2,
-        'max_depth': 3,
-        'sketch_eps': 0.25,
-        'objective': 'logistic' if logistic else 'linear',
-        'reg_lambda': 0.1,
-        'subsample': subsample,
-        'colsample_by_tree': colsample,
-        'base_score': 0.5,
+        "num_boost_round": 2,
+        "max_depth": 3,
+        "sketch_eps": 0.25,
+        "objective": "logistic" if logistic else "linear",
+        "reg_lambda": 0.1,
+        "subsample": subsample,
+        "colsample_by_tree": colsample,
+        "base_score": 0.5,
     }
     model = xgb.train(params.copy(), v_data, label_data)
     model02 = xgb02.train(params.copy(), v_data, label_data)
@@ -71,7 +71,7 @@ def _run_xgb(env, test_name, v_data, label_data, y, logistic, subsample, colsamp
 def _run_npc_linear(env, test_name, parts, label_device):
     vdf = load_linear(parts=parts)
 
-    label_data = vdf['y']
+    label_data = vdf["y"]
     y = reveal(label_data.partitions[label_device].data).values
     label_data = (label_data.values)[:500, :]
     y = y[:500, :]
@@ -113,7 +113,7 @@ def test_breast_cancer(sf_production_setup_devices):
     devices = sf_production_setup_devices
 
     ds = load_breast_cancer()
-    x, y = ds['data'], ds['target']
+    x, y = ds["data"], ds["target"]
 
     v_data = FedNdarray(
         {
@@ -151,7 +151,7 @@ def test_dermatology(sf_production_setup_devices):
         axis=1,
     ).fillna(0)
 
-    label_data = vdf['class']
+    label_data = vdf["class"]
     y = reveal(label_data.partitions[devices.bob].data).values
     v_data = vdf.drop(columns="class").values
     label_data = label_data.values

@@ -24,7 +24,7 @@ from secretflow.device import PYUObject, reveal, wait
 
 
 def prepare_dataset(
-    ds: Union[FedNdarray, VDataFrame]
+    ds: Union[FedNdarray, VDataFrame],
 ) -> Tuple[FedNdarray, Tuple[int, int]]:
     """
     check data setting and get total shape.
@@ -44,7 +44,7 @@ def prepare_dataset(
 
     assert ds.partition_way == PartitionWay.VERTICAL, (
         "Only support vertical dataset, "
-        "for horizontal dataset please use secretflow_fl.ml.boost.homo_boost"  # TODO by jzc: modify
+        "for horizontal dataset please use sfl.ml.boost.homo_boost"  # TODO by jzc: modify
     )
 
     shape = ds.shape
@@ -84,7 +84,7 @@ def validate(
     assert len(y.partitions) == 1, "label only support one partition"
     # get y as a PYUObject
     y = list(y.partitions.values())[0]
-    y = y.device(lambda y: y.reshape(-1, 1, order='F'))(y)
+    y = y.device(lambda y: y.reshape(-1, 1, order="F"))(y)
     y_shape = (samples, 1)
     assert samples > 0, "cannot have empty samples"
     wait(data_check_task)

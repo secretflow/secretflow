@@ -34,7 +34,7 @@ def test_auc(sf_production_setup_devices):
     bucket_size = 2
     y_true_pd_dataframe = pd.DataFrame(
         {
-            'y_true': y_true.reshape(-1),
+            "y_true": y_true.reshape(-1),
         }
     )
 
@@ -73,7 +73,7 @@ def test_auc_nan(sf_production_setup_devices):
     bucket_size = 2
     y_true_pd_dataframe = pd.DataFrame(
         {
-            'y_true': y_true.reshape(-1),
+            "y_true": y_true.reshape(-1),
         }
     )
 
@@ -99,4 +99,4 @@ def test_auc_nan(sf_production_setup_devices):
     )
     reports = reveal(biclassification_evaluator.get_all_reports())
     score = float(reports.summary_report.auc)
-    logging.info('score: %s', score)
+    logging.info("score: %s", score)

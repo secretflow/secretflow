@@ -49,7 +49,7 @@ def get_train_param(alice_path, bob_path, model_path):
         attrs={
             "n_classes": 3,
             "input/input_ds/label": ["y"],
-            "input/input_ds/feature_selects": [f'x{i}' for i in range(100)],
+            "input/input_ds/feature_selects": [f"x{i}" for i in range(100)],
         },
         inputs=[
             DistData(
@@ -72,9 +72,9 @@ def get_pred_param(alice_path, bob_path, train_res, predict_path):
         version="1.0.0",
         attrs={
             "receiver": ["alice"],
-            "pred_name": 'pred',
+            "pred_name": "pred",
             "save_ids": False,
-            'save_label': True,
+            "save_label": True,
             "input/input_ds/saved_features": ["x1"],
         },
         inputs=[
@@ -102,14 +102,14 @@ def get_meta_and_dump_data(sf_production_setup_comp, alice_path, bob_path):
 
     if self_party == "alice":
         ds = pd.DataFrame(
-            X[:, :feature_split], columns=[f'x{i}' for i in range(feature_split)]
+            X[:, :feature_split], columns=[f"x{i}" for i in range(feature_split)]
         )
-        ds['y'] = y
+        ds["y"] = y
         ds.to_csv(storage.get_writer(alice_path), index=False)
 
     elif self_party == "bob":
         ds = pd.DataFrame(
-            X[:, feature_split:], columns=[f'x{i}' for i in range(feature_split, 100)]
+            X[:, feature_split:], columns=[f"x{i}" for i in range(feature_split, 100)]
         )
         ds.to_csv(storage.get_writer(bob_path), index=False)
 
@@ -117,7 +117,7 @@ def get_meta_and_dump_data(sf_production_setup_comp, alice_path, bob_path):
         schemas=[
             TableSchema(
                 feature_types=["float32"] * 50,
-                features=[f'x{i}' for i in range(50)],
+                features=[f"x{i}" for i in range(50)],
                 label_types=["int32"],
                 labels=["y"],
             ),
@@ -131,7 +131,7 @@ def get_meta_and_dump_data(sf_production_setup_comp, alice_path, bob_path):
 
 @pytest.mark.mpc
 def test_gpc(sf_production_setup_comp):
-    work_path = f'test_knn_{str(uuid.uuid4())}'
+    work_path = f"test_knn_{str(uuid.uuid4())}"
     alice_path = f"{work_path}/x_alice.csv"
     bob_path = f"{work_path}/x_bob.csv"
     model_path = f"{work_path}/model.sf"
@@ -178,7 +178,7 @@ def test_gpc(sf_production_setup_comp):
             # label & pred
             error_cnt = 0
             for i in range(input_y.shape[0]):
-                if not np.array_equal(output_y['pred'][i], input_y['y'][i]):
+                if not np.array_equal(output_y["pred"][i], input_y["y"][i]):
                     error_cnt += 1
                     logging.info(
                         f"pred is not equal to y: {i}: {output_y['pred'][i]} != {input_y['y'][i]}"
@@ -186,4 +186,4 @@ def test_gpc(sf_production_setup_comp):
             logging.info(f"error cnt: {error_cnt}, total: {input_y.shape[0]}")
             assert (error_cnt / input_y.shape[0]) < 0.1
 
-    run_pred(predict_path, train_res['eval_result'])
+    run_pred(predict_path, train_res["eval_result"])

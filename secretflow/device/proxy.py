@@ -31,20 +31,20 @@ _WRAPPABLE_DEVICE_OBJ: Dict[Type[DeviceObject], Type[Device]] = {PYUObject: PYU}
 
 def _actor_wrapper(device_object_type, name, num_returns):
     def wrapper(self, *args, **kwargs):
-        _num_returns = kwargs.pop('_num_returns', num_returns)
+        _num_returns = kwargs.pop("_num_returns", num_returns)
         value_flat, value_tree = jax.tree_util.tree_flatten((args, kwargs))
         for i, value in enumerate(value_flat):
             if isinstance(value, DeviceObject):
                 assert (
                     value.device == self.device
-                ), f'unexpected device object {value.device} self {self.device}'
+                ), f"unexpected device object {value.device} self {self.device}"
                 value_flat[i] = value.data
         args, kwargs = jax.tree_util.tree_unflatten(value_tree, value_flat)
 
         logging.debug(
             (
-                f'Run method {name} of actor {self.actor_class}, num_returns='
-                f'{_num_returns}, args len: {len(args)}, kwargs len: {len(kwargs)}.'
+                f"Run method {name} of actor {self.actor_class}, num_returns="
+                f"{_num_returns}, args len: {len(args)}, kwargs len: {len(kwargs)}."
             )
         )
         handle = getattr(self.data, name)
@@ -69,7 +69,7 @@ def _cls_wrapper(cls):
     methods = inspect.getmembers(cls, inspect.isfunction)
     # getmembers / getattr will strip methods' staticmethod decorator.
     for name, method in methods:
-        if name == '__init__':
+        if name == "__init__":
             continue
 
         wrapped_method = wraps(method)(ray_get_wrapper(method))
@@ -133,34 +133,34 @@ def proxy(
     """
     assert (
         device_object_type in _WRAPPABLE_DEVICE_OBJ
-    ), f'{device_object_type} is not allowed to be proxy'
+    ), f"{device_object_type} is not allowed to be proxy"
 
     def make_proxy(cls):
-        if hasattr(cls, '__is_wrapped__'):
+        if hasattr(cls, "__is_wrapped__"):
             raise RuntimeError(f"class {cls} is already wrapped, do not wrap it again!")
         # create new Class, to prevent multiple wrapping when using proxy() for the same class multiple times.
-        actor_cls = type(f'Actor{cls.__name__}', (cls,), {'__is_wrapped__': True})
+        actor_cls = type(f"Actor{cls.__name__}", (cls,), {"__is_wrapped__": True})
         ActorClass = _cls_wrapper(actor_cls)
 
         class ActorProxy(device_object_type):
             def __init__(self, *args, **kwargs):
                 logging.basicConfig(level=get_logging_level(), format=LOG_FORMAT)
 
-                assert 'device' in kwargs, (
-                    f'missing device argument, please specify it with '
-                    f'{cls.__name__}(*args, device=d, **kwargs)'
+                assert "device" in kwargs, (
+                    f"missing device argument, please specify it with "
+                    f"{cls.__name__}(*args, device=d, **kwargs)"
                 )
-                device = kwargs['device']
+                device = kwargs["device"]
                 expected_device_type = _WRAPPABLE_DEVICE_OBJ[device_object_type]
                 assert isinstance(device, expected_device_type), (
-                    f'unexpected device type, expected: '
-                    f'{expected_device_type}, got {type(device)}'
+                    f"unexpected device type, expected: "
+                    f"{expected_device_type}, got {type(device)}"
                 )
 
                 # jzc: replace issubclass with this check, so we don't need to import Link here.
                 if "device.link.Link" not in f"{cls.__base__}":
-                    kwargs.pop('device', None)
-                    kwargs.pop('production_mode', None)
+                    kwargs.pop("device", None)
+                    kwargs.pop("production_mode", None)
 
                 max_concur = max_concurrency
                 if (
@@ -171,7 +171,7 @@ def proxy(
                     max_concur = _simulation_max_concurrency
 
                 logging.debug(
-                    f'Create proxy actor {ActorClass} with party {device.party}.'
+                    f"Create proxy actor {ActorClass} with party {device.party}."
                 )
                 data = sfd.remote(ActorClass).party(device.party)
                 if max_concur is not None:
@@ -186,15 +186,15 @@ def proxy(
 
         methods = inspect.getmembers(actor_cls, inspect.isfunction)
         for name, method in methods:
-            if name == '__init__':
+            if name == "__init__":
                 continue
             sig = inspect.signature(method)
             if sig.return_annotation is None or sig.return_annotation == sig.empty:
                 num_returns = 1
             else:
                 if (
-                    hasattr(sig.return_annotation, '_name')
-                    and sig.return_annotation._name == 'Tuple'
+                    hasattr(sig.return_annotation, "_name")
+                    and sig.return_annotation._name == "Tuple"
                 ):
                     num_returns = len(sig.return_annotation.__args__)
                 elif isinstance(sig.return_annotation, tuple):

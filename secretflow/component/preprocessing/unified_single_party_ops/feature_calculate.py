@@ -122,10 +122,10 @@ def apply_feature_calculate_rule(
                 f"unary operator needs 3 operands, but got {op_cnt}"
             )
         op0 = rules.operands[0]
-        if op0 not in ['+', '-']:
+        if op0 not in ["+", "-"]:
             raise InvalidArgumentError(f"unary op0 should be [+ -], but get {op0}")
         op1 = rules.operands[1]
-        if op1 not in ['+', '-', '*', '/']:
+        if op1 not in ["+", "-", "*", "/"]:
             raise InvalidArgumentError(f"unary op1 should be [+ - * /], but get {op1}")
         op3 = float(rules.operands[2])
         if op1 == "+":
@@ -247,9 +247,9 @@ def apply_feature_calculate_rule(
 
 @register(domain="preprocessing", version="1.0.0")
 class FeatureCalculate(PreprocessingMixin, Component, IServingExporter):
-    '''
+    """
     Generate a new feature by performing calculations on an origin feature
-    '''
+    """
 
     rules: CalculateOpRules = Field.custom_attr(desc="input CalculateOpRules rules")
     features: list[str] = Field.table_column_attr(

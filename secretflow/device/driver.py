@@ -21,11 +21,11 @@ import jax
 
 import secretflow.distributed as sfd
 from secretflow.device import global_state
-from secretflow.distributed.const import DISTRIBUTION_MODE
 from secretflow.distributed.config import get_cluster_config
+from secretflow.distributed.const import DISTRIBUTION_MODE
+from secretflow.distributed.ray_op import assert_is_fed_obj
 from secretflow.utils.errors import InvalidArgumentError
 from secretflow.utils.logging import set_logging_level
-from secretflow.distributed.ray_op import assert_is_fed_obj
 
 from .device import (
     HEU,
@@ -84,8 +84,8 @@ def to(device: Device, data: Any):
     """
     if isinstance(data, DeviceObject):
         raise InvalidArgumentError(
-            'You should use `DeviceObject.to(device)` directly to'
-            'transfer DeviceObject to another device.'
+            "You should use `DeviceObject.to(device)` directly to"
+            "transfer DeviceObject to another device."
         )
 
     if isinstance(device, PYU):
@@ -104,7 +104,7 @@ def to(device: Device, data: Any):
             "try put it to PYU and then move to HEU"
         )
 
-    raise ValueError(f'Unknown device {device}')
+    raise ValueError(f"Unknown device {device}")
 
 
 def reveal(func_or_object, heu_encoder=None):
@@ -150,7 +150,7 @@ def reveal(func_or_object, heu_encoder=None):
             all_object_refs.extend([s for s in shares_chunk])
         elif isinstance(x, TEEUObject):
             all_object_refs.append(x.data)
-            logging.debug(f'Getting teeu data from TEEU {x.device.party}.')
+            logging.debug(f"Getting teeu data from TEEU {x.device.party}.")
 
     cur_idx = 0
     all_object = sfd.get(all_object_refs)
@@ -216,9 +216,9 @@ def init(
     num_gpus: Optional[int] = None,
     log_to_driver=True,
     omp_num_threads: int = None,
-    logging_level: str = 'info',
+    logging_level: str = "info",
     job_name: str = None,
-    cross_silo_comm_backend: str = 'grpc',
+    cross_silo_comm_backend: str = "grpc",
     cross_silo_comm_options: Dict = None,
     enable_waiting_for_other_parties_ready: bool = True,
     tls_config: Dict[str, Dict] = None,
@@ -427,8 +427,8 @@ def init(
     sfd.active_sf_cluster()
     if auth_manager_config and simulation_mode:
         raise InvalidArgumentError(
-            'TEE abilities is available only in production mode.'
-            'Please run SecretFlow in production mode.'
+            "TEE abilities is available only in production mode."
+            "Please run SecretFlow in production mode."
         )
 
     _init_global_state(
@@ -451,11 +451,11 @@ def init(
             logging.info("Try init sf in SIMULATION mode")
             if cluster_config:
                 raise InvalidArgumentError(
-                    'Simulation mode is enabled when `parties` is provided, '
-                    'but you provide `cluster_config` at the same time. '
-                    '`cluster_config` is for production mode only and should be `None` in simulation mode. '
-                    'Or if you want to run SecretFlow in product mode, '
-                    'please keep `parties` with `None`.'
+                    "Simulation mode is enabled when `parties` is provided, "
+                    "but you provide `cluster_config` at the same time. "
+                    "`cluster_config` is for production mode only and should be `None` in simulation mode. "
+                    "Or if you want to run SecretFlow in product mode, "
+                    "please keep `parties` with `None`."
                 )
             # Simulation mode
             sfd.init(
@@ -509,9 +509,9 @@ def barrier():
         DISTRIBUTION_MODE.PRODUCTION,
         DISTRIBUTION_MODE.RAY_PRODUCTION,
     ):
-        barriers = []
         if global_state.parties() is None:
             return
+        barriers = []
         for party in global_state.parties():
             barriers.append(PYU(party)(lambda: None)())
         reveal(barriers)
@@ -550,22 +550,22 @@ def shutdown(barrier_on_shutdown=True, on_error=None):
 
 
 def _parse_party_key_pair(
-    party_key_pair: Dict[str, Union[Dict, str]]
+    party_key_pair: Dict[str, Union[Dict, str]],
 ) -> Dict[str, global_state.PartyCert]:
     party_key_pairs = {}
     for name, info in party_key_pair.items():
-        if 'private_key' not in info or 'public_key' not in info:
+        if "private_key" not in info or "public_key" not in info:
             raise InvalidArgumentError(
-                'You should provide private_key and public_key at the same time.'
+                "You should provide private_key and public_key at the same time."
             )
-        pub_key_path = pathlib.Path(info['public_key'])
-        pri_key_path = pathlib.Path(info['private_key'])
+        pub_key_path = pathlib.Path(info["public_key"])
+        pri_key_path = pathlib.Path(info["private_key"])
 
         if not pub_key_path.exists:
-            raise InvalidArgumentError(f'Public key file {info["key"]} does not exist!')
+            raise InvalidArgumentError(f"Public key file {info['key']} does not exist!")
         if not pri_key_path.exists:
             raise InvalidArgumentError(
-                f'Private key file {info["key"]} does not exist!'
+                f"Private key file {info['key']} does not exist!"
             )
         party_key_pair = global_state.PartyKeyPair(
             party_name=name,
@@ -586,23 +586,23 @@ def _init_global_state(
     if auth_manager_config:
         if not isinstance(auth_manager_config, dict):
             raise InvalidArgumentError(
-                f'auth_manager_config should be a dict but got {type(auth_manager_config)}.'
+                f"auth_manager_config should be a dict but got {type(auth_manager_config)}."
             )
-        if 'host' not in auth_manager_config:
-            raise InvalidArgumentError('auth_manager_config does not contain host.')
-        if 'mr_enclave' not in auth_manager_config:
+        if "host" not in auth_manager_config:
+            raise InvalidArgumentError("auth_manager_config does not contain host.")
+        if "mr_enclave" not in auth_manager_config:
             raise InvalidArgumentError(
-                'auth_manager_config does not contain mr_enclave.'
+                "auth_manager_config does not contain mr_enclave."
             )
 
-        logging.info(f'Authority manager config is {auth_manager_config}')
-        global_state.set_auth_manager_host(auth_host=auth_manager_config['host'])
+        logging.info(f"Authority manager config is {auth_manager_config}")
+        global_state.set_auth_manager_host(auth_host=auth_manager_config["host"])
         global_state.set_auth_manager_mr_enclave(
-            mr_enclave=auth_manager_config['mr_enclave']
+            mr_enclave=auth_manager_config["mr_enclave"]
         )
-        auth_ca_cert_path = auth_manager_config.get('ca_cert', None)
+        auth_ca_cert_path = auth_manager_config.get("ca_cert", None)
         if auth_ca_cert_path:
-            with open(auth_ca_cert_path, 'r') as f:
+            with open(auth_ca_cert_path, "r") as f:
                 auth_ca_cert = f.read()
             global_state.set_auth_manager_ca_cert(ca_cert=auth_ca_cert)
 
@@ -614,9 +614,9 @@ def _init_global_state(
         global_state.set_self_party(self_party)
     else:
         if not isinstance(parties, (str, Tuple, List)):
-            raise InvalidArgumentError('parties must be str or list of str.')
+            raise InvalidArgumentError("parties must be str or list of str.")
         if isinstance(parties, str):
             parties = [parties]
         else:
-            assert len(set(parties)) == len(parties), f'duplicated parties {parties}.'
+            assert len(set(parties)) == len(parties), f"duplicated parties {parties}."
         global_state.set_parties(parties=parties)

@@ -315,7 +315,7 @@ def test_no_change_correct_complete(sf_production_setup_comp):
     # making an exception for hash
     write_data_dict = json.loads(write_complete_data)
     write_data_unchanged_dict = json.loads(write_data_unchanged)
-    write_data_unchanged_dict['model']["modelHash"] = write_data_dict.get("model").get(
+    write_data_unchanged_dict["model"]["modelHash"] = write_data_dict.get("model").get(
         "modelHash", ""
     )
     write_data_unchanged = (

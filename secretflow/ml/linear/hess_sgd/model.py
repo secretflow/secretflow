@@ -62,38 +62,36 @@ class HESSLogisticRegression:
     """
 
     def __init__(self, spu: SPU, heu_x: HEU, heu_y: HEU) -> None:
-        assert (
-            isinstance(spu, SPU) and len(spu.actors) == 2
-        ), f"two parties support only"
+        assert isinstance(spu, SPU) and len(spu.actors) == 2, "two parties support only"
         assert (
             isinstance(heu_x, HEU) and heu_x.sk_keeper_name() in spu.actors
-        ), f"heu must be colocated with spu"
+        ), "heu must be colocated with spu"
         assert (
             isinstance(heu_y, HEU) and heu_y.sk_keeper_name() in spu.actors
-        ), f"heu must be colocated with spu"
+        ), "heu must be colocated with spu"
         assert (
             heu_x.sk_keeper_name() != heu_y.sk_keeper_name()
-        ), f"two heu must be provided"
+        ), "two heu must be provided"
         assert (
             # This type should keep same with the return type of
             # spu.Io.make_shares(). Since make_shares() always return DT_I32,
             # HEU should work in DT_I32 mode
             heu_x.cleartext_type == "DT_I32"
             and heu_y.cleartext_type == "DT_I32"
-        ), f"Heu encoding config must set to DT_I32"
+        ), "Heu encoding config must set to DT_I32"
 
         self._spu = spu
         self._heu_x = heu_x
         self._heu_y = heu_y
-        self._scale = spu_fxp_precision(spu.cluster_def['runtime_config']['field'])
+        self._scale = spu_fxp_precision(spu.cluster_def["runtime_config"]["field"])
 
     def _data_check(
         self, x: Union[FedNdarray, VDataFrame]
     ) -> Tuple[PYUObject, PYUObject]:
         assert isinstance(
             x, (FedNdarray, VDataFrame)
-        ), f"x should be FedNdarray or VDataFrame"
-        assert len(x.partitions) == 2, f"x should be in two parties"
+        ), "x should be FedNdarray or VDataFrame"
+        assert len(x.partitions) == 2, "x should be in two parties"
 
         x = x.values if isinstance(x, VDataFrame) else x
         assert (
@@ -123,9 +121,9 @@ class HESSLogisticRegression:
 
         assert isinstance(
             y, (FedNdarray, VDataFrame)
-        ), f"y should be FedNdarray or VDataFrame"
-        assert len(y.partitions) == 1, f"y should be in single party"
-        assert x2.device in y.partitions, f"y should be colocated with x"
+        ), "y should be FedNdarray or VDataFrame"
+        assert len(y.partitions) == 1, "y should be in single party"
+        assert x2.device in y.partitions, "y should be colocated with x"
 
         y = y.values if isinstance(y, VDataFrame) else y
 
@@ -158,11 +156,11 @@ class HESSLogisticRegression:
         """
         assert (
             isinstance(learning_rate, float) and learning_rate > 0
-        ), f"learning_rate shoule be float > 0"
-        assert isinstance(epochs, int) and epochs > 0, f"epochs should be integer > 0"
+        ), "learning_rate shoule be float > 0"
+        assert isinstance(epochs, int) and epochs > 0, "epochs should be integer > 0"
         assert batch_size is None or (
             isinstance(batch_size, int) and batch_size > 0
-        ), f"batch_size should be None or integer > 0"
+        ), "batch_size should be None or integer > 0"
 
         x1, x2, y = self._args_check(x, y)
 
@@ -218,7 +216,7 @@ class HESSLogisticRegression:
                 # maybe be encrypted simultaneous, which will cause memory flooding.
                 wait([e])
 
-        self._w = self._spu(self._truncate, static_argnames=('scale'))(
+        self._w = self._spu(self._truncate, static_argnames=("scale"))(
             hw1.to(self._spu), hw2.to(self._spu), scale=self._scale
         )
 
@@ -226,7 +224,7 @@ class HESSLogisticRegression:
         """
         Save fit model in LinearModel format.
         """
-        assert hasattr(self, '_w'), 'please fit model first'
+        assert hasattr(self, "_w"), "please fit model first"
         return LinearModel(self._w, RegType.Logistic, SigType.T1)
 
     def load_model(self, m: LinearModel) -> None:
@@ -235,10 +233,10 @@ class HESSLogisticRegression:
         """
         assert (
             isinstance(m.weights, SPUObject) and m.weights.device == self._spu
-        ), 'weights should saved in same spu'
+        ), "weights should saved in same spu"
         self._w = m.weights
-        assert m.reg_type is RegType.Logistic, 'only support Logistic Reg in HESS LR'
-        assert m.sig_type is SigType.T1, 'only support T1 sigmoid in HESS LR'
+        assert m.reg_type is RegType.Logistic, "only support Logistic Reg in HESS LR"
+        assert m.sig_type is SigType.T1, "only support T1 sigmoid in HESS LR"
 
     @staticmethod
     def _next_batch(x1, x2, y, step, batch_size):
@@ -353,7 +351,7 @@ class HESSLogisticRegression:
 
         spu_yhat = self._spu(
             self._predict,
-            static_argnames=('total_batch', 'batch_size'),
+            static_argnames=("total_batch", "batch_size"),
         )(
             [d.to(self._spu) for d in ds],
             self._w,

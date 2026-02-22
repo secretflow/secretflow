@@ -14,4 +14,4 @@
 
 from .split_tree_builder import SplitTreeBuilder
 
-__all__ = ['SplitTreeBuilder']
+__all__ = ["SplitTreeBuilder"]

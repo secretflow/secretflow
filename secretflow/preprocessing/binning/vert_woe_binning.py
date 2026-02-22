@@ -230,7 +230,7 @@ class VertWoeBinning:
             )
         else:
             raise NotImplementedError(
-                f'Secure device should be SPU or HEU, but got {type(self.secure_device)}.'
+                f"Secure device should be SPU or HEU, but got {type(self.secure_device)}."
             )
 
         # all participants
@@ -248,7 +248,7 @@ class VertWoeBinning:
                     worker_audit_path = audit_log_path[device.party]
                     secure_label.dump(worker_audit_path)
                     self.secure_device.get_participant(device.party).dump_pk.remote(
-                        f'{worker_audit_path}.pk.pickle'
+                        f"{worker_audit_path}.pk.pickle"
                     )
                 move_config = HEUMoveConfig()
                 move_config.heu_encoder = phe.BigintEncoderParams()
@@ -291,7 +291,10 @@ class VertWoeBinning:
                 ivs, bim_sum_info
             )
             report = worker.participant_build_report(
-                woes.to(device), pos_rates.to(device), total_rates.to(device)
+                woes.to(device),
+                pos_rates.to(device),
+                total_rates.to(device),
+                ivs.to(device),
             )
             bin_rules[device] = report
 

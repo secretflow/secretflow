@@ -28,7 +28,7 @@ def qpldp_env_and_aggregator(sf_production_setup_devices):
     )
 
 
-@pytest.skip('Experimental, not work.', allow_module_level=True)
+@pytest.skip("Experimental, not work.", allow_module_level=True)
 @pytest.mark.mpc(parties=3, fixtures=["qpldp_env_and_aggregator"])
 class TestQPLDPAggregator(AggregatorBase):
     def test_average_on_list_with_weights_should_ok(

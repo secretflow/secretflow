@@ -1,7 +1,7 @@
 autodocsumm~=0.2.14
 linkify-it-py~=2.0
 matplotlib~=3.10
-mdutils~=1.6
+mdutils==1.6
 myst-nb~=1.2
 secretflow-doctools~=0.8.5
 sphinx_design~=0.6.1

@@ -31,6 +31,10 @@ RUN pip install -i https://mirrors.aliyun.com/pypi/simple/   /tmp/*.whl && rm -r
 
 COPY .nsjail /root/.nsjail
 
+# Set the time zone to Eastern 8th Time Zone
+ENV TZ=Asia/Shanghai
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
 ARG config_templates=""
 LABEL kuscia.secretflow.config-templates=$config_templates
 

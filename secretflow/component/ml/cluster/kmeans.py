@@ -43,16 +43,11 @@ class InitMethod(UnionGroup):
     kmeans_plus_plus: str = Field.selection_attr(desc="k-means++ method")
 
 
-@register(
-    domain="ml.train",
-    version="1.0.0",
-    name="kmeans_train",
-    labels={"experimental": True, "package": "sml"},
-)
+@register(domain="ml.train", version="1.0.0", name="kmeans_train")
 class KMeansTrain(Component):
-    '''
-    Provide kmeans training. This component is currently experimental.
-    '''
+    """
+    Provide kmeans training.
+    """
 
     n_clusters: int = Field.attr(
         desc="Number of clusters.",
@@ -119,8 +114,8 @@ class KMeansTrain(Component):
                     "n_clusters": self.n_clusters,
                     "max_iter": self.max_iter,
                     "n_init": self.n_init,
-                    'init_method': str(self.init_method),
-                    'feature_selects': self.feature_selects,
+                    "init_method": str(self.init_method),
+                    "feature_selects": self.feature_selects,
                 }
             ),
             objs=[kmeans.model],
@@ -130,16 +125,11 @@ class KMeansTrain(Component):
         ctx.dump_to(model_db, self.output_model)
 
 
-@register(
-    domain="ml.predict",
-    version="1.0.0",
-    name="kmeans_predict",
-    labels={"experimental": True, "package": "sml"},
-)
+@register(domain="ml.predict", version="1.0.0", name="kmeans_predict")
 class KMeansPredict(Component):
-    '''
-    Predict using the KMeans model. This component is currently experimental.
-    '''
+    """
+    Predict using the KMeans model.
+    """
 
     receiver: str = Field.party_attr(desc="Party of receiver.")
     pred_name: str = Field.attr(desc="Column name for predictions.", default="pred")

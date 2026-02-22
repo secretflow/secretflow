@@ -12,7 +12,12 @@ class SfFedProxySendData(_message.Message):
     data: bytes
     seq_id: int
     job_name: str
-    def __init__(self, data: _Optional[bytes] = ..., seq_id: _Optional[int] = ..., job_name: _Optional[str] = ...) -> None: ...
+    def __init__(
+        self,
+        data: _Optional[bytes] = ...,
+        seq_id: _Optional[int] = ...,
+        job_name: _Optional[str] = ...,
+    ) -> None: ...
 
 class SfFedProxySendDataResponse(_message.Message):
     __slots__ = ["code", "result"]
@@ -20,4 +25,6 @@ class SfFedProxySendDataResponse(_message.Message):
     RESULT_FIELD_NUMBER: _ClassVar[int]
     code: int
     result: str
-    def __init__(self, code: _Optional[int] = ..., result: _Optional[str] = ...) -> None: ...
+    def __init__(
+        self, code: _Optional[int] = ..., result: _Optional[str] = ...
+    ) -> None: ...

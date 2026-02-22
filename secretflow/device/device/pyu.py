@@ -32,11 +32,11 @@ class PYUObject(DeviceObject):
         data: Reference to underlying data.
     """
 
-    device: 'PYU'
+    device: "PYU"
 
     def __init__(
         self,
-        device: 'PYU',
+        device: "PYU",
         data,
     ):
         super().__init__(device)
@@ -113,8 +113,8 @@ class PYU(Device):
             )
             logging.debug(
                 (
-                    f'PYU remote function: {fn}, num_returns={num_returns}, '
-                    f'args len: {len(args)}, kwargs len: {len(kwargs)}.'
+                    f"PYU remote function: {fn}, num_returns={num_returns}, "
+                    f"args len: {len(args)}, kwargs len: {len(kwargs)}."
                 )
             )
             if _num_returns == 1:
@@ -128,14 +128,14 @@ class PYU(Device):
         assert obj.device == self, "obj must be owned by this device."
 
         def pyu_dump(data, path):
-            with open(path, 'wb') as f:
+            with open(path, "wb") as f:
                 pickle.dump(data, f)
 
         return self.__call__(pyu_dump)(obj, path)
 
     def load(self, path: str):
         def pyu_load(path):
-            with open(path, 'rb') as f:
+            with open(path, "rb") as f:
                 return pickle.load(f)
 
         return self.__call__(pyu_load)(path)
@@ -143,7 +143,7 @@ class PYU(Device):
     @staticmethod
     def _run(fn, *args, **kwargs):
         logging.basicConfig(level=get_logging_level(), format=LOG_FORMAT)
-        logging.debug(f'PYU runs function: {fn}')
+        logging.debug(f"PYU runs function: {fn}")
 
         args, kwargs = resolve_args(*args, **kwargs)
         return fn(*args, **kwargs)

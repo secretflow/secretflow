@@ -27,9 +27,13 @@ from google.protobuf.json_format import MessageToJson
 from secretflow_spec.v1.data_pb2 import StorageConfig
 from secretflow_spec.v1.evaluation_pb2 import NodeEvalParam
 
-from secretflow.component.core import Registry, comp_eval, get_comp_list_def
+from secretflow.component.core import (
+    Registry,
+    comp_eval,
+    get_comp_list_def,
+    load_plugins,
+)
 from secretflow.component.core import get_translation as core_get_translation
-from secretflow.component.core import load_plugins
 from secretflow.component.core import translate as core_translate
 from secretflow.spec.extend.cluster_pb2 import SFClusterConfig
 from secretflow.utils.logging import LOG_FORMAT, get_logging_level, set_logging_level
@@ -144,7 +148,7 @@ def inspect(comp_id, all, file, enable_plugins):
 def translate(file: str, entry_point: str, package: str):
     def find_root_package_dir(dir: str) -> str:
         while dir:
-            init_filename = os.path.join(dir, '__init__.py')
+            init_filename = os.path.join(dir, "__init__.py")
             if not os.path.isfile(init_filename):
                 return dir
             dir = os.path.dirname(dir)
@@ -155,13 +159,13 @@ def translate(file: str, entry_point: str, package: str):
     if root_pkg_dir not in sys.path:
         sys.path.insert(0, root_pkg_dir)
 
-    if ':' in entry_point:
-        module_name, func_name = entry_point.split(':')
+    if ":" in entry_point:
+        module_name, func_name = entry_point.split(":")
     else:
         module_name, func_name = entry_point, None
 
     if module_name == "":
-        module_name = os.path.relpath(curr_dir, root_pkg_dir).replace(os.path.sep, '.')
+        module_name = os.path.relpath(curr_dir, root_pkg_dir).replace(os.path.sep, ".")
 
     try:
         module = importlib.import_module(module_name)
@@ -183,10 +187,10 @@ def translate(file: str, entry_point: str, package: str):
             click.echo(f"{func_name} is not a func.")
 
     if not package:
-        package = module.__package__.split('.')[0]
+        package = module.__package__.split(".")[0]
 
     if not package:
-        click.echo(f"empty package")
+        click.echo("empty package")
         return
 
     archieve = None
@@ -196,14 +200,14 @@ def translate(file: str, entry_point: str, package: str):
 
     translation = core_translate(package, archieve)
 
-    click.echo(f"You are translating the compelete comp list.")
+    click.echo("You are translating the compelete comp list.")
     click.echo("-" * 105)
     with open(file, "w") as f:
         click.echo(json.dump(translation, f, indent=2, ensure_ascii=False), file=f)
     click.echo(f"Saved to {file}.")
 
 
-@component.command(name='get_translation')
+@component.command(name="get_translation")
 @click.option(
     "--enable_plugins",
     required=False,
@@ -288,19 +292,19 @@ def run(
     }
     try:
         eval = NodeEvalParam()
-        eval_ser = base64.b64decode(eval_param.encode('utf-8'))
+        eval_ser = base64.b64decode(eval_param.encode("utf-8"))
         if compressed_params:
             eval_ser = gzip.decompress(eval_ser)
         eval.ParseFromString(eval_ser)
 
         sto = StorageConfig()
-        sto_ser = base64.b64decode(storage.encode('utf-8'))
+        sto_ser = base64.b64decode(storage.encode("utf-8"))
         if compressed_params:
             sto_ser = gzip.decompress(sto_ser)
         sto.ParseFromString(sto_ser)
 
         clu = SFClusterConfig()
-        clu_ser = base64.b64decode(cluster.encode('utf-8'))
+        clu_ser = base64.b64decode(cluster.encode("utf-8"))
         if compressed_params:
             clu_ser = gzip.decompress(clu_ser)
         clu.ParseFromString(clu_ser)
@@ -324,7 +328,7 @@ def run(
             ret["mem_peak"] = _get_peak_mem()
         ret["run_time"] = result["tracer_report"]["run_time"]
         result = result["eval_result"]
-        ret["result"] = base64.b64encode(result.SerializeToString()).decode('utf-8')
+        ret["result"] = base64.b64encode(result.SerializeToString()).decode("utf-8")
     except Exception as e:
         ret["error_msg"] = f"run comp err: {e}"
         ret["error_code"] = -1  # TODO: use real code

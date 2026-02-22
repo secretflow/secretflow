@@ -15,5 +15,5 @@
 from .model import SSGLM
 
 __all__ = [
-    'SSGLM',
+    "SSGLM",
 ]

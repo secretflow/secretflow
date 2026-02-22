@@ -72,7 +72,7 @@ def test_load_configs():
 
     sf_cluster_config = get_sf_cluster_config(kuscia_config)
 
-    logging.warning(f'sf_cluster_config: {sf_cluster_config}')
+    logging.warning(f"sf_cluster_config: {sf_cluster_config}")
     assert list(sf_cluster_config.public_config.inference_config.parties) == [
         "alice",
         "bob",
@@ -85,123 +85,123 @@ def test_load_configs():
 
 def test_load_configs_with_table_attrs():
     kuscia_request_json = {
-        'task_id': 'dwyk-lrhuiibc-node-3',
-        'task_input_config': {
-            'sf_datasource_config': {
-                'bob': {'id': 'default-data-source'},
-                'alice': {'id': 'default-data-source'},
+        "task_id": "dwyk-lrhuiibc-node-3",
+        "task_input_config": {
+            "sf_datasource_config": {
+                "bob": {"id": "default-data-source"},
+                "alice": {"id": "default-data-source"},
             },
-            'sf_cluster_desc': {
-                'parties': ['bob', 'alice'],
-                'devices': [
+            "sf_cluster_desc": {
+                "parties": ["bob", "alice"],
+                "devices": [
                     {
-                        'name': 'spu',
-                        'type': 'spu',
-                        'parties': ['bob', 'alice'],
-                        'config': '{"runtime_config":{"protocol":"SEMI2K","field":"FM128"},"link_desc":{"connect_retry_times":60,"connect_retry_interval_ms":1000,"brpc_channel_protocol":"http","brpc_channel_connection_type":"pooled","recv_timeout_ms":1200000,"http_timeout_ms":1200000}}',
+                        "name": "spu",
+                        "type": "spu",
+                        "parties": ["bob", "alice"],
+                        "config": '{"runtime_config":{"protocol":"SEMI2K","field":"FM128"},"link_desc":{"connect_retry_times":60,"connect_retry_interval_ms":1000,"brpc_channel_protocol":"http","brpc_channel_connection_type":"pooled","recv_timeout_ms":1200000,"http_timeout_ms":1200000}}',
                     },
                     {
-                        'name': 'heu',
-                        'type': 'heu',
-                        'parties': ['bob', 'alice'],
-                        'config': '{"mode": "PHEU", "schema": "paillier", "key_size": 2048}',
+                        "name": "heu",
+                        "type": "heu",
+                        "parties": ["bob", "alice"],
+                        "config": '{"mode": "PHEU", "schema": "paillier", "key_size": 2048}',
                     },
                 ],
-                'ray_fed_config': {'cross_silo_comm_backend': 'brpc_link'},
+                "ray_fed_config": {"cross_silo_comm_backend": "brpc_link"},
             },
-            'sf_node_eval_param': {
-                'comp_id': 'data_prep/psi:0.0.7',
-                'attr_paths': [
-                    'input/input_table_1/key',
-                    'input/input_table_2/key',
-                    'protocol',
-                    'sort_result',
-                    'allow_duplicate_keys',
-                    'allow_duplicate_keys/no/skip_duplicates_check',
-                    'ecdh_curve',
-                    'allow_duplicate_keys/no/receiver_parties',
+            "sf_node_eval_param": {
+                "comp_id": "data_prep/psi:0.0.7",
+                "attr_paths": [
+                    "input/input_table_1/key",
+                    "input/input_table_2/key",
+                    "protocol",
+                    "sort_result",
+                    "allow_duplicate_keys",
+                    "allow_duplicate_keys/no/skip_duplicates_check",
+                    "ecdh_curve",
+                    "allow_duplicate_keys/no/receiver_parties",
                 ],
-                'attrs': [
-                    {'is_na': False, 'ss': ['id1']},
-                    {'is_na': False, 'ss': ['id2']},
-                    {'is_na': False, 's': 'PROTOCOL_RR22'},
-                    {'b': True, 'is_na': False},
-                    {'is_na': False, 's': 'no'},
-                    {'is_na': True},
-                    {'is_na': False, 's': 'CURVE_FOURQ'},
-                    {'is_na': False, 'ss': ['alice', 'bob']},
+                "attrs": [
+                    {"is_na": False, "ss": ["id1"]},
+                    {"is_na": False, "ss": ["id2"]},
+                    {"is_na": False, "s": "PROTOCOL_RR22"},
+                    {"b": True, "is_na": False},
+                    {"is_na": False, "s": "no"},
+                    {"is_na": True},
+                    {"is_na": False, "s": "CURVE_FOURQ"},
+                    {"is_na": False, "ss": ["alice", "bob"]},
                 ],
-                'inputs': [
+                "inputs": [
                     {
-                        'type': 'sf.table.individual',
-                        'meta': {
-                            '@type': 'type.googleapis.com/secretflow_spec.v1.IndividualTable',
-                            'line_count': '-1',
+                        "type": "sf.table.individual",
+                        "meta": {
+                            "@type": "type.googleapis.com/secretflow_spec.v1.IndividualTable",
+                            "line_count": "-1",
                         },
-                        'data_refs': [
-                            {'uri': 'alice.csv', 'party': 'alice', 'format': 'csv'}
+                        "data_refs": [
+                            {"uri": "alice.csv", "party": "alice", "format": "csv"}
                         ],
                     },
                     {
-                        'type': 'sf.table.individual',
-                        'meta': {
-                            '@type': 'type.googleapis.com/secretflow_spec.v1.IndividualTable',
-                            'line_count': '-1',
+                        "type": "sf.table.individual",
+                        "meta": {
+                            "@type": "type.googleapis.com/secretflow_spec.v1.IndividualTable",
+                            "line_count": "-1",
                         },
-                        'data_refs': [
-                            {'uri': 'bob.csv', 'party': 'bob', 'format': 'csv'}
+                        "data_refs": [
+                            {"uri": "bob.csv", "party": "bob", "format": "csv"}
                         ],
                     },
                 ],
-                'checkpoint_uri': 'ckdwyk-lrhuiibc-node-3-output-0',
+                "checkpoint_uri": "ckdwyk-lrhuiibc-node-3-output-0",
             },
-            'sf_output_uris': ['dwyk_lrhuiibc_node_3_output_0'],
-            'sf_input_ids': ['alice-table', 'bob-table'],
-            'sf_input_partitions_spec': ['', ''],
-            'sf_output_ids': ['dwyk-lrhuiibc-node-3-output-0'],
-            'table_attrs': [
+            "sf_output_uris": ["dwyk_lrhuiibc_node_3_output_0"],
+            "sf_input_ids": ["alice-table", "bob-table"],
+            "sf_input_partitions_spec": ["", ""],
+            "sf_output_ids": ["dwyk-lrhuiibc-node-3-output-0"],
+            "table_attrs": [
                 {
-                    'table_id': 'alice-table',
-                    'column_attrs': [
-                        {'col_name': 'id1', 'col_type': 'id'},
-                        {'col_name': 'age', 'col_type': 'feature'},
-                        {'col_name': 'education', 'col_type': 'feature'},
-                        {'col_name': 'default', 'col_type': 'feature'},
-                        {'col_name': 'balance', 'col_type': 'feature'},
-                        {'col_name': 'housing', 'col_type': 'feature'},
-                        {'col_name': 'loan', 'col_type': 'feature'},
-                        {'col_name': 'day', 'col_type': 'feature'},
-                        {'col_name': 'duration', 'col_type': 'feature'},
-                        {'col_name': 'campaign', 'col_type': 'feature'},
-                        {'col_name': 'pdays', 'col_type': 'feature'},
-                        {'col_name': 'previous', 'col_type': 'feature'},
-                        {'col_name': 'job_blue-collar', 'col_type': 'feature'},
-                        {'col_name': 'job_entrepreneur', 'col_type': 'feature'},
-                        {'col_name': 'job_housemaid', 'col_type': 'feature'},
-                        {'col_name': 'job_management', 'col_type': 'feature'},
-                        {'col_name': 'job_retired', 'col_type': 'feature'},
-                        {'col_name': 'job_self-employed', 'col_type': 'feature'},
-                        {'col_name': 'job_services', 'col_type': 'feature'},
-                        {'col_name': 'job_student', 'col_type': 'feature'},
-                        {'col_name': 'job_technician', 'col_type': 'feature'},
-                        {'col_name': 'job_unemployed', 'col_type': 'feature'},
-                        {'col_name': 'marital_divorced', 'col_type': 'feature'},
-                        {'col_name': 'marital_married', 'col_type': 'feature'},
-                        {'col_name': 'marital_single', 'col_type': 'feature'},
+                    "table_id": "alice-table",
+                    "column_attrs": [
+                        {"col_name": "id1", "col_type": "id"},
+                        {"col_name": "age", "col_type": "feature"},
+                        {"col_name": "education", "col_type": "feature"},
+                        {"col_name": "default", "col_type": "feature"},
+                        {"col_name": "balance", "col_type": "feature"},
+                        {"col_name": "housing", "col_type": "feature"},
+                        {"col_name": "loan", "col_type": "feature"},
+                        {"col_name": "day", "col_type": "feature"},
+                        {"col_name": "duration", "col_type": "feature"},
+                        {"col_name": "campaign", "col_type": "feature"},
+                        {"col_name": "pdays", "col_type": "feature"},
+                        {"col_name": "previous", "col_type": "feature"},
+                        {"col_name": "job_blue-collar", "col_type": "feature"},
+                        {"col_name": "job_entrepreneur", "col_type": "feature"},
+                        {"col_name": "job_housemaid", "col_type": "feature"},
+                        {"col_name": "job_management", "col_type": "feature"},
+                        {"col_name": "job_retired", "col_type": "feature"},
+                        {"col_name": "job_self-employed", "col_type": "feature"},
+                        {"col_name": "job_services", "col_type": "feature"},
+                        {"col_name": "job_student", "col_type": "feature"},
+                        {"col_name": "job_technician", "col_type": "feature"},
+                        {"col_name": "job_unemployed", "col_type": "feature"},
+                        {"col_name": "marital_divorced", "col_type": "feature"},
+                        {"col_name": "marital_married", "col_type": "feature"},
+                        {"col_name": "marital_single", "col_type": "feature"},
                     ],
                 }
             ],
         },
-        'task_cluster_def': '{"parties":[{"name":"bob", "role":"", "services":[{"portName":"spu", "endpoints":["dwyk-lrhuiibc-node-3-0-spu.bob.svc"]}, {"portName":"fed", "endpoints":["dwyk-lrhuiibc-node-3-0-fed.bob.svc"]}, {"portName":"global", "endpoints":["dwyk-lrhuiibc-node-3-0-global.bob.svc:31926"]}]}, {"name":"alice", "role":"", "services":[{"portName":"spu", "endpoints":["dwyk-lrhuiibc-node-3-0-spu.alice.svc"]}, {"portName":"fed", "endpoints":["dwyk-lrhuiibc-node-3-0-fed.alice.svc"]}, {"portName":"global", "endpoints":["dwyk-lrhuiibc-node-3-0-global.alice.svc:22915"]}]}], "selfPartyIdx":1, "selfEndpointIdx":0}',
-        'allocated_ports': '{"ports":[{"name":"spu", "port":22919, "scope":"Cluster", "protocol":"GRPC"}, {"name":"fed", "port":22914, "scope":"Cluster", "protocol":"GRPC"}, {"name":"global", "port":22915, "scope":"Domain", "protocol":"GRPC"}, {"name":"node-manager", "port":22916, "scope":"Local", "protocol":"GRPC"}, {"name":"object-manager", "port":22917, "scope":"Local", "protocol":"GRPC"}, {"name":"client-server", "port":22918, "scope":"Local", "protocol":"GRPC"}]}',
+        "task_cluster_def": '{"parties":[{"name":"bob", "role":"", "services":[{"portName":"spu", "endpoints":["dwyk-lrhuiibc-node-3-0-spu.bob.svc"]}, {"portName":"fed", "endpoints":["dwyk-lrhuiibc-node-3-0-fed.bob.svc"]}, {"portName":"global", "endpoints":["dwyk-lrhuiibc-node-3-0-global.bob.svc:31926"]}]}, {"name":"alice", "role":"", "services":[{"portName":"spu", "endpoints":["dwyk-lrhuiibc-node-3-0-spu.alice.svc"]}, {"portName":"fed", "endpoints":["dwyk-lrhuiibc-node-3-0-fed.alice.svc"]}, {"portName":"global", "endpoints":["dwyk-lrhuiibc-node-3-0-global.alice.svc:22915"]}]}], "selfPartyIdx":1, "selfEndpointIdx":0}',
+        "allocated_ports": '{"ports":[{"name":"spu", "port":22919, "scope":"Cluster", "protocol":"GRPC"}, {"name":"fed", "port":22914, "scope":"Cluster", "protocol":"GRPC"}, {"name":"global", "port":22915, "scope":"Domain", "protocol":"GRPC"}, {"name":"node-manager", "port":22916, "scope":"Local", "protocol":"GRPC"}, {"name":"object-manager", "port":22917, "scope":"Local", "protocol":"GRPC"}, {"name":"client-server", "port":22918, "scope":"Local", "protocol":"GRPC"}]}',
     }
 
     kuscia_config = KusciaTaskConfig.from_json(kuscia_request_json)
     assert len(kuscia_config.table_attrs) == 1
     assert kuscia_config.table_attrs[0].table_id == "alice-table"
     assert len(kuscia_config.table_attrs[0].column_attrs) == 25
-    assert kuscia_config.table_attrs[0].column_attrs[0].col_name == 'id1'
-    assert kuscia_config.table_attrs[0].column_attrs[0].col_type == 'id'
+    assert kuscia_config.table_attrs[0].column_attrs[0].col_name == "id1"
+    assert kuscia_config.table_attrs[0].column_attrs[0].col_type == "id"
 
 
 def test_get_sf_cluster_config():
@@ -259,7 +259,7 @@ def test_get_sf_cluster_config():
 
     sf_cluster_config = get_sf_cluster_config(kuscia_config)
 
-    logging.warning(f'sf_cluster_config: {sf_cluster_config}')
+    logging.warning(f"sf_cluster_config: {sf_cluster_config}")
     assert list(sf_cluster_config.public_config.ray_fed_config.addresses) == [
         "0.0.0.0:1234",
         "1.2.3.5:80",

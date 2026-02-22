@@ -43,4 +43,4 @@ class SPUComparator(DeviceComparator):
     def __post_init__(self):
         assert isinstance(
             self.device, SPU
-        ), f'Accepts SPU only but got {type(self.device)}.'
+        ), f"Accepts SPU only but got {type(self.device)}."

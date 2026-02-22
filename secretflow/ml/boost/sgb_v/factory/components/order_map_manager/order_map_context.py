@@ -45,7 +45,7 @@ class OrderMapContext:
             leaf nodes' selects
         """
         # order_map: record sample belong to which bucket of all features.
-        self.order_map = np.empty((x.shape[0], x.shape[1]), dtype=np.int8, order='F')
+        self.order_map = np.empty((x.shape[0], x.shape[1]), dtype=np.int8, order="F")
         # split_points: bucket split points for all features.
         self.split_points = []
         # feature_buckets: how many buckets in each feature.
@@ -60,7 +60,7 @@ class OrderMapContext:
             total_buckets = len(split_point)
             while total_buckets <= self.buckets:
                 total_buckets += 1
-                split_point.append(float('inf'))
+                split_point.append(float("inf"))
             self.feature_buckets.append(total_buckets)
             self.split_points.append(split_point)
 

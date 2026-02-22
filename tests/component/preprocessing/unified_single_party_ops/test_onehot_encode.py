@@ -155,11 +155,11 @@ def test_onehot_encode(sf_production_setup_comp):
         inplace_a_out = orc.read_table(storage.get_reader(inplace_encode_path))
 
         assert set(a_out.column_names) == set(inplace_a_out.column_names)
-        col1 = a_out.column('y').combine_chunks()
-        col2 = inplace_a_out.column('y').combine_chunks()
+        col1 = a_out.column("y").combine_chunks()
+        col2 = inplace_a_out.column("y").combine_chunks()
         diff = col1.diff(col2)
 
-        logging.debug(f'diff {diff}')
+        logging.debug(f"diff {diff}")
 
         for col in a_out.column_names:
             assert a_out.column(col).equals(
@@ -221,74 +221,74 @@ def test_onehot_encode_fit():
             "drop": "no_drop",
             "min_frequency": 0,
             "expected": {
-                'id1': [[str(i)] for i in range(17)],
-                'a1': [['K'], ['F'], [''], ['M'], ['N']],
-                'a2': [[0.1], [0.2], [0.3], [0.4]],
-                'a3': [[1]],
-                'y': [[0]],
+                "id1": [[str(i)] for i in range(17)],
+                "a1": [["K"], ["F"], [""], ["M"], ["N"]],
+                "a2": [[0.1], [0.2], [0.3], [0.4]],
+                "a3": [[1]],
+                "y": [[0]],
             },
         },
         {
             "drop": "no_drop",
             "min_frequency": 0.1,
             "expected": {
-                'id1': [[str(i) for i in range(17)]],
-                'a1': [['K'], ['F', '', 'M', 'N']],
-                'a2': [[0.1], [0.2], [0.3], [0.4]],
-                'a3': [[1]],
-                'y': [[0]],
+                "id1": [[str(i) for i in range(17)]],
+                "a1": [["K"], ["F", "", "M", "N"]],
+                "a2": [[0.1], [0.2], [0.3], [0.4]],
+                "a3": [[1]],
+                "y": [[0]],
             },
         },
         {
             "drop": "mode",
             "min_frequency": 0,
             "expected": {
-                'id1': [[str(i + 1)] for i in range(16)],
-                'a1': [['F'], [''], ['M'], ['N']],
-                'a2': [[0.2], [0.3], [0.4]],
-                'a3': [],
-                'y': [],
+                "id1": [[str(i + 1)] for i in range(16)],
+                "a1": [["F"], [""], ["M"], ["N"]],
+                "a2": [[0.2], [0.3], [0.4]],
+                "a3": [],
+                "y": [],
             },
         },
         {
             "drop": "mode",
             "min_frequency": 0.1,
             "expected": {
-                'id1': [[str(i + 1) for i in range(16)]],
-                'a1': [['F', '', 'M', 'N']],
-                'a2': [[0.2], [0.3], [0.4]],
-                'a3': [],
-                'y': [],
+                "id1": [[str(i + 1) for i in range(16)]],
+                "a1": [["F", "", "M", "N"]],
+                "a2": [[0.2], [0.3], [0.4]],
+                "a3": [],
+                "y": [],
             },
         },
         {
             "drop": "first",
             "min_frequency": 0,
             "expected": {
-                'id1': [[str(i + 1)] for i in range(16)],
-                'a1': [['F'], [''], ['M'], ['N']],
-                'a2': [[0.2], [0.3], [0.4]],
-                'a3': [],
-                'y': [],
+                "id1": [[str(i + 1)] for i in range(16)],
+                "a1": [["F"], [""], ["M"], ["N"]],
+                "a2": [[0.2], [0.3], [0.4]],
+                "a3": [],
+                "y": [],
             },
         },
         {
             "drop": "first",
             "min_frequency": 0.1,
             "expected": {
-                'id1': [[str(i + 1) for i in range(16)]],
-                'a1': [['F', '', 'M', 'N']],
-                'a2': [[0.2], [0.3], [0.4]],
-                'a3': [],
-                'y': [],
+                "id1": [[str(i + 1) for i in range(16)]],
+                "a1": [["F", "", "M", "N"]],
+                "a2": [[0.2], [0.3], [0.4]],
+                "a3": [],
+                "y": [],
             },
         },
     ]
 
     for item in test_datas:
-        drop = item['drop']
-        min_frequency = item['min_frequency']
+        drop = item["drop"]
+        min_frequency = item["min_frequency"]
         onehot_rules, drop_rules = _onehot_encode_fit(df, drop, min_frequency)
         assert (
-            onehot_rules == item['expected']
+            onehot_rules == item["expected"]
         ), f"drop: {drop}, min_frequency: {min_frequency}, rules: {onehot_rules}, drop_rules: {drop_rules}"

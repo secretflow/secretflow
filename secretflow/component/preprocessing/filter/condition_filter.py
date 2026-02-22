@@ -37,13 +37,13 @@ from secretflow.device import PYU
 from secretflow.utils.errors import InvalidArgumentError, InvalidStateError
 
 comparator_mapping = {
-    '==': lambda x, y: pc.equal(x, y),
-    '<': lambda x, y: pc.less(x, y),
-    '<=': lambda x, y: pc.less_equal(x, y),
-    '>': lambda x, y: pc.greater(x, y),
-    '>=': lambda x, y: pc.greater_equal(x, y),
-    'IN': lambda x, y: pc.is_in(x, y),
-    'NOTNULL': lambda x, _: pc.is_valid(x),
+    "==": lambda x, y: pc.equal(x, y),
+    "<": lambda x, y: pc.less(x, y),
+    "<=": lambda x, y: pc.less_equal(x, y),
+    ">": lambda x, y: pc.greater(x, y),
+    ">=": lambda x, y: pc.greater_equal(x, y),
+    "IN": lambda x, y: pc.is_in(x, y),
+    "NOTNULL": lambda x, _: pc.is_valid(x),
 }
 
 
@@ -95,16 +95,16 @@ def apply(
 
 @register(domain="data_filter", version="1.0.0")
 class ConditionFilter(Component):
-    '''
+    """
     Filter the table based on a single column's values and condition.
     Warning: the party responsible for condition filtering will directly send the sample distribution to other participants.
     Malicious participants can obtain the distribution of characteristics by repeatedly calling with different filtering values.
     Audit the usage of this component carefully.
-    '''
+    """
 
     comparator: str = Field.attr(
         desc="Comparator to use for comparison. Must be one of '==','<','<=','>','>=','IN','NOTNULL' ",
-        choices=['==', '<', '<=', '>', '>=', 'IN', 'NOTNULL'],
+        choices=["==", "<", "<=", ">", ">=", "IN", "NOTNULL"],
     )
     bound_value: str = Field.attr(
         desc="Input a value for comparison; if the comparison condition is IN, you can input multiple values separated by ','; if the comparison condition is NOTNULL, the input is not needed.",

@@ -126,11 +126,11 @@ def apply_case_when_rule(table: sc.Table, rules: CaseWhenRule) -> sc.Table:
     return table
 
 
-@register(domain='preprocessing', version='1.0.0')
+@register(domain="preprocessing", version="1.0.0")
 class CaseWhen(PreprocessingMixin, Component, IServingExporter):
-    '''
+    """
     case_when
-    '''
+    """
 
     rules: CaseWhenRule = Field.custom_attr(desc="input CaseWhen rules")
     input_ds: Input = Field.input(

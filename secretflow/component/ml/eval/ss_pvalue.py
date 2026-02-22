@@ -43,12 +43,12 @@ from secretflow.utils.sigmoid import SigType
 
 @register(domain="ml.eval", version="1.0.0", name="ss_pvalue")
 class SSPValue(Component):
-    '''
+    """
     Calculate P-Value for LR model training on vertical partitioning dataset by using secret sharing.
 
     For large dataset(large than 10w samples & 200 features),
     recommend to use [Ring size: 128, Fxp: 40] options for SPU device.
-    '''
+    """
 
     input_model: Input = Field.input(
         desc="Input model.",
@@ -73,13 +73,13 @@ class SSPValue(Component):
 
         assert pv.shape[0] == len(feature_names) + 1  # last one is bias
         feature_names = [f"feature/{name}" for name in feature_names]
-        feature_names.append('bias')
+        feature_names.append("bias")
         desc = {name: value for name, value in zip(feature_names, pv)}
 
         system_info = self.input_ds.system_info
         r = Reporter(name="pvalue", desc="pvalue list", system_info=system_info)
         r.add_tab(desc)
-        logging.info(f'\n--\n*report* \n\n{MessageToJson(r.report())}\n--\n')
+        logging.info(f"\n--\n*report* \n\n{MessageToJson(r.report())}\n--\n")
         self.report.data = r.to_distdata()
 
     def sgd_pvalue(self, ctx: Context) -> tuple[list[float], list[str]]:

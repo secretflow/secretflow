@@ -15,5 +15,5 @@
 from .model import SSRegression
 
 __all__ = [
-    'SSRegression',
+    "SSRegression",
 ]

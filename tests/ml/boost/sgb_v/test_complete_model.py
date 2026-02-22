@@ -32,14 +32,14 @@ from secretflow.ml.boost.sgb_v.core.distributed_tree.distributed_tree import (
 from secretflow.ml.boost.sgb_v.model import load_model
 from tests.sf_fixtures import SFProdParams
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
 
 def _gen_sgb_model_complete_model_and_x(devices):
     from sklearn.datasets import load_breast_cancer
 
     ds = load_breast_cancer()
-    x, y = ds['data'], ds['target']
+    x, y = ds["data"], ds["target"]
 
     v_data = FedNdarray(
         {
@@ -79,7 +79,7 @@ def _run_sgb(
     audit_dict={},
     auc_bar=0.9,
     mse_hat=1,
-    tree_grow_method='level',
+    tree_grow_method="level",
     enable_goss=False,
     num_boost_round=2,
     num_tree_cap=2,
@@ -88,31 +88,31 @@ def _run_sgb(
     sgb = Sgb(env.heu)
     start = time.perf_counter()
     params = {
-        'tree_growing_method': tree_grow_method,
+        "tree_growing_method": tree_grow_method,
         # for first_tree_with_label_holder_feature is True
-        'num_boost_round': num_boost_round + 1,
-        'max_depth': 3,
-        'max_leaf': 2**3,
-        'sketch_eps': 0.25,
-        'objective': 'logistic' if logistic else 'linear',
-        'reg_lambda': 0.1,
-        'gamma': 1,
-        'rowsample_by_tree': subsample,
-        'colsample_by_tree': colsample,
-        'base_score': 0.5,
-        'audit_paths': audit_dict,
-        'seed': 42,
-        'fixed_point_parameter': 20,
+        "num_boost_round": num_boost_round + 1,
+        "max_depth": 3,
+        "max_leaf": 2**3,
+        "sketch_eps": 0.25,
+        "objective": "logistic" if logistic else "linear",
+        "reg_lambda": 0.1,
+        "gamma": 1,
+        "rowsample_by_tree": subsample,
+        "colsample_by_tree": colsample,
+        "base_score": 0.5,
+        "audit_paths": audit_dict,
+        "seed": 42,
+        "fixed_point_parameter": 20,
         # Turn these two options on for benchmarking or debugging.
         # Verbose mode will produce more logging information.
-        'verbose': False,
+        "verbose": False,
         # Wait execution mode will syncronize operations and therefore reduce performance, but we now can measure component's time more accurately.
         # Wait execution mode execution time is expected to be slower than that when use in production.
-        'wait_execution': False,
-        'first_tree_with_label_holder_feature': True,
-        'enable_goss': enable_goss,
-        'enable_quantization': True,  # surprisingly, quantization may also improve auc on some datasets
-        'enable_packbits': False,
+        "wait_execution": False,
+        "first_tree_with_label_holder_feature": True,
+        "enable_goss": enable_goss,
+        "enable_quantization": True,  # surprisingly, quantization may also improve auc on some datasets
+        "enable_packbits": False,
     }
     model = sgb.train(params, v_data, label_data)
     reveal(model.trees[-1])

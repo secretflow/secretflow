@@ -36,7 +36,3 @@ def _test_reveal(devices):
 @pytest.mark.mpc
 def test_reveal_multiple_driver(sf_production_setup_devices):
     _test_reveal(sf_production_setup_devices)
-
-
-def test_reveal_single_driver(sf_simulation_setup_devices):
-    _test_reveal(sf_simulation_setup_devices)

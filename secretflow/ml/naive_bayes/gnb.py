@@ -36,7 +36,7 @@ class GNB(_ModelBase):
 
     def _to_spu_dataset(self, x: Union[FedNdarray, VDataFrame]) -> SPUObject:
         x, _ = self._prepare_dataset(x)
-        return self.spu(self._concatenate, static_argnames=('axis'))(
+        return self.spu(self._concatenate, static_argnames=("axis"))(
             self._to_spu(x),
             axis=1,
         )
@@ -49,12 +49,12 @@ class GNB(_ModelBase):
         var_smoothing=1e-6,
     ) -> None:
         if n_classes is None:
-            raise ValueError('n_classes should be specified')
+            raise ValueError("n_classes should be specified")
         if not isinstance(n_classes, int) or n_classes <= 1:
-            raise ValueError(f'n_classes:{n_classes} should be greater than 1')
+            raise ValueError(f"n_classes:{n_classes} should be greater than 1")
         if len(y.shape) == 2:
             if y.shape[1] != 1:
-                raise ValueError('y should be 1D array')
+                raise ValueError("y should be 1D array")
         spu_x = self._to_spu_dataset(x)
         spu_y = self._to_spu(y)[0]
 
@@ -64,14 +64,14 @@ class GNB(_ModelBase):
 
         spu_y = self.spu(adjust_label_shape)(spu_y)
 
-        logging.info(f'fit model..., x_shape:{x.shape} y_shape:{y.shape}')
+        logging.info(f"fit model..., x_shape:{x.shape} y_shape:{y.shape}")
         classes = jnp.arange(n_classes)
         model = naive_bayes.GaussianNB(classes_=classes, var_smoothing=var_smoothing)
         self.model = self.spu(_fit)(spu_x, spu_y, model)
         wait([self.model])
 
     def predict(self, x: Union[FedNdarray, VDataFrame]) -> SPUObject:
-        assert hasattr(self, 'model'), 'please fit model first'
+        assert hasattr(self, "model"), "please fit model first"
 
         spu_x = self._to_spu_dataset(x)
 

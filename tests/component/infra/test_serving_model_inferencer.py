@@ -41,7 +41,7 @@ from secretflow.component.serving_model_inferencer.serving_model_inferencer impo
 
 def save_tar_to_buffer(src_tar_path, buffer):
     try:
-        with open(src_tar_path, 'rb') as f_src:
+        with open(src_tar_path, "rb") as f_src:
             shutil.copyfileobj(f_src, buffer)
         logging.warning(f"{src_tar_path} successfully copy")
     except Exception as e:
@@ -214,7 +214,7 @@ def test_inferencer(sf_production_setup_comp, save_label, save_features):
 
     output_vt = IndividualTable()
     assert res.outputs[0].meta.Unpack(output_vt)
-    assert output_vt.line_count == 1, f'output_vt.line_count != 1'
+    assert output_vt.line_count == 1, f"output_vt.line_count != 1"
 
     if self_party == "alice":
         out0 = VTable.from_distdata(res.outputs[0])
@@ -378,6 +378,6 @@ def test_is_safe_path():
     pred_path = "../pred.csv"
     with pytest.raises(
         AssertionError,
-        match=f'path: {pred_path} contains .., which is unsafe',
+        match=f"path: {pred_path} contains .., which is unsafe",
     ):
         get_output_pred_path(base_path, pred_path)

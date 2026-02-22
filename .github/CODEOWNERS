@@ -1,4 +1,5 @@
 # See https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
 # for more info about CODEOWNERS file
 
 * @ian-huu @warriorpaw @rivertalk
@@ -18,7 +19,6 @@ tests/security/ @Jamie-Cui @warriorpaw
 secretflow/ml/boost/ @warriorpaw @da-niao-dan
 tests/ml/boost/ @warriorpaw @da-niao-dan
 
-secretflow_fl/ml/boost/homo_boost/ @ian-huu
 tests/ml/boost/homo_boost/ @ian-huu
 
 secretflow/ml/linear/ @warriorpaw @ian-huu
@@ -30,8 +30,8 @@ tests/ml/nn/ @ian-huu
 secretflow/stats/ @warriorpaw @da-niao-dan
 tests/stats/ @warriorpaw @da-niao-dan
 
-secretflow/distributed/  @zhouaihui @ian-huu
-tests/distributed/  @zhouaihui @ian-huu
+secretflow/distributed/ @zhouaihui @ian-huu
+tests/distributed/ @zhouaihui @ian-huu
 
 secretflow/protos/ @rivertalk
 

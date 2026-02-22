@@ -180,11 +180,11 @@ def test_parse_columns():
     columns = ExprConditionFilter.parse_columns(
         "(age > 20 AND age < 30) OR (type = 2) OR (name = 1)"
     )
-    assert set(columns) == set(['age', 'type', 'name'])
+    assert set(columns) == set(["age", "type", "name"])
     sql = "(field_A > -3.1415926 and field_A <3.1415926 and field_B =1) or (field_C >= 100 and field_C <= 1000 and field_B != 1) or (field_D ='match_1' and field_E != 'MATCH_2' and field_B =1)"
     columns = ExprConditionFilter.parse_columns(sql)
-    assert set(columns) == set(['field_A', 'field_B', 'field_C', 'field_D', 'field_E'])
+    assert set(columns) == set(["field_A", "field_B", "field_C", "field_D", "field_E"])
     columns = ExprConditionFilter.parse_columns(
         "ABS(level - 10) < 1 AND name LIKE 'XX%'"
     )
-    assert set(columns) == set(['level', 'name'])
+    assert set(columns) == set(["level", "name"])

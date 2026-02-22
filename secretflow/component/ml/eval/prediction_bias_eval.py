@@ -37,9 +37,9 @@ from secretflow.stats.prediction_bias_eval import prediction_bias_eval
 
 @register(domain="ml.eval", version="1.0.0", name="prediction_bias_eval")
 class PredictionBiasEval(Component):
-    '''
+    """
     Calculate prediction bias, ie. average of predictions - average of labels.
-    '''
+    """
 
     bucket_num: int = Field.attr(
         desc="Num of bucket.",
@@ -138,5 +138,5 @@ class PredictionBiasEval(Component):
         system_info = self.input_ds.system_info
         r = Reporter(name="Prediction Bias Report", system_info=system_info)
         r.add_tab(tbl_div)
-        logging.info(f'\n--\n*report* \n\n{MessageToJson(r.report())}\n--\n')
+        logging.info(f"\n--\n*report* \n\n{MessageToJson(r.report())}\n--\n")
         self.report.data = r.to_distdata()

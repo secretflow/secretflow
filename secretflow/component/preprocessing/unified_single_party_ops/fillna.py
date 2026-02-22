@@ -162,9 +162,9 @@ def fit_col(
 
 @register(domain="preprocessing", version="1.0.0", name="fillna")
 class FillNA(PreprocessingMixin, Component, IServingExporter):
-    '''
+    """
     Fill null/nan or other specificed outliers in dataset
-    '''
+    """
 
     nan_is_null: bool = Field.attr(
         desc="Whether floating-point NaN values are considered null, take effect with float columns",

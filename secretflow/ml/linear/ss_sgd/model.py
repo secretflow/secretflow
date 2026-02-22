@@ -40,21 +40,21 @@ from secretflow.utils.sigmoid import SigType, sigmoid
 
 @unique
 class Penalty(Enum):
-    NONE = 'None'
-    L1 = 'l1'  # not supported
-    L2 = 'l2'
+    NONE = "None"
+    L1 = "l1"  # not supported
+    L2 = "l2"
 
 
 class Strategy(Enum):
-    NAIVE_SGD = 'naive_sgd'
-    POLICY_SGD = 'policy_sgd'
+    NAIVE_SGD = "naive_sgd"
+    POLICY_SGD = "policy_sgd"
 
 
-'''
+"""
 stateless functions use in LR training.
 please keep functions stateless to make jax happy
 see https://jax.readthedocs.io/en/latest/jax-101/07-state.html
-'''
+"""
 
 
 def _predict(
@@ -315,7 +315,7 @@ class SSRegression:
         """
         assert isinstance(
             ds, (FedNdarray, VDataFrame)
-        ), f"ds should be FedNdarray or VDataFrame"
+        ), "ds should be FedNdarray or VDataFrame"
         ds = ds if isinstance(ds, FedNdarray) else ds.values
         shapes = ds.partition_shape()
         assert len(shapes) > 0, "input dataset is empty"
@@ -359,12 +359,12 @@ class SSRegression:
         ), "y should be list or 1D array"
         assert len(self.y.partitions) == 1
 
-        assert epochs > 0, f"epochs should >0"
-        assert learning_rate > 0, f"learning_rate should >0"
-        assert batch_size > 0, f"batch_size should >0"
-        assert penalty != 'l1', "not support L1 penalty for now"
+        assert epochs > 0, "epochs should >0"
+        assert learning_rate > 0, "learning_rate should >0"
+        assert batch_size > 0, "batch_size should >0"
+        assert penalty != "l1", "not support L1 penalty for now"
         if penalty == Penalty.L2:
-            assert l2_norm > 0, f"l2_norm should >0 if use L2 penalty"
+            assert l2_norm > 0, "l2_norm should >0 if use L2 penalty"
 
         assert sig_type in [
             e.value for e in SigType
@@ -382,7 +382,7 @@ class SSRegression:
         if strategy == Strategy.POLICY_SGD:
             assert (
                 reg_type == RegType.Logistic
-            ), f"policy_sgd only works fine in logistic regression"
+            ), "policy_sgd only works fine in logistic regression"
 
         assert eps >= 0
         if eps > 0:
@@ -460,7 +460,7 @@ class SSRegression:
                 y, lr_total_batch = self._next_infeed_batch(self.y, infeed_step)
                 spu_x = self.spu(
                     _concatenate,
-                    static_argnames=('axis', 'enable_spu_cache', 'pad_ones'),
+                    static_argnames=("axis", "enable_spu_cache", "pad_ones"),
                 )(
                     [x.partitions[pyu].to(self.spu) for pyu in x.partitions],
                     axis=1,
@@ -473,13 +473,13 @@ class SSRegression:
             spu_w, dk_arr = self.spu(
                 _batch_update_w,
                 static_argnames=(
-                    'reg_type',
-                    'penalty',
-                    'sig_type',
-                    'total_batch',
-                    'batch_size',
-                    'strategy',
-                    'enable_spu_cache',
+                    "reg_type",
+                    "penalty",
+                    "sig_type",
+                    "total_batch",
+                    "batch_size",
+                    "strategy",
+                    "enable_spu_cache",
                 ),
                 num_returns_policy=SPUCompilerNumReturnsPolicy.FROM_USER,
                 user_specified_num_returns=2,
@@ -509,7 +509,7 @@ class SSRegression:
     ):
         save_w = [self.spu_w]
         train_state = {
-            'epoch_idx': epoch_idx,
+            "epoch_idx": epoch_idx,
         }
         logging.info(f"epoch checkpoint:\n{train_state}")
 
@@ -528,7 +528,7 @@ class SSRegression:
 
     def _convergence(self, old_w: SPUObject, current_w: SPUObject):
         spu_converged = self.spu(
-            _convergence, static_argnames=('norm_eps', 'eps_scale')
+            _convergence, static_argnames=("norm_eps", "eps_scale")
         )(old_w, current_w, norm_eps=self.norm_eps, eps_scale=self.eps_scale)
         return reveal(spu_converged)
 
@@ -539,14 +539,14 @@ class SSRegression:
         epochs: int,
         learning_rate: float = 0.1,
         batch_size: int = 1024,
-        sig_type: str = 't1',
-        reg_type: str = 'logistic',
-        penalty: str = 'None',
+        sig_type: str = "t1",
+        reg_type: str = "logistic",
+        penalty: str = "None",
         l2_norm: float = 0.5,
         eps: float = 1e-3,
         decay_epoch: int = None,
         decay_rate: float = None,
-        strategy: str = 'naive_sgd',
+        strategy: str = "naive_sgd",
         epoch_callback: Callable[[int, Tuple[Dict, List[SPUObject]]], NoReturn] = None,
         recovery_checkpoint: Tuple[Dict, List[SPUObject]] = None,
     ) -> None:
@@ -606,7 +606,7 @@ class SSRegression:
         if recovery_checkpoint:
             start_idx = self._recovery_from_checkpoint(recovery_checkpoint)
         else:
-            self.spu_w = self.spu(_init_w, static_argnames=('base', 'num_feat'))(
+            self.spu_w = self.spu(_init_w, static_argnames=("base", "num_feat"))(
                 base=0, num_feat=self.num_feat
             )
             start_idx = 0
@@ -636,14 +636,14 @@ class SSRegression:
         """
         Save fit model in LinearModel format.
         """
-        assert hasattr(self, 'spu_w'), 'please fit model first'
+        assert hasattr(self, "spu_w"), "please fit model first"
         return LinearModel(self.spu_w, self.reg_type, self.sig_type)
 
     def load_model(self, m: LinearModel) -> None:
         """
         Load LinearModel format model.
         """
-        assert isinstance(m.weights, SPUObject), 'weights should be saved as SPUObject'
+        assert isinstance(m.weights, SPUObject), "weights should be saved as SPUObject"
         self.spu_w = m.weights
         self.reg_type = m.reg_type
         self.sig_type = m.sig_type
@@ -672,7 +672,7 @@ class SSRegression:
         Return:
             pred scores in SPUObject or FedNdarray, shape (n_samples,)
         """
-        assert hasattr(self, 'spu_w'), 'please fit model first'
+        assert hasattr(self, "spu_w"), "please fit model first"
 
         x, shape = self._prepare_dataset(x)
         self.samples, self.num_feat = shape
@@ -688,7 +688,7 @@ class SSRegression:
             spu_x = [batch_x.partitions[pyu].to(self.spu) for pyu in batch_x.partitions]
             spu_pred = self.spu(
                 _predict,
-                static_argnames=('reg_type', 'sig_type', 'total_batch', 'batch_size'),
+                static_argnames=("reg_type", "sig_type", "total_batch", "batch_size"),
             )(
                 spu_x,
                 self.spu_w,
@@ -699,7 +699,7 @@ class SSRegression:
             )
             spu_preds.append(spu_pred)
 
-        pred = self.spu(_concatenate, static_argnames=('axis'))(spu_preds, axis=0)
+        pred = self.spu(_concatenate, static_argnames=("axis"))(spu_preds, axis=0)
 
         if to_pyu is not None:
             assert isinstance(to_pyu, PYU)

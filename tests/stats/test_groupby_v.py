@@ -32,17 +32,17 @@ def prod_env_and_data(sf_production_setup_devices):
 
     df_alice = pd.DataFrame(
         {
-            'a1': ['K5', 'K1', None, 'K6'],
-            'a2': ['A5', 'A1', 'A2', 'A6'],
-            'a3': [5, 1, 2, 6],
+            "a1": ["K5", "K1", None, "K6"],
+            "a2": ["A5", "A1", "A2", "A6"],
+            "a3": [5, 1, 2, 6],
         }
     )
 
     df_bob = pd.DataFrame(
         {
-            'b4': [10.2, 20.5, None, -0.4],
-            'b5': ['B3', None, 'B9', 'B4'],
-            'b6': [3, 1, 9, 4],
+            "b4": [10.2, 20.5, None, -0.4],
+            "b5": ["B3", None, "B9", "B4"],
+            "b6": [3, 1, 9, 4],
         }
     )
 
@@ -55,12 +55,12 @@ def prod_env_and_data(sf_production_setup_devices):
 
     df_cleartext = pd.DataFrame(
         {
-            'a1': ['K5', 'K1', None, 'K6'],
-            'a2': ['A5', 'A1', 'A2', 'A6'],
-            'a3': [5, 1, 2, 6],
-            'b4': [10.2, 20.5, None, -0.4],
-            'b5': ['B3', None, 'B9', 'B4'],
-            'b6': [3, 1, 9, 4],
+            "a1": ["K5", "K1", None, "K6"],
+            "a2": ["A5", "A1", "A2", "A6"],
+            "a3": [5, 1, 2, 6],
+            "b4": [10.2, 20.5, None, -0.4],
+            "b5": ["B3", None, "B9", "B4"],
+            "b6": [3, 1, 9, 4],
         }
     )
 
@@ -76,12 +76,12 @@ def prod_env_and_data(sf_production_setup_devices):
     "by",
     [
         # ["b5"],
-        ['a2', 'b5'],
+        ["a2", "b5"],
     ],
 )
 @pytest.mark.parametrize(
     "values",
-    [["a3", "b4"], ['b6']],  # non-numeric columns cannot be here
+    [["a3", "b4"], ["b6"]],  # non-numeric columns cannot be here
 )
 @pytest.mark.parametrize(
     "agg_name",
@@ -92,12 +92,12 @@ def test_groupby_agg(prod_env_and_data, by, values, agg_name):
     assert len(set(by).intersection(set(values))) == 0, "no intersection allowed"
     env, data = prod_env_and_data
     # GIVEN
-    df = data['df'][['a1', 'a2', 'a3', 'b4', 'b5', 'b6']]
+    df = data["df"][["a1", "a2", "a3", "b4", "b5", "b6"]]
     df[["a1", "a2", "b5"]] = df[["a1", "a2", "b5"]].fillna(value="0", inplace=False)
     df[["a3", "b4", "b6"]] = (
         df[["a3", "b4", "b6"]].fillna(value=0, inplace=False).astype(float)
     )
-    df_cleartext = data['df_cleartext']
+    df_cleartext = data["df_cleartext"]
     df_cleartext[["a1", "a2", "b5"]] = df_cleartext[["a1", "a2", "b5"]].fillna(
         value="0", inplace=False
     )
@@ -119,12 +119,12 @@ def test_groupby_agg(prod_env_and_data, by, values, agg_name):
     "by",
     [
         # ["b5"],
-        ['a2', 'b5'],
+        ["a2", "b5"],
     ],
 )
 @pytest.mark.parametrize(
     "values",
-    [["a3", "b4"], ['b6']],  # non-numeric columns cannot be here
+    [["a3", "b4"], ["b6"]],  # non-numeric columns cannot be here
 )
 @pytest.mark.parametrize(
     "aggs",
@@ -135,12 +135,12 @@ def test_groupby_aggs(prod_env_and_data, by, values, aggs):
     assert len(set(by).intersection(set(values))) == 0, "no intersection allowed"
     env, data = prod_env_and_data
     # GIVEN
-    df = data['df'][['a1', 'a2', 'a3', 'b4', 'b5', 'b6']]
+    df = data["df"][["a1", "a2", "a3", "b4", "b5", "b6"]]
     df[["a1", "a2", "b5"]] = df[["a1", "a2", "b5"]].fillna(value="0", inplace=False)
     df[["a3", "b4", "b6"]] = (
         df[["a3", "b4", "b6"]].fillna(value=0, inplace=False).astype(float)
     )
-    df_cleartext = data['df_cleartext']
+    df_cleartext = data["df_cleartext"]
     df_cleartext[["a1", "a2", "b5"]] = df_cleartext[["a1", "a2", "b5"]].fillna(
         value="0", inplace=False
     )

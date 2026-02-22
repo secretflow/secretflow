@@ -94,10 +94,10 @@ def ss_glm_to_generalized_linear_model_pb(
 
     public_info = json.loads(public_info)
     public_info_pb = PublicInfo()
-    public_info_pb.link = public_info['link']
-    public_info_pb.y_scale = public_info['y_scale']
+    public_info_pb.link = public_info["link"]
+    public_info_pb.y_scale = public_info["y_scale"]
 
-    offset_col = public_info['offset_col']
+    offset_col = public_info["offset_col"]
     if offset_col:
         assert len(offset_col) == 1
         offset_col = offset_col[0]
@@ -105,7 +105,7 @@ def ss_glm_to_generalized_linear_model_pb(
         offset_col = ""
     public_info_pb.offset_col = offset_col
 
-    label_col = public_info['label_col']
+    label_col = public_info["label_col"]
     if label_col:
         assert len(label_col) == 1
         label_col = label_col[0]
@@ -113,16 +113,16 @@ def ss_glm_to_generalized_linear_model_pb(
         label_col = ""
     public_info_pb.label_col = label_col
 
-    public_info_pb.fxp_exp_mode = public_info['fxp_exp_mode']
-    public_info_pb.fxp_exp_iters = public_info['fxp_exp_iters']
+    public_info_pb.fxp_exp_mode = public_info["fxp_exp_mode"]
+    public_info_pb.fxp_exp_iters = public_info["fxp_exp_iters"]
     public_info_pb.experimental_exp_prime_offset = public_info[
-        'experimental_exp_prime_offset'
+        "experimental_exp_prime_offset"
     ]
     public_info_pb.experimental_exp_prime_disable_lower_bound = public_info[
-        'experimental_exp_prime_disable_lower_bound'
+        "experimental_exp_prime_disable_lower_bound"
     ]
     public_info_pb.experimental_exp_prime_enable_upper_bound = public_info[
-        'experimental_exp_prime_enable_upper_bound'
+        "experimental_exp_prime_enable_upper_bound"
     ]
 
     generalized_linear_model = GeneralizedLinearModel()
@@ -210,19 +210,19 @@ def ss_glm_from_pb(
     new_w[-1, 0] = generalized_linear_model_pb.model.bias
 
     public_info = {}
-    public_info['link'] = generalized_linear_model_pb.public_info.link
-    public_info['y_scale'] = generalized_linear_model_pb.public_info.y_scale
-    public_info['offset_col'] = generalized_linear_model_pb.public_info.offset_col
-    public_info['label_col'] = generalized_linear_model_pb.public_info.label_col
-    public_info['fxp_exp_mode'] = generalized_linear_model_pb.public_info.fxp_exp_mode
-    public_info['fxp_exp_iters'] = generalized_linear_model_pb.public_info.fxp_exp_iters
-    public_info['experimental_exp_prime_offset'] = (
+    public_info["link"] = generalized_linear_model_pb.public_info.link
+    public_info["y_scale"] = generalized_linear_model_pb.public_info.y_scale
+    public_info["offset_col"] = generalized_linear_model_pb.public_info.offset_col
+    public_info["label_col"] = generalized_linear_model_pb.public_info.label_col
+    public_info["fxp_exp_mode"] = generalized_linear_model_pb.public_info.fxp_exp_mode
+    public_info["fxp_exp_iters"] = generalized_linear_model_pb.public_info.fxp_exp_iters
+    public_info["experimental_exp_prime_offset"] = (
         generalized_linear_model_pb.public_info.experimental_exp_prime_offset
     )
-    public_info['experimental_exp_prime_disable_lower_bound'] = (
+    public_info["experimental_exp_prime_disable_lower_bound"] = (
         generalized_linear_model_pb.public_info.experimental_exp_prime_disable_lower_bound
     )
-    public_info['experimental_exp_prime_enable_upper_bound'] = (
+    public_info["experimental_exp_prime_enable_upper_bound"] = (
         generalized_linear_model_pb.public_info.experimental_exp_prime_enable_upper_bound
     )
 

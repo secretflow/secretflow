@@ -88,7 +88,7 @@ def cut_device_object(
         end = min(i + row_size, m)
         if isinstance(obj, SPUObject):
             block = obj.device(
-                lambda x, i, end: x[i:end], static_argnames=['i', 'end']
+                lambda x, i, end: x[i:end], static_argnames=["i", "end"]
             )(obj, i=i, end=end)
         else:
             block = obj.device(lambda x, i, end: x[i:end])(obj, i=i, end=end)

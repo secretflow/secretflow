@@ -40,7 +40,7 @@ def _load_data():
         n_samples=n_samples, n_features=n_features, centers=centers
     )
     classes = jnp.unique(y)
-    assert len(classes) == centers, f'Retry or increase partial.'
+    assert len(classes) == centers, f"Retry or increase partial."
     split_idx = int(partial * len(y))
     feature_split = n_features // 2
 

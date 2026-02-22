@@ -61,7 +61,7 @@ class TEEUObject(DeviceObject):
 
     def __init__(
         self,
-        device: 'TEEU',
+        device: "TEEU",
         data: FED_OBJECT_TYPES,
     ):
         super().__init__(device)
@@ -84,9 +84,9 @@ class TEEUWorker:
 
         if auth_ca_cert:
             credentials = CredentialsConf(
-                root_ca=auth_ca_cert.encode('utf-8'),
-                private_key=tls_key.encode('utf-8') if tls_key else None,
-                cert_chain=tls_cert.encode('utf-8') if tls_cert else None,
+                root_ca=auth_ca_cert.encode("utf-8"),
+                private_key=tls_key.encode("utf-8") if tls_key else None,
+                cert_chain=tls_cert.encode("utf-8") if tls_cert else None,
             )
         else:
             credentials = None
@@ -101,7 +101,7 @@ class TEEUWorker:
         logging.basicConfig(level=get_logging_level(), format=LOG_FORMAT)
 
         logging.debug(
-            f'TEEU runs function: {func}, with args len: {len(args)}, kwargs len: {len(kwargs)}.'
+            f"TEEU runs function: {func}, with args len: {len(args)}, kwargs len: {len(kwargs)}."
         )
 
         # Auto-unboxing the ray object.
@@ -142,20 +142,20 @@ class TEEUWorker:
 def _actor_wrapper(name, num_returns):
     def wrapper(self, *args, **kwargs):
         # device object type check and unwrap
-        _num_returns = kwargs.pop('_num_returns', num_returns)
+        _num_returns = kwargs.pop("_num_returns", num_returns)
         value_flat, value_tree = jax.tree_util.tree_flatten((args, kwargs))
         for i, value in enumerate(value_flat):
             if isinstance(value, DeviceObject):
                 assert (
                     value.device == self.device
-                ), f'unexpected device object {value.device} self {self.device}'
+                ), f"unexpected device object {value.device} self {self.device}"
                 value_flat[i] = value.data
         args, kwargs = jax.tree_util.tree_unflatten(value_tree, value_flat)
 
         logging.debug(
             (
-                f'Run method {name} of actor {self.actor_class}, num_returns='
-                f'{_num_returns}, args len: {len(args)}, kwargs len: {len(kwargs)}.'
+                f"Run method {name} of actor {self.actor_class}, num_returns="
+                f"{_num_returns}, args len: {len(args)}, kwargs len: {len(kwargs)}."
             )
         )
         handle = getattr(self.data, name)
@@ -174,7 +174,7 @@ def _cls_wrapper(cls):
             logging.basicConfig(level=get_logging_level(), format=LOG_FORMAT)
 
             logging.debug(
-                f'TEEU runs function: {method}, with args len: {len(args)}, kwargs len: {len(kwargs)}.'
+                f"TEEU runs function: {method}, with args len: {len(args)}, kwargs len: {len(kwargs)}."
             )
 
             arg_flat, arg_tree = resolve_arg_flat_tree(args, kwargs)
@@ -218,17 +218,17 @@ def _cls_wrapper(cls):
             logging.basicConfig(level=get_logging_level(), format=LOG_FORMAT)
             from sdc.auth_frame import AuthFrame, CredentialsConf
 
-            auth_host = kwargs.pop('auth_host')
-            auth_mr_enclave = kwargs.pop('auth_mr_enclave')
-            auth_ca_cert = kwargs.pop('auth_ca_cert')
-            tls_cert = kwargs.pop('tls_cert')
-            tls_key = kwargs.pop('tls_key')
-            simluation = kwargs.pop('simluation')
+            auth_host = kwargs.pop("auth_host")
+            auth_mr_enclave = kwargs.pop("auth_mr_enclave")
+            auth_ca_cert = kwargs.pop("auth_ca_cert")
+            tls_cert = kwargs.pop("tls_cert")
+            tls_key = kwargs.pop("tls_key")
+            simluation = kwargs.pop("simluation")
             if auth_ca_cert:
                 credentials = CredentialsConf(
-                    root_ca=auth_ca_cert.encode('utf-8'),
-                    private_key=tls_key.encode('utf-8') if tls_key else None,
-                    cert_chain=tls_cert.encode('utf-8') if tls_cert else None,
+                    root_ca=auth_ca_cert.encode("utf-8"),
+                    private_key=tls_key.encode("utf-8") if tls_key else None,
+                    cert_chain=tls_cert.encode("utf-8") if tls_cert else None,
                 )
             else:
                 credentials = None
@@ -240,7 +240,7 @@ def _cls_wrapper(cls):
             )
 
             logging.debug(
-                f'TEEU runs function: __init__, with args len: {len(args)}, kwargs len: {len(kwargs)}.'
+                f"TEEU runs function: __init__, with args len: {len(args)}, kwargs len: {len(kwargs)}."
             )
 
             # Auto-unboxing the ray object.
@@ -281,7 +281,7 @@ def _cls_wrapper(cls):
     methods = inspect.getmembers(ClassWithAuth, inspect.isfunction)
     # getmembers / getattr will strip methods' staticmethod decorator.
     for name, method in methods:
-        if name == '__init__':
+        if name == "__init__":
             continue
 
         wrapped_method = wraps(method)(ray_get_wrapper(method))
@@ -379,8 +379,8 @@ class TEEU(Device):
             )
             logging.debug(
                 (
-                    f'TEEU remote function: {func}, num_returns={num_returns}, '
-                    f'args len: {len(args)}, kwargs len: {len(kwargs)}.'
+                    f"TEEU remote function: {func}, num_returns={num_returns}, "
+                    f"args len: {len(args)}, kwargs len: {len(kwargs)}."
                 )
             )
             if _num_returns == 1:
@@ -402,20 +402,20 @@ class TEEU(Device):
 
                 methods = inspect.getmembers(ActorClass, inspect.isfunction)
                 for name, method in methods:
-                    if name == '__init__':
-                        logging.info(f'Create proxy actor {inspect.signature(method)}.')
-                logging.info(f'Create proxy actor {ActorClass} with party {party}.')
+                    if name == "__init__":
+                        logging.info(f"Create proxy actor {inspect.signature(method)}.")
+                logging.info(f"Create proxy actor {ActorClass} with party {party}.")
                 data = sfd.remote(ActorClass).party(party)
 
                 party_cert = global_state.party_certs().get(
                     party, global_state.PartyCert()
                 )
-                kwargs['auth_host'] = global_state.auth_manager_host()
-                kwargs['auth_mr_enclave'] = global_state.auth_manager_mr_enclave()
-                kwargs['auth_ca_cert'] = global_state.auth_manager_ca_cert()
-                kwargs['tls_cert'] = party_cert.cert
-                kwargs['tls_key'] = party_cert.key
-                kwargs['simluation'] = global_state.tee_simulation()
+                kwargs["auth_host"] = global_state.auth_manager_host()
+                kwargs["auth_mr_enclave"] = global_state.auth_manager_mr_enclave()
+                kwargs["auth_ca_cert"] = global_state.auth_manager_ca_cert()
+                kwargs["tls_cert"] = party_cert.cert
+                kwargs["tls_key"] = party_cert.key
+                kwargs["simluation"] = global_state.tee_simulation()
 
                 args, kwargs = jax.tree_util.tree_map(
                     lambda arg: arg.data if isinstance(arg, DeviceObject) else arg,
@@ -427,15 +427,15 @@ class TEEU(Device):
 
         methods = inspect.getmembers(cls, inspect.isfunction)
         for name, method in methods:
-            if name == '__init__':
+            if name == "__init__":
                 continue
             sig = inspect.signature(method)
             if sig.return_annotation is None or sig.return_annotation == sig.empty:
                 num_returns = 1
             else:
                 if (
-                    hasattr(sig.return_annotation, '_name')
-                    and sig.return_annotation._name == 'Tuple'
+                    hasattr(sig.return_annotation, "_name")
+                    and sig.return_annotation._name == "Tuple"
                 ):
                     num_returns = len(sig.return_annotation.__args__)
                 elif isinstance(sig.return_annotation, tuple):

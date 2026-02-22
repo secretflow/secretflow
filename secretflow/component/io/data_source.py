@@ -35,9 +35,9 @@ from secretflow.device import PYU, reveal
 
 @register(domain="io", version="1.0.0")
 class DataSource(Component):
-    '''
+    """
     import data from an external data source
-    '''
+    """
 
     party: str = Field.party_attr(desc="")
     uri: str = Field.attr(

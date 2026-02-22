@@ -18,8 +18,8 @@ from .secure_aggregator import SecureAggregator
 from .spu_aggregator import SPUAggregator
 
 __all__ = [
-    'Aggregator',
-    'SecureAggregator',
-    'PlainAggregator',
-    'SPUAggregator',
+    "Aggregator",
+    "SecureAggregator",
+    "PlainAggregator",
+    "SPUAggregator",
 ]

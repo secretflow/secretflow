@@ -18,7 +18,7 @@ if sys.version_info.major == 3 and sys.version_info.minor == 8:
     # python 3.8
     import pkg_resources
 
-    package_name = 'secretflow-ray'
+    package_name = "secretflow-ray"
     try:
         cool_package_dist_info = pkg_resources.get_distribution(package_name)
     except pkg_resources.DistributionNotFound:
@@ -54,30 +54,30 @@ from .device import (
     to,
     wait,
 )
-from .version import __version__  # type: ignore
+from .version import __version__  # noqa: F401
 
 __all__ = [
-    'kuscia',
-    'data',
-    'device',
-    'ml',
-    'preprocessing',
-    'security',
-    'utils',
-    'HEU',
-    'PYU',
-    'SPU',
-    'TEEU',
-    'Device',
-    'DeviceObject',
-    'HEUObject',
-    'PYUObject',
-    'SPUObject',
-    'init',
-    'proxy',
-    'reveal',
-    'shutdown',
-    'to',
-    'wait',
-    'component',
+    "kuscia",
+    "data",
+    "device",
+    "ml",
+    "preprocessing",
+    "security",
+    "utils",
+    "HEU",
+    "PYU",
+    "SPU",
+    "TEEU",
+    "Device",
+    "DeviceObject",
+    "HEUObject",
+    "PYUObject",
+    "SPUObject",
+    "init",
+    "proxy",
+    "reveal",
+    "shutdown",
+    "to",
+    "wait",
+    "component",
 ]

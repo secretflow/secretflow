@@ -49,22 +49,22 @@ class HEUObject(DeviceObject):
         self.location = location_party
 
     def __str__(self):
-        return f'is_plain:{self.is_plain}, location:{self.location}, {self.data}'
+        return f"is_plain:{self.is_plain}, location:{self.location}, {self.data}"
 
     def __add__(self, other):
-        return dispatch('add', self, other)
+        return dispatch("add", self, other)
 
     def __sub__(self, other):
-        return dispatch('sub', self, other)
+        return dispatch("sub", self, other)
 
     def __mul__(self, other):
-        return dispatch('mul', self, other)
+        return dispatch("mul", self, other)
 
     def __matmul__(self, other):
-        return dispatch('matmul', self, other)
+        return dispatch("matmul", self, other)
 
     def __rmatmul__(self, other):
-        return dispatch('matmul', self, other)
+        return dispatch("matmul", self, other)
 
     def __getitem__(self, item):
         item = jax.tree_util.tree_map(
@@ -225,7 +225,7 @@ class HEUObject(DeviceObject):
         )
 
     def serialize_to_pyu(self, pyu: PYU):
-        assert isinstance(pyu, PYU), f'Expect a PYU but got {type(pyu)}.'
+        assert isinstance(pyu, PYU), f"Expect a PYU but got {type(pyu)}."
         assert (
             self.location == pyu.party
         ), f'Only supports with the same party, {self.location} vs {pyu.party}"'

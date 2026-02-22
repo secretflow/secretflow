@@ -62,10 +62,6 @@ def test_scalar_prod(sf_production_setup_devices):
     _test_scalar(sf_production_setup_devices)
 
 
-def test_scalar_sim(sf_simulation_setup_devices):
-    _test_scalar(sf_simulation_setup_devices)
-
-
 def _test_ndarray(devices):
     x = devices.alice(np.random.uniform)(-10, 10, (3, 4))
     x_ = x.to(devices.spu)
@@ -79,15 +75,11 @@ def test_ndarray_prod(sf_production_setup_devices):
     _test_ndarray(sf_production_setup_devices)
 
 
-def test_ndarray_sim(sf_simulation_setup_devices):
-    _test_ndarray(sf_simulation_setup_devices)
-
-
 def _test_pytree(devices):
     x = devices.alice(
         lambda: [
             [np.random.rand(3, 4), np.random.rand(4, 5)],
-            {'weights': [1.0, 2.0]},
+            {"weights": [1.0, 2.0]},
         ]
     )()
     x_ = x.to(devices.spu)
@@ -109,10 +101,6 @@ def test_pytree_prod(sf_production_setup_devices):
     _test_pytree(sf_production_setup_devices)
 
 
-def test_pytree_sim(sf_simulation_setup_devices):
-    _test_pytree(sf_simulation_setup_devices)
-
-
 def _test_to_heu(devices):
     x = devices.alice(np.random.uniform)(-10, 10, (30, 40))
     x_spu = x.to(devices.spu)
@@ -131,10 +119,6 @@ def _test_to_heu(devices):
 @pytest.mark.mpc
 def test_to_heu_prod(sf_production_setup_devices):
     _test_to_heu(sf_production_setup_devices)
-
-
-def test_to_heu_sim(sf_simulation_setup_devices):
-    _test_to_heu(sf_simulation_setup_devices)
 
 
 def _test_dump_load(devices):
@@ -163,7 +147,3 @@ def _test_dump_load(devices):
 @pytest.mark.mpc
 def test_dump_load_prod(sf_production_setup_devices):
     _test_dump_load(sf_production_setup_devices)
-
-
-def test_dump_load_sim(sf_simulation_setup_devices):
-    _test_dump_load(sf_simulation_setup_devices)

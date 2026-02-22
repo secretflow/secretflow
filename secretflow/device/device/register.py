@@ -58,7 +58,7 @@ class Registrar:
 
         if name in self._ops[device_type]:
             raise KeyError(
-                f'device: {device_type}, op: {name} has already been registered'
+                f"device: {device_type}, op: {name} has already been registered"
             )
         self._ops[device_type][name] = op
 
@@ -76,7 +76,7 @@ class Registrar:
             Kernel execution result.
         """
         if name not in self._ops[device_type]:
-            raise KeyError(f'device: {device_type}, op: {name} not registered')
+            raise KeyError(f"device: {device_type}, op: {name} not registered")
         return self._ops[device_type][name](*args, **kwargs)
 
 

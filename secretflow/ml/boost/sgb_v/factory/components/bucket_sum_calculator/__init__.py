@@ -15,4 +15,4 @@
 from .bucket_sum_calculator import BucketSumCalculator
 from .leaf_wise_bucket_sum_calculator import LeafWiseBucketSumCalculator
 
-__all__ = ['BucketSumCalculator', 'LeafWiseBucketSumCalculator']
+__all__ = ["BucketSumCalculator", "LeafWiseBucketSumCalculator"]

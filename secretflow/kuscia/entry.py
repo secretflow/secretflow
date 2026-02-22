@@ -85,9 +85,9 @@ def download_dist_data_from_dp(
             )
         data_ref_type = data_ref_type.pop()
         # download csv, TODO: use DP SDK instead.
-        if data_ref_type == 'csv':
+        if data_ref_type == "csv":
             file_format = FileFormat.CSV
-        elif data_ref_type == 'orc':
+        elif data_ref_type == "orc":
             file_format = FileFormat.ORC
         else:
             raise AttributeError(f"unrecognized format {data_ref_type} for {data_type}")
@@ -115,7 +115,7 @@ def download_dist_data_from_dp(
         )
         if need_untar:
             with tarfile.open(path, "r:gz") as tar:
-                tar.extractall(storage_config.local_fs.wd, filter='data')
+                tar.extractall(storage_config.local_fs.wd, filter="data")
         for data_ref in party_data_refs:
             file_path = os.path.join(storage_config.local_fs.wd, data_ref.uri)
             assert os.path.isfile(file_path), f"missing file {data_ref.uri}"
@@ -125,7 +125,7 @@ def get_table_info_from_table_attr(
     task_conf: KusciaTaskConfig, domaindata_id: str
 ) -> TableAttr:
     if not task_conf.table_attrs:
-        logging.info(f"no table_attrs")
+        logging.info("no table_attrs")
         return None
     for table_attr in task_conf.table_attrs:
         if table_attr.table_id == domaindata_id:
@@ -145,8 +145,8 @@ def domaindata_id_to_dist_data(
     partition_spec: str = "",
     skip_download_dataset: bool = False,
 ):
-    if domaindata_id == '':
-        return DistData(name='', type=str(DistDataType.NULL))
+    if domaindata_id == "":
+        return DistData(name="", type=str(DistDataType.NULL))
 
     domain_data = get_domain_data(domaindata_stub, domaindata_id)
 
@@ -294,7 +294,7 @@ def preprocess_sf_node_eval_param(
 
     # get input DistData from GRM
     if len(sf_input_ids):
-        param.ClearField('inputs')
+        param.ClearField("inputs")
         for domaindata_id, partition_spec in zip(sf_input_ids, partitions_spec):
             param.inputs.append(
                 domaindata_id_to_dist_data(
@@ -309,7 +309,7 @@ def preprocess_sf_node_eval_param(
             )
 
     if len(sf_output_uris):
-        param.ClearField('output_uris')
+        param.ClearField("output_uris")
         param.output_uris.extend(sf_output_uris)
 
     if param.comp_id.startswith("model/model_export:"):
@@ -404,7 +404,6 @@ def upload_dist_data_to_dp(
     if data_type.startswith("sf.table"):
         # upload csv, TODO: move to data_utils.py:dump_vertical_table
         if party_data_refs:
-
             assert len(party_data_refs) == 1
             data_ref = party_data_refs[0]
             # FIXME: break this coupling
@@ -412,9 +411,9 @@ def upload_dist_data_to_dp(
                 data_ref.uri == domain_data.relative_uri
             ), f"{data_ref} != {domain_data}"
             path = os.path.join(storage_config.local_fs.wd, data_ref.uri)
-            if data_ref.format == 'orc':
+            if data_ref.format == "orc":
                 file_format = FileFormat.ORC
-            elif data_ref.format == 'csv':
+            elif data_ref.format == "csv":
                 file_format = FileFormat.CSV
             else:
                 raise AttributeError(
@@ -586,7 +585,7 @@ def main(task_config_path, datamesh_addr, enable_plugins: bool):
 if __name__ == "__main__":
     try:
         main()
-    except Exception as e:
-        logging.exception(f"unexpected exception")
+    except Exception:
+        logging.exception("unexpected exception")
         logging.shutdown()
         os._exit(1)

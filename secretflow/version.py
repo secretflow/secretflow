@@ -12,20 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = "1.14.0.dev$$DATE$$"
+__version__ = "1.15.0.dev$$DATE$$"
 __commit_id__ = "$$COMMIT_ID$$"
 __docker_version__ = "$$DOCKER_VERSION$$"
 __build_time__ = "$$BUILD_TIME$$"
-__mode__ = "lite"
-
-
-def is_lite_version():
-    return __mode__ == "lite"
 
 
 def build_message():
     msg = []
-    msg.append(f"Secretflow {__mode__} {__version__}")
+    msg.append(f"Secretflow {__version__}")
 
     if "$$" not in __commit_id__:
         msg.append(f"Build time ({__build_time__}) with commit id: {__commit_id__}")

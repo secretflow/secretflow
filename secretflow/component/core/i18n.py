@@ -51,8 +51,8 @@ def gettext(
         if ":" not in key:
             # ROOT key
             return key
-        prefix, version = key.split(':')
-        tokens = version.split('.')
+        prefix, version = key.split(":")
+        tokens = version.split(".")
         assert len(tokens) == 3, f"invalid version {version} in {key}"
         return f"{prefix}:{tokens[0]}"
 
@@ -114,9 +114,9 @@ def gettext(
 
 
 def translate(package: str, archives: dict | None, ts: Translator = None) -> dict:
-    '''
+    """
     find components by root package, and generate translation
-    '''
+    """
     if ts is None:
         ts = PlainTranslator()
 
@@ -129,9 +129,9 @@ def translate(package: str, archives: dict | None, ts: Translator = None) -> dic
 
 
 def get_translation() -> dict:
-    '''
+    """
     load translation.json from all plugins and merge to one
-    '''
+    """
     plugins = PluginManager.get_plugins()
 
     archives = {}

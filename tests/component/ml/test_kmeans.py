@@ -50,7 +50,7 @@ def get_train_param(alice_path, bob_path, model_path):
             "max_iter": 10,
             "n_init": 1,
             "init_method": "random",
-            "input/input_ds/feature_selects": ['x1', 'x2'],
+            "input/input_ds/feature_selects": ["x1", "x2"],
         },
         inputs=[
             DistData(
@@ -97,22 +97,22 @@ def get_meta_and_dump_data(sf_production_setup_comp, alice_path, bob_path):
     storage = make_storage(storage_config)
 
     if self_party == "alice":
-        ds = pd.DataFrame({'x1': [100, 100, -100, -100]})
+        ds = pd.DataFrame({"x1": [100, 100, -100, -100]})
         ds.to_csv(storage.get_writer(alice_path), index=False)
 
     elif self_party == "bob":
-        ds = pd.DataFrame({'x2': [-100, -100, 100, 100]})
+        ds = pd.DataFrame({"x2": [-100, -100, 100, 100]})
         ds.to_csv(storage.get_writer(bob_path), index=False)
 
     return VerticalTable(
         schemas=[
             TableSchema(
                 feature_types=["float32"] * 1,
-                features=['x1'],
+                features=["x1"],
             ),
             TableSchema(
                 feature_types=["float32"] * 1,
-                features=['x2'],
+                features=["x2"],
             ),
         ],
     )
@@ -120,7 +120,7 @@ def get_meta_and_dump_data(sf_production_setup_comp, alice_path, bob_path):
 
 @pytest.mark.mpc
 def test_kmeans(sf_production_setup_comp):
-    work_path = f'test_kmeans_{str(uuid.uuid4())}'
+    work_path = f"test_kmeans_{str(uuid.uuid4())}"
     alice_path = f"{work_path}/x_alice.csv"
     bob_path = f"{work_path}/x_bob.csv"
     model_path = f"{work_path}/model.sf"
@@ -166,4 +166,4 @@ def test_kmeans(sf_production_setup_comp):
             logging.info(f"predict_res: {predict_res}")
             logging.info(f"output y: {output_y}")
 
-    run_pred(predict_path, train_res['eval_result'])
+    run_pred(predict_path, train_res["eval_result"])

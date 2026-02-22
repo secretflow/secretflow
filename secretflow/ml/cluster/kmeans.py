@@ -36,7 +36,7 @@ class KMeans(_ModelBase):
 
     def _to_spu_dataset(self, x: Union[FedNdarray, VDataFrame]) -> SPUObject:
         x, _ = self._prepare_dataset(x)
-        return self.spu(self._concatenate, static_argnames=('axis'))(
+        return self.spu(self._concatenate, static_argnames=("axis"))(
             self._to_spu(x),
             axis=1,
         )
@@ -63,7 +63,7 @@ class KMeans(_ModelBase):
         wait([self.model])
 
     def predict(self, x: Union[FedNdarray, VDataFrame]) -> SPUObject:
-        assert hasattr(self, 'model'), 'please fit model first'
+        assert hasattr(self, "model"), "please fit model first"
 
         spu_x = self._to_spu_dataset(x)
 

@@ -20,7 +20,7 @@ import numpy as np
 
 def init_pred(base: float, samples: int) -> np.ndarray:
     shape = (samples, 1)
-    return np.full(shape, base, order='F')
+    return np.full(shape, base, order="F")
 
 
 def sigmoid(pred: np.ndarray) -> np.ndarray:

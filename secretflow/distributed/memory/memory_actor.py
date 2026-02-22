@@ -54,8 +54,8 @@ class MemActorHandle:
 
     def _execute_method(self, method_name, options, *args, **kwargs):
         num_returns = 1
-        if options and 'num_returns' in options:
-            num_returns = options['num_returns']
+        if options and "num_returns" in options:
+            num_returns = options["num_returns"]
         logging.debug(f"Actor method call: {method_name}, num_returns: {num_returns}")
         # execute method call
         function = getattr(self._actor_handle, method_name)

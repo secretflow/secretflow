@@ -139,9 +139,9 @@ def _onehot_encode_fit(trans_data: pa.Table, drop: str, min_frequency: float):
 
 @register(domain="preprocessing", version="1.0.0")
 class OnehotEncode(PreprocessingMixin, Component, IServingExporter):
-    '''
+    """
     onehot_encode
-    '''
+    """
 
     drop: str = Field.union_attr(
         desc="drop unwanted category based on selection",
@@ -210,7 +210,7 @@ class OnehotEncode(PreprocessingMixin, Component, IServingExporter):
             rule[pyu.party] = party_rule_obj
 
         def _fit_model(df: sc.Table, rule: dict) -> sc.Table:
-            onehot_rules = rule['onehot_rules']
+            onehot_rules = rule["onehot_rules"]
             out = apply_onehot_rule_on_table(df, onehot_rules)
             return out
 

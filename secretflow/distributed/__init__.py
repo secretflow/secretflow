@@ -15,13 +15,14 @@
 
 from .const import DISTRIBUTION_MODE, FED_OBJECT_TYPES
 from .primitive import (
-    init,
     active_sf_cluster,
+    add_distribution_modes,
     get,
     get_cluster_available_resources,
     get_current_cluster_idx,
     get_distribution_mode,
     in_ic_mode,
+    init,
     kill,
     remote,
     set_distribution_mode,
@@ -29,17 +30,18 @@ from .primitive import (
 )
 
 __all__ = [
-    'DISTRIBUTION_MODE',
-    'FED_OBJECT_TYPES',
-    'init',
-    'get',
-    'kill',
-    'remote',
-    'shutdown',
-    'set_distribution_mode',
-    'get_distribution_mode',
-    'get_current_cluster_idx',
-    'active_sf_cluster',
-    'in_ic_mode',
-    'get_cluster_available_resources',
+    "DISTRIBUTION_MODE",
+    "FED_OBJECT_TYPES",
+    "init",
+    "get",
+    "kill",
+    "remote",
+    "shutdown",
+    "add_distribution_modes",
+    "set_distribution_mode",
+    "get_distribution_mode",
+    "get_current_cluster_idx",
+    "active_sf_cluster",
+    "in_ic_mode",
+    "get_cluster_available_resources",
 ]

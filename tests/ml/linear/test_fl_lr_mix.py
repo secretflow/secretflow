@@ -62,30 +62,30 @@ def _gen_data(devices):
     x2.partitions[devices.davy] = partition(x2_davy)
 
     return {
-        'x': MixDataFrame(partitions=[x1, x2]),
-        'y': MixDataFrame(partitions=[y1, y2]),
-        'y_arr': label.values,
+        "x": MixDataFrame(partitions=[x1, x2]),
+        "y": MixDataFrame(partitions=[y1, y2]),
+        "y_arr": label.values,
     }
 
 
 def _gen_heus():
     def heu_config(sk_keeper: str, evaluators: List[str]):
         return {
-            'sk_keeper': {'party': sk_keeper},
-            'evaluators': [{'party': evaluator} for evaluator in evaluators],
-            'mode': 'PHEU',
-            'he_parameters': {
-                'schema': 'paillier',
-                'key_pair': {'generate': {'bit_size': 2048}},
+            "sk_keeper": {"party": sk_keeper},
+            "evaluators": [{"party": evaluator} for evaluator in evaluators],
+            "mode": "PHEU",
+            "he_parameters": {
+                "schema": "paillier",
+                "key_pair": {"generate": {"bit_size": 2048}},
             },
         }
 
-    heu0 = sf.HEU(heu_config('alice', ['bob', 'carol']), spu.FieldType.FM128)
-    heu1 = sf.HEU(heu_config('alice', ['bob', 'davy']), spu.FieldType.FM128)
+    heu0 = sf.HEU(heu_config("alice", ["bob", "carol"]), spu.FieldType.FM128)
+    heu1 = sf.HEU(heu_config("alice", ["bob", "davy"]), spu.FieldType.FM128)
     return [heu0, heu1]
 
 
-@pytest.mark.skipif(platform == 'darwin', reason="macOS has accuracy issue")
+@pytest.mark.skipif(platform == "darwin", reason="macOS has accuracy issue")
 @pytest.mark.mpc(parties=4)
 def test_model_should_ok_when_fit_dataframe(sf_production_setup_devices):
     devices = sf_production_setup_devices
@@ -105,8 +105,8 @@ def test_model_should_ok_when_fit_dataframe(sf_production_setup_devices):
 
     # WHEN
     model.fit(
-        data['x'],
-        data['y'],
+        data["x"],
+        data["y"],
         epochs=3,
         batch_size=64,
         learning_rate=0.1,
@@ -115,15 +115,15 @@ def test_model_should_ok_when_fit_dataframe(sf_production_setup_devices):
         # aggr_hooks=[RouterLrAggrHook(devices.alice)],
     )
 
-    y_pred = np.concatenate(sf.reveal(model.predict(data['x'])))
+    y_pred = np.concatenate(sf.reveal(model.predict(data["x"])))
 
-    auc = roc_auc_score(data['y_arr'], y_pred)
-    acc = np.mean((y_pred > 0.5) == data['y_arr'])
+    auc = roc_auc_score(data["y_arr"], y_pred)
+    acc = np.mean((y_pred > 0.5) == data["y_arr"])
 
     # THEN
     auc = sf.reveal(auc)
     acc = sf.reveal(acc)
-    print(f'auc={auc}, acc={acc}')
+    print(f"auc={auc}, acc={acc}")
 
     assert auc > 0.98
     assert acc > 0.93

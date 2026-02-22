@@ -24,7 +24,6 @@ from secretflow.component.core import (
     DistDataType,
     ServingBuilder,
     VTable,
-    VTableUtils,
 )
 from secretflow.device import PYU
 from secretflow.ml.boost.sgb_v.core.params import RegType
@@ -32,7 +31,6 @@ from secretflow.ml.boost.ss_xgb_v.checkpoint import (
     SSXGBCheckpointData,
     build_ss_xgb_model,
 )
-from secretflow.ml.boost.ss_xgb_v.core.node_split import RegType
 from secretflow.ml.boost.ss_xgb_v.core.xgb_tree import XgbTree
 
 from .boost import (

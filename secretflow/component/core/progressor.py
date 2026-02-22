@@ -35,7 +35,7 @@ class MockProgressor(IProgressor):
         logging.debug(f"update progress: {percent} {infos}")
 
     def done(self):
-        logging.debug(f"mock progress done")
+        logging.debug("mock progress done")
 
 
 class HttpProgressor(IProgressor):
@@ -53,7 +53,7 @@ class HttpProgressor(IProgressor):
         if percent <= self._percent:
             return
         self._percent = percent
-        logging.info(f"update progress: {percent*100}%")
+        logging.info(f"update progress: {percent * 100}%")
 
         payload = {"progress": percent}
         if infos:
@@ -71,7 +71,7 @@ class HttpProgressor(IProgressor):
     def done(self):
         self.update(1.0, None)
         self._executor.shutdown()
-        logging.info(f"update progress done")
+        logging.info("update progress done")
 
     @staticmethod
     def send_post(

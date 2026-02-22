@@ -91,7 +91,7 @@ class HDataFrame(DataFrameBase):
     comparator: Comparator = None
 
     def _check_parts(self):
-        assert self.partitions, 'Partitions in the dataframe is None or empty.'
+        assert self.partitions, "Partitions in the dataframe is None or empty."
 
     def mean(self, *args, **kwargs) -> pd.Series:
         """
@@ -102,9 +102,9 @@ class HDataFrame(DataFrameBase):
         Returns:
             pd.Series
         """
-        assert self.aggregator is not None, 'Aggregator should be provided for mean.'
+        assert self.aggregator is not None, "Aggregator should be provided for mean."
         means = [part.mean(*args, **kwargs) for part in self.partitions.values()]
-        numeric_only = kwargs.get('numeric_only', False)
+        numeric_only = kwargs.get("numeric_only", False)
         cnts = [
             part.count(numeric_only=numeric_only) for part in self.partitions.values()
         ]
@@ -132,7 +132,7 @@ class HDataFrame(DataFrameBase):
         Returns:
             pd.Series
         """
-        assert self.comparator is not None, 'Compartor should be provided for min.'
+        assert self.comparator is not None, "Compartor should be provided for min."
         mins = [part.min(*args, **kwargs) for part in self.partitions.values()]
         return pd.Series(
             reveal(self.comparator.min([m.values for m in mins], axis=0)),
@@ -150,7 +150,7 @@ class HDataFrame(DataFrameBase):
         Returns:
             pd.Series
         """
-        assert self.comparator is not None, 'Compartor should be provided for min.'
+        assert self.comparator is not None, "Compartor should be provided for min."
         maxs = [part.max(*args, **kwargs) for part in self.partitions.values()]
         return pd.Series(
             reveal(self.comparator.max([m.values for m in maxs], axis=0)),
@@ -167,7 +167,7 @@ class HDataFrame(DataFrameBase):
         Returns:
             pd.Series
         """
-        assert self.aggregator is not None, 'Aggregator should be provided for sum.'
+        assert self.aggregator is not None, "Aggregator should be provided for sum."
         sums = [part.sum(*args, **kwargs) for part in self.partitions.values()]
         return pd.Series(
             reveal(self.aggregator.sum([s.values for s in sums], axis=0)),
@@ -182,7 +182,7 @@ class HDataFrame(DataFrameBase):
         Returns:
             pd.Series
         """
-        assert self.aggregator is not None, 'Aggregator should be provided for count.'
+        assert self.aggregator is not None, "Aggregator should be provided for count."
         cnts = [part.count(*args, **kwargs) for part in self.partitions.values()]
         return pd.Series(
             reveal(self.aggregator.sum([cnt.values for cnt in cnts], axis=0)),
@@ -193,7 +193,7 @@ class HDataFrame(DataFrameBase):
     def nunique(self, *args, **kwargs):
         raise NotImplementedError
 
-    def isna(self) -> 'HDataFrame':
+    def isna(self) -> "HDataFrame":
         """Detects missing values for an array-like object.
         Same as pandas.DataFrame.isna
         Returns
@@ -306,7 +306,7 @@ class HDataFrame(DataFrameBase):
             device: partition.shape for device, partition in self.partitions.items()
         }
 
-    def copy(self) -> 'HDataFrame':
+    def copy(self) -> "HDataFrame":
         """
         Shallow copy of this dataframe.
 
@@ -327,8 +327,8 @@ class HDataFrame(DataFrameBase):
         columns=None,
         level=None,
         inplace=False,
-        errors='raise',
-    ) -> Union['HDataFrame', None]:
+        errors="raise",
+    ) -> Union["HDataFrame", None]:
         """Drop specified labels from rows or columns.
 
         All arguments are same with :py:meth:`pandas.DataFrame.drop`.
@@ -374,7 +374,7 @@ class HDataFrame(DataFrameBase):
         inplace=False,
         limit=None,
         downcast=None,
-    ) -> Union['HDataFrame', None]:
+    ) -> Union["HDataFrame", None]:
         """Fill NA/NaN values using the specified method.
 
         All arguments are same with :py:meth:`pandas.DataFrame.fillna`.
@@ -422,7 +422,7 @@ class HDataFrame(DataFrameBase):
         """
         for device, uri in fileuris.items():
             if device not in self.partitions:
-                raise InvalidArgumentError(f'PYU {device} is not in this dataframe.')
+                raise InvalidArgumentError(f"PYU {device} is not in this dataframe.")
 
         return [
             self.partitions[device].to_csv(uri, **kwargs)
@@ -432,7 +432,7 @@ class HDataFrame(DataFrameBase):
     def __len__(self):
         return sum([len(part) for part in self.partitions.values()])
 
-    def __getitem__(self, item) -> 'HDataFrame':
+    def __getitem__(self, item) -> "HDataFrame":
         return HDataFrame(
             aggregator=self.aggregator,
             comparator=self.comparator,
@@ -442,15 +442,15 @@ class HDataFrame(DataFrameBase):
     def __setitem__(self, key, value):
         if isinstance(value, HDataFrame):
             assert len(value.partitions) == len(self.partitions), (
-                'Length of HDataFrame to assign not equals to this dataframe: '
-                f'{len(value.partitions)} != {len(self.partitions)}'
+                "Length of HDataFrame to assign not equals to this dataframe: "
+                f"{len(value.partitions)} != {len(self.partitions)}"
             )
             for pyu, part in value.partitions.items():
                 self.partitions[pyu][key] = part
         elif isinstance(value, Partition):
             assert (
                 value.data.device in self.partitions
-            ), f'Partition to assgin is not in this dataframe pyu list.'
+            ), "Partition to assgin is not in this dataframe pyu list."
             self.partitions[value.data.device][key] = value
         else:
             for part in self.partitions.values():
@@ -462,7 +462,7 @@ class HDataFrame(DataFrameBase):
     def value_counts(self, *args, **kwargs) -> pd.Series:
         raise NotImplementedError()
 
-    def iloc(self, index: Union[int, slice, List[int]]) -> 'HDataFrame':
+    def iloc(self, index: Union[int, slice, List[int]]) -> "HDataFrame":
         raise NotImplementedError()
 
     def rename(
@@ -474,25 +474,25 @@ class HDataFrame(DataFrameBase):
         copy=True,
         inplace=False,
         level=None,
-        errors='ignore',
-    ) -> Union['HDataFrame', None]:
+        errors="ignore",
+    ) -> Union["HDataFrame", None]:
         raise NotImplementedError()
 
-    def pow(self, *args, **kwargs) -> 'HDataFrame':
+    def pow(self, *args, **kwargs) -> "HDataFrame":
         raise NotImplementedError()
 
-    def round(self, *args, **kwargs) -> 'HDataFrame':
+    def round(self, *args, **kwargs) -> "HDataFrame":
         raise NotImplementedError()
 
-    def select_dtypes(self, *args, **kwargs) -> 'HDataFrame':
+    def select_dtypes(self, *args, **kwargs) -> "HDataFrame":
         raise NotImplementedError()
 
-    def subtract(self, *args, **kwargs) -> 'HDataFrame':
+    def subtract(self, *args, **kwargs) -> "HDataFrame":
         raise NotImplementedError()
 
     def apply_func(
         self, func: Callable, *, nums_return: int = 1, **kwargs
-    ) -> 'HDataFrame':
+    ) -> "HDataFrame":
         return HDataFrame(
             partitions={
                 pyu: part.apply_func(func, nums_return=nums_return, **kwargs)

@@ -36,11 +36,11 @@ from secretflow.component.core import (
 
 @register(domain="data_prep", version="1.0.0")
 class TrainTestSplit(Component):
-    '''
+    """
     Split datasets into random train and test subsets.
 
     - Please check: https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.train_test_split.html
-    '''
+    """
 
     train_size: float = Field.attr(
         desc="Proportion of the dataset to include in the train subset. The sum of test_size and train_size should be in the (0, 1] range.",

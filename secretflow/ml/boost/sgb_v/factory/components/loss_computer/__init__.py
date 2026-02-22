@@ -14,4 +14,4 @@
 
 from .loss_computer import LossComputer
 
-__all__ = ['LossComputer']
+__all__ = ["LossComputer"]

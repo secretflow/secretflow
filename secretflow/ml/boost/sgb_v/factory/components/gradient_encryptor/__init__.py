@@ -14,4 +14,4 @@
 
 from .gradient_encryptor import GradientEncryptor
 
-__all__ = ['GradientEncryptor']
+__all__ = ["GradientEncryptor"]

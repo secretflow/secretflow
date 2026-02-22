@@ -38,9 +38,9 @@ from .ss_xgb import SSXGBExportMixin
 
 @register(domain="ml.predict", version="1.0.0", name="ss_xgb_predict")
 class SSXGBPredict(SSXGBExportMixin, Component, IServingExporter):
-    '''
+    """
     Predict using the SS-XGB model.
-    '''
+    """
 
     receiver: str = Field.party_attr(desc="Party of receiver.")
     pred_name: str = Field.attr(desc="Column name for predictions.", default="pred")
@@ -106,7 +106,7 @@ class SSXGBPredict(SSXGBExportMixin, Component, IServingExporter):
             list(model_public_info["party_features_length"].keys()),
             self.input_ds,
             self.saved_features,
-            model_public_info['label_col'] if self.save_label else [],
+            model_public_info["label_col"] if self.save_label else [],
             self.save_ids,
         )
 

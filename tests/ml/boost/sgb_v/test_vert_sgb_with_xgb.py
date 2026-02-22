@@ -45,7 +45,7 @@ from sklearn.datasets import fetch_openml
 from secretflow.utils.simulation.datasets import load_linear
 from tests.sf_fixtures import SFProdParams
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
 
 def balanced_sample_weight(y: np.ndarray):
@@ -74,7 +74,7 @@ def balanced_sample_weight(y: np.ndarray):
 
 
 def _run_sgb_tweedie(env, test_name, v_data, label_data, y, subsample, colsample):
-    test_name = test_name + "_with_method_" + 'level' + '_tweedie'
+    test_name = test_name + "_with_method_" + "level" + "_tweedie"
     sgb = Sgb(env.heu)
     start = time.perf_counter()
     tweedie_variance_power = 1.5
@@ -89,29 +89,29 @@ def _run_sgb_tweedie(env, test_name, v_data, label_data, y, subsample, colsample
         "reg_lambda": 0.1,
         "min_child_weight": 0,
         "objective": "reg:tweedie",
-        'reg_lambda': 0.1,
-        'gamma': 1,
-        'subsample': subsample,
-        'colsample_bytree': colsample,
-        'base_score': 0.5,
+        "reg_lambda": 0.1,
+        "gamma": 1,
+        "subsample": subsample,
+        "colsample_bytree": colsample,
+        "base_score": 0.5,
         "seed": 94,
         "tweedie_variance_power": tweedie_variance_power,
     }
 
     additional_params = {
-        'tree_growing_method': 'level',
-        'fixed_point_parameter': 20,
+        "tree_growing_method": "level",
+        "fixed_point_parameter": 20,
         # Turn these two options on for benchmarking or debugging.
         # Verbose mode will produce more logging information.
-        'verbose': False,
+        "verbose": False,
         # Wait execution mode will syncronize operations and therefore reduce performance, but we now can measure component's time more accurately.
         # Wait execution mode execution time is expected to be slower than that when use in production.
-        'eval_metric': 'tweedie_nll',
-        'enable_monitor': True,
+        "eval_metric": "tweedie_nll",
+        "enable_monitor": True,
     }
     params = apply_new_params(xgb_params_converter(xgb_params), additional_params)
     # we use the balanced approach to set the sample weight
-    assert params['objective'] == 'tweedie'
+    assert params["objective"] == "tweedie"
 
     model = sgb.train(params, v_data, label_data)
     reveal(model.trees[-1])
@@ -131,7 +131,7 @@ def _run_sgb_tweedie(env, test_name, v_data, label_data, y, subsample, colsample
     )
     clf.fit(X, y)
     yhat_xgb = clf.predict(X)
-    dist = 'Tweedie'
+    dist = "Tweedie"
 
     sgb_deviance = eval(
         yhat.reshape(
@@ -169,7 +169,7 @@ def _run_sgb(
     colsample,
     audit_dict={},
 ):
-    test_name = test_name + "_with_method_" + 'level'
+    test_name = test_name + "_with_method_" + "level"
     sgb = Sgb(env.heu)
     start = time.perf_counter()
 
@@ -184,25 +184,25 @@ def _run_sgb(
         "reg_lambda": 0.1,
         "min_child_weight": 0,
         "objective": "binary:logistic" if logistic else "reg:squarederror",
-        'reg_lambda': 0.1,
-        'gamma': 1,
-        'subsample': subsample,
-        'colsample_bytree': colsample,
-        'base_score': 0.5,
+        "reg_lambda": 0.1,
+        "gamma": 1,
+        "subsample": subsample,
+        "colsample_bytree": colsample,
+        "base_score": 0.5,
         "seed": 94,
     }
 
     additional_params = {
-        'tree_growing_method': 'level',
-        'audit_paths': audit_dict,
-        'fixed_point_parameter': 20,
+        "tree_growing_method": "level",
+        "audit_paths": audit_dict,
+        "fixed_point_parameter": 20,
         # Turn these two options on for benchmarking or debugging.
         # Verbose mode will produce more logging information.
-        'verbose': False,
+        "verbose": False,
         # Wait execution mode will syncronize operations and therefore reduce performance, but we now can measure component's time more accurately.
         # Wait execution mode execution time is expected to be slower than that when use in production.
-        'eval_metric': 'roc_auc' if logistic else 'mse',
-        'enable_monitor': True,
+        "eval_metric": "roc_auc" if logistic else "mse",
+        "enable_monitor": True,
     }
     params = apply_new_params(xgb_params_converter(xgb_params), additional_params)
     # we use the balanced approach to set the sample weight
@@ -268,7 +268,7 @@ def _run_sgb(
 def _run_npc_linear(env, test_name, parts, label_device):
     vdf = load_linear(parts=parts)
 
-    label_data = vdf['y']
+    label_data = vdf["y"]
     y = reveal(label_data.partitions[label_device].data).values
     label_data = (label_data.values)[:500, :]
     y = y[:500, :]

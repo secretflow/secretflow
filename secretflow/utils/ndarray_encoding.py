@@ -29,16 +29,16 @@ def encode(m: np.ndarray, fxp_bits: int) -> np.ndarray:
     Returns:
         np.ndarray: the encoded ndarray.
     """
-    assert isinstance(m, np.ndarray), f'Support ndarray only but got {type(m)}'
+    assert isinstance(m, np.ndarray), f"Support ndarray only but got {type(m)}"
     if m.dtype not in [np.float16, np.float32, np.float64]:
-        raise InvalidArgumentError(f'Accept float ndarray only but got {m.dtype}')
+        raise InvalidArgumentError(f"Accept float ndarray only but got {m.dtype}")
 
     uint64_max = 0xFFFFFFFFFFFFFFFF
-    assert fxp_bits is not None, f'Fxp_bits must not be None.'
+    assert fxp_bits is not None, "Fxp_bits must not be None."
     max_value = m.max()
     if max_value * (1 << fxp_bits) > uint64_max:
         raise InvalidArgumentError(
-            f'Float data {max_value} exceeds uint range (0, {uint64_max}) after encoding.'
+            f"Float data {max_value} exceeds uint range (0, {uint64_max}) after encoding."
         )
     # Convert to np.float64 for reducing overflow.
     return (m.astype(np.float64) * (1 << fxp_bits)).astype(np.uint64)
@@ -56,8 +56,8 @@ def decode(m: np.ndarray, fxp_bits: int) -> np.ndarray:
     Returns:
         np.ndarray: the decoded float ndarray.
     """
-    assert isinstance(m, np.ndarray), f'Support ndarray only but got {type(m)}'
-    assert m.dtype == np.uint64, f'Ndarray dtype must be uint but got {m.dtype}'
-    assert fxp_bits is not None, f'Fraction precision must not be None.'
+    assert isinstance(m, np.ndarray), f"Support ndarray only but got {type(m)}"
+    assert m.dtype == np.uint64, f"Ndarray dtype must be uint but got {m.dtype}"
+    assert fxp_bits is not None, "Fraction precision must not be None."
     # Convert to int for restoring the negatives.
     return m.astype(np.int64) / (1 << fxp_bits)

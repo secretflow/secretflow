@@ -76,14 +76,14 @@ class LossComputer(Component):
         print_params(self.logging_params)
 
     def set_params(self, params: dict):
-        if 'objective' in params:
-            obj = RegType(params['objective'])
+        if "objective" in params:
+            obj = RegType(params["objective"])
             self.params.objective = obj
 
         keywords = [
-            'enable_quantization',
-            'quantization_scale',
-            'tweedie_variance_power',
+            "enable_quantization",
+            "quantization_scale",
+            "tweedie_variance_power",
         ]
         set_params_from_dict(self.params, params, keywords)
         LoggingTools.logging_params_from_dict(params, self.logging_params)
@@ -100,7 +100,7 @@ class LossComputer(Component):
             if actor.device == self.label_holder:
                 self.actor = actor
                 break
-        self.actor.register_class('LossComputerActor', LossComputerActor)
+        self.actor.register_class("LossComputerActor", LossComputerActor)
         return
 
     def del_actors(self):
@@ -113,8 +113,8 @@ class LossComputer(Component):
     ) -> Tuple[PYUObject, PYUObject]:
         obj = self.params.objective
         return self.actor.invoke_class_method_two_ret(
-            'LossComputerActor',
-            'compute_gh',
+            "LossComputerActor",
+            "compute_gh",
             y,
             pred,
             obj,
@@ -123,19 +123,19 @@ class LossComputer(Component):
 
     def compute_abs_sums(self, g: PYUObject, h: PYUObject):
         return self.actor.invoke_class_method(
-            'LossComputerActor', 'compute_abs_sums', g, h
+            "LossComputerActor", "compute_abs_sums", g, h
         )
 
     def compute_scales(self):
         scaling = self.params.quantization_scale
         return self.actor.invoke_class_method(
-            'LossComputerActor', 'compute_scales', scaling
+            "LossComputerActor", "compute_scales", scaling
         )
 
     def scale_gh(self, g: PYUObject, h: PYUObject) -> Tuple[PYUObject, PYUObject]:
         enable_quantization = self.params.enable_quantization
         return self.actor.invoke_class_method_two_ret(
-            'LossComputerActor', 'scale_gh', g, h, enable_quantization
+            "LossComputerActor", "scale_gh", g, h, enable_quantization
         )
 
     def reverse_scale_gh(
@@ -143,5 +143,5 @@ class LossComputer(Component):
     ) -> Tuple[PYUObject, PYUObject]:
         enable_quantization = self.params.enable_quantization
         return self.actor.invoke_class_method_two_ret(
-            'LossComputerActor', 'reverse_scale_gh', g, h, enable_quantization
+            "LossComputerActor", "reverse_scale_gh", g, h, enable_quantization
         )

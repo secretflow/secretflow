@@ -66,7 +66,7 @@ def test_groupby_statistics(sf_production_setup_comp, by, value_agg_pairs):
 
     test_data = pd.DataFrame(
         {
-            "a": ['9', '6', '5', '5'],
+            "a": ["9", "6", "5", "5"],
             "b": [5, 5, 6, 7],
             "c": [1, 1, 2, 4],
             "d": [11, 55, 1, 99],
@@ -131,7 +131,7 @@ def test_groupby_statistics(sf_production_setup_comp, by, value_agg_pairs):
     for idx, item in enumerate(value_agg_pairs):
         (name, agg) = item
         tab = comp_ret.tabs[idx]
-        assert tab.name == f'{name}_{agg}'
+        assert tab.name == f"{name}_{agg}"
         tbl = tab.divs[0].children[0].table
         names = [h.name for h in tbl.headers]
         assert set(by + [name]) == set(names)

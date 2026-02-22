@@ -25,10 +25,10 @@ from secretflow.utils.errors import InvalidArgumentError
 
 @unique
 class LinkType(Enum):
-    Logit = 'Logit'
-    Log = 'Log'
-    Reciprocal = 'Reciprocal'
-    Identity = 'Identity'
+    Logit = "Logit"
+    Log = "Log"
+    Reciprocal = "Reciprocal"
+    Identity = "Identity"
 
 
 class Linker(ABC):
@@ -137,4 +137,4 @@ def get_link(t: Union[LinkType, str]) -> Linker:
     elif t is LinkType.Identity:
         return LinkIdentity()
     else:
-        raise InvalidArgumentError(f'Unsupported link: {t}')
+        raise InvalidArgumentError(f"Unsupported link: {t}")

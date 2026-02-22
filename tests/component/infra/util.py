@@ -59,8 +59,8 @@ def eval_export(
             input_datasets.append(json_format.MessageToJson(i, indent=0))
         for o in res.outputs:
             output_datasets.append(json_format.MessageToJson(o, indent=0))
-        param.ClearField('inputs')
-        param.ClearField('output_uris')
+        param.ClearField("inputs")
+        param.ClearField("output_uris")
         json_param = json_format.MessageToJson(param, indent=0)
         component_eval_params.append(
             base64.b64encode(json_param.encode("utf-8")).decode("utf-8")

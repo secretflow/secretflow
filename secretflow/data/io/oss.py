@@ -18,12 +18,12 @@ from distutils.util import strtobool
 
 import s3fs as s3
 
-_S3_ENDPOINT = 'DATA_STORAGE_S3_ENDPOINT'
-_S3_ACCESSKEYID = 'DATA_STORAGE_S3_ACCESSKEYID'
-_S3_ACCESSSECRET = 'DATA_STORAGE_S3_SECRETKEY'
-_S3_VIRTUALHOSTED = 'DATA_STORAGE_S3_VIRTUAL_HOSTED'
+_S3_ENDPOINT = "DATA_STORAGE_S3_ENDPOINT"
+_S3_ACCESSKEYID = "DATA_STORAGE_S3_ACCESSKEYID"
+_S3_ACCESSSECRET = "DATA_STORAGE_S3_SECRETKEY"
+_S3_VIRTUALHOSTED = "DATA_STORAGE_S3_VIRTUAL_HOSTED"
 
-_SCHEME = 'oss://'
+_SCHEME = "oss://"
 
 
 def s3fs():
@@ -32,31 +32,31 @@ def s3fs():
     ak = os.environ.get(_S3_ACCESSKEYID)
     sk = os.environ.get(_S3_ACCESSSECRET)
 
-    assert endpoint is not None, f'{_S3_ENDPOINT} not set'
-    assert ak is not None, f'{_S3_ACCESSKEYID} not set'
-    assert sk is not None, f'{_S3_ACCESSSECRET} not set'
+    assert endpoint is not None, f"{_S3_ENDPOINT} not set"
+    assert ak is not None, f"{_S3_ACCESSKEYID} not set"
+    assert sk is not None, f"{_S3_ACCESSSECRET} not set"
 
-    addressing_style = 'path'
+    addressing_style = "path"
     try:
         if strtobool(os.environ.get(_S3_VIRTUALHOSTED)):
-            addressing_style = 'virtual'
+            addressing_style = "virtual"
     except Exception:
         pass
 
     ak, sk = base64.b64decode(ak).decode("utf-8"), base64.b64decode(sk).decode("utf-8")
-    if not endpoint.startswith('http'):
-        endpoint = f'http://{endpoint}'
+    if not endpoint.startswith("http"):
+        endpoint = f"http://{endpoint}"
 
     return s3.S3FileSystem(
         anon=False,
         key=ak,
         secret=sk,
-        client_kwargs={'endpoint_url': endpoint},
-        config_kwargs={'s3': {'addressing_style': addressing_style}},
+        client_kwargs={"endpoint_url": endpoint},
+        config_kwargs={"s3": {"addressing_style": addressing_style}},
     )
 
 
-def open(path, mode='rb'):
+def open(path, mode="rb"):
     """Open a oss object.
 
     Args:
@@ -66,7 +66,7 @@ def open(path, mode='rb'):
     Returns:
         A file-like object.
     """
-    assert path.startswith(_SCHEME), f'Invalid path: {path}, should be oss://...'
+    assert path.startswith(_SCHEME), f"Invalid path: {path}, should be oss://..."
 
     s3 = s3fs()
     return s3.open(path[len(_SCHEME) :], mode)

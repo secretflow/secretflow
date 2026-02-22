@@ -158,7 +158,7 @@ def get_meta_and_dump_data(sf_production_setup_comp, alice_path, bob_path):
 @pytest.mark.parametrize("with_checkpoint", [True, False])
 @pytest.mark.mpc
 def test_ss_sgd(sf_production_setup_comp, with_checkpoint):
-    work_path = f'test_ss_sgd_{with_checkpoint}'
+    work_path = f"test_ss_sgd_{with_checkpoint}"
     alice_path = f"{work_path}/x_alice.csv"
     bob_path = f"{work_path}/x_bob.csv"
     model_path = f"{work_path}/model.sf"
@@ -242,7 +242,7 @@ def test_ss_sgd(sf_production_setup_comp, with_checkpoint):
 
     if with_checkpoint:
         cp_num = g_test_epoch - 1
-        if 'alice' == sf_cluster_config.private_config.self_party:
+        if "alice" == sf_cluster_config.private_config.self_party:
             storage = make_storage(storage_config)
             for i in range(int(cp_num / 2), cp_num):
                 with storage.get_writer(f"{checkpoint_path}_{i}") as f:
@@ -254,4 +254,4 @@ def test_ss_sgd(sf_production_setup_comp, with_checkpoint):
             storage_config=storage_config,
             cluster_config=sf_cluster_config,
         )
-        run_pred(predict_path + '.2', train_res)
+        run_pred(predict_path + ".2", train_res)

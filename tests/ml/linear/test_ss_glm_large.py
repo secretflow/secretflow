@@ -144,7 +144,7 @@ def dataset_to_federated(x, y, w, env):
 
 def run_sklearn(test_name, X_train, df_train, power, alpha, dist):
     glm_pure_premium = TweedieRegressor(
-        power=power, alpha=alpha, solver='newton-cholesky'
+        power=power, alpha=alpha, solver="newton-cholesky"
     )
     y = df_train["PurePremium"].values
     test_name = test_name + "_sklearn"
@@ -209,13 +209,13 @@ def run_irls(
     spu_yhat = model.predict(v_data)
     wait(spu_yhat)
     spu_deviance_ = reveal(
-        spu(deviance, static_argnames=('dist'))(
+        spu(deviance, static_argnames=("dist"))(
             y, spu_yhat, df["Exposure"].values, dist=get_dist(dist, 1, ss_glm_power)
         )
     )
     yhat = reveal(spu_yhat).reshape(-1)
     deviance_ = reveal(
-        spu(deviance, static_argnames=('dist'))(
+        spu(deviance, static_argnames=("dist"))(
             y, spu_yhat, df["Exposure"].values, dist=get_dist(dist, 1, ss_glm_power)
         )
     )
@@ -260,7 +260,7 @@ def _run_test(devices, test_name, X, df, link, dist, l2_lambda=None, power=1.9):
     ), f"{irls_deviance}, {sklearn_deviance}"
 
 
-@pytest.mark.skip(reason='todo: move into daily test, running too slowly in aci')
+@pytest.mark.skip(reason="todo: move into daily test, running too slowly in aci")
 @pytest.mark.mpc(parties=3, params=SFProdParams.ABY3)
 def test_mtpl2(sf_production_setup_devices):
     X, df = prepare_data()
@@ -269,8 +269,8 @@ def test_mtpl2(sf_production_setup_devices):
         test_name="mtpl2",
         X=X,
         df=df,
-        link='Log',
-        dist='Tweedie',
+        link="Log",
+        dist="Tweedie",
         l2_lambda=0.1,
         power=1.9,
     )

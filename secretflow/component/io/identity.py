@@ -35,9 +35,9 @@ IDENTITY_SUPPORTED_TYPES = [
 
 @register(domain="io", version="1.0.0")
 class Identity(Component):
-    '''
+    """
     map any input to output
-    '''
+    """
 
     input_data: Input = Field.input(
         desc="Input data",

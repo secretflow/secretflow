@@ -82,7 +82,7 @@ class VDataFrame(DataFrameBase):
     aligned: bool = True
 
     def _check_parts(self):
-        assert self.partitions, 'Partitions in the VDataFrame is None or empty.'
+        assert self.partitions, "Partitions in the VDataFrame is None or empty."
 
     def __concat_apply_reveal(self, fn: Callable, *args, **kwargs) -> pd.Series:
         """Helper function to concatenate the revealed results of fn applied on each partition.
@@ -99,7 +99,7 @@ class VDataFrame(DataFrameBase):
             )
         )
 
-    def __part_apply(self, fn, *args, **kwargs) -> 'VDataFrame':
+    def __part_apply(self, fn, *args, **kwargs) -> "VDataFrame":
         """Helper function to generate a new VDataFrame by applying fn on each partition.
         Args:
             fn: a reflection of a Callable fucntion.
@@ -121,7 +121,7 @@ class VDataFrame(DataFrameBase):
     def _col_index(self, col) -> Dict[PYU, Union[str, List[str]]]:
         assert (
             col.tolist() if isinstance(col, Index) else col
-        ), f'Column to index is None or empty!'
+        ), "Column to index is None or empty!"
         pyu_col = {}
         listed_col = col.tolist() if isinstance(col, Index) else col
         if not isinstance(listed_col, (list, tuple)):
@@ -145,7 +145,7 @@ class VDataFrame(DataFrameBase):
                 break
 
             if not found:
-                raise KeyError(f'Item {key} does not exist.')
+                raise KeyError(f"Item {key} does not exist.")
         return pyu_col
 
     def __getitem__(self, item) -> "VDataFrame":
@@ -160,14 +160,14 @@ class VDataFrame(DataFrameBase):
         if isinstance(value, Partition):
             assert (
                 value.device in self.partitions
-            ), 'Device of the partition to assgin is not in this dataframe devices.'
+            ), "Device of the partition to assgin is not in this dataframe devices."
             self.partitions[value.device][key] = value
             return
         elif isinstance(value, VDataFrame):
             for pyu in value.partitions.keys():
                 assert (
                     pyu in self.partitions
-                ), 'Partitions to assgin is not same with this dataframe partitions.'
+                ), "Partitions to assgin is not same with this dataframe partitions."
             try:
                 key_index = self._col_index(key)
                 for pyu, col in key_index.items():
@@ -473,7 +473,7 @@ class VDataFrame(DataFrameBase):
             aligned=self.aligned,
         )
 
-    def copy(self) -> 'VDataFrame':
+    def copy(self) -> "VDataFrame":
         """
         Shallow copy of this dataframe.
 
@@ -490,8 +490,8 @@ class VDataFrame(DataFrameBase):
         columns=None,
         level=None,
         inplace=False,
-        errors='raise',
-    ) -> Union['VDataFrame', None]:
+        errors="raise",
+    ) -> Union["VDataFrame", None]:
         """Drop specified labels from rows or columns.
 
         All arguments are same with :py:meth:`pandas.DataFrame.drop`.
@@ -559,7 +559,7 @@ class VDataFrame(DataFrameBase):
         inplace=False,
         limit=None,
         downcast=None,
-    ) -> Union['VDataFrame', None]:
+    ) -> Union["VDataFrame", None]:
         """Fill NA/NaN values using the specified method.
 
         All arguments are same with :py:meth:`pandas.DataFrame.fillna`.
@@ -601,14 +601,14 @@ class VDataFrame(DataFrameBase):
         """
         for device, uri in fileuris.items():
             if device not in self.partitions:
-                raise RuntimeError(f'PYU {device} is not in this dataframe.')
+                raise RuntimeError(f"PYU {device} is not in this dataframe.")
 
         return [
             self.partitions[device].to_csv(uri, **kwargs)
             for device, uri in fileuris.items()
         ]
 
-    def iloc(self, index: Union[int, slice, List[int]]) -> 'DataFrameBase':
+    def iloc(self, index: Union[int, slice, List[int]]) -> "DataFrameBase":
         raise NotImplementedError()
 
     def rename(
@@ -620,11 +620,11 @@ class VDataFrame(DataFrameBase):
         copy=True,
         inplace=False,
         level=None,
-        errors='ignore',
-    ) -> Union['DataFrameBase', None]:
+        errors="ignore",
+    ) -> Union["DataFrameBase", None]:
         raise NotImplementedError()
 
-    def pow(self, *args, **kwargs) -> 'VDataFrame':
+    def pow(self, *args, **kwargs) -> "VDataFrame":
         """Gets Exponential power of dataframe and other, element-wise (binary operator pow).
         Equivalent to dataframe ** other, but with support to substitute a fill_value for missing data in one of the inputs.
         With reverse version, rpow.
@@ -638,7 +638,7 @@ class VDataFrame(DataFrameBase):
         """
         return self.__part_apply(Partition.pow, *args, **kwargs)
 
-    def round(self, decimals: Union[int, dict]) -> 'VDataFrame':
+    def round(self, decimals: Union[int, dict]) -> "VDataFrame":
         """Round the DataFrame to a variable number of decimal places.
 
         Returns:
@@ -665,7 +665,7 @@ class VDataFrame(DataFrameBase):
         else:
             return self.__part_apply(Partition.round, decimals)
 
-    def select_dtypes(self, *args, **kwargs) -> 'VDataFrame':
+    def select_dtypes(self, *args, **kwargs) -> "VDataFrame":
         """Returns a subset of the DataFrame's columns based on the column dtypes.
 
         Reference:
@@ -679,7 +679,7 @@ class VDataFrame(DataFrameBase):
             self.aligned,
         )
 
-    def subtract(self, *args, **kwargs) -> 'VDataFrame':
+    def subtract(self, *args, **kwargs) -> "VDataFrame":
         """Gets Subtraction of dataframe and other, element-wise (binary operator sub).
         Equivalent to dataframe - other, but with support to substitute a fill_value for missing data in one of the inputs.
         With reverse version, rsub.
@@ -692,7 +692,7 @@ class VDataFrame(DataFrameBase):
         """
         return self.__part_apply(Partition.subtract, *args, **kwargs)
 
-    def apply_func(self, func, *, nums_return: int = 1, **kwargs) -> 'VDataFrame':
+    def apply_func(self, func, *, nums_return: int = 1, **kwargs) -> "VDataFrame":
         return self.__part_apply(
             Partition.apply_func, nums_return=nums_return, func=func, **kwargs
         )
@@ -715,7 +715,7 @@ class VDataFrame(DataFrameBase):
         Returns:
             a dict of {pyu: columns}
         """
-        assert len(self.partitions) > 0, 'Partitions in the dataframe is None or empty.'
+        assert len(self.partitions) > 0, "Partitions in the dataframe is None or empty."
         return {
             device: partition.columns for device, partition in self.partitions.items()
         }
@@ -723,7 +723,7 @@ class VDataFrame(DataFrameBase):
     def __len__(self):
         """Return the max length if not aligned."""
         parts = list(self.partitions.values())
-        assert parts, 'No partitions in VDataFrame.'
+        assert parts, "No partitions in VDataFrame."
         return max([len(part) for part in parts])
 
     def to_pandas(self) -> "VDataFrame":

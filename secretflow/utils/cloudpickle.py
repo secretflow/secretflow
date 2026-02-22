@@ -23,7 +23,6 @@ a function deterministicly and is used to sign python functions to execute
 in TEE.
 """
 
-
 import copyreg
 import io
 import logging
@@ -103,15 +102,15 @@ def _code_reduce(obj):
     return types.CodeType, args
 
 
-'''borrow from cloudpickle.py
+"""borrow from cloudpickle.py
 The cloudpickle library utilizes random UUID as the class_tracker_id,
 leading to a failure in decrypting the data with the serialization of a class in TEEU.
 To solve this problem, we replace it with '00000000000000000000000000000000'.
-'''
+"""
 
 
 def _get_or_create_tracker_id(class_def):
-    return '00000000000000000000000000000000'
+    return "00000000000000000000000000000000"
 
 
 def _decompose_typevar(obj):
@@ -138,7 +137,7 @@ def _typevar_reduce(obj):
     return (getattr, module_and_name)
 
 
-'''borrow from cloudpickle_fast.py'''
+"""borrow from cloudpickle_fast.py"""
 
 
 def _class_getnewargs(obj):
@@ -146,9 +145,9 @@ def _class_getnewargs(obj):
     if "__module__" in obj.__dict__:
         type_kwargs["__module__"] = obj.__module__
 
-    __dict__ = obj.__dict__.get('__dict__', None)
+    __dict__ = obj.__dict__.get("__dict__", None)
     if isinstance(__dict__, property):
-        type_kwargs['__dict__'] = __dict__
+        type_kwargs["__dict__"] = __dict__
 
     return (
         type(obj),
@@ -308,8 +307,8 @@ class CodePositionIndependentCloudPickler(Pickler):
                     base_globals[k] = func.__globals__[k]
 
         # Omit file and path info.
-        base_globals['__file__'] = ''
-        base_globals['__path__'] = ''
+        base_globals["__file__"] = ""
+        base_globals["__path__"] = ""
 
         # Do not bind the free variables before the function is created to
         # avoid infinite recursion.
@@ -328,9 +327,7 @@ class CodePositionIndependentCloudPickler(Pickler):
             return Pickler.dump(self, obj)
         except RuntimeError as e:
             if "recursion" in e.args[0]:
-                msg = (
-                    "Could not pickle object as excessively deep recursion " "required."
-                )
+                msg = "Could not pickle object as excessively deep recursion required."
                 raise pickle.PicklingError(msg) from e
             else:
                 raise

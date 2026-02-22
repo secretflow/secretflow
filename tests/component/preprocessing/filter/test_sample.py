@@ -68,7 +68,7 @@ def test_calculate_sample_num():
 
 
 def test_illegal_sample():
-    df_alice = pd.DataFrame({'a': [i for i in range(100)]})
+    df_alice = pd.DataFrame({"a": [i for i in range(100)]})
     total_num = 100
     illegal_sample_method = "Illegal"
 
@@ -84,7 +84,7 @@ def test_random_sample():
     total_num = 100
     sample_num = 10
 
-    df_alice = pd.DataFrame({'a': [i for i in range(100)]})
+    df_alice = pd.DataFrame({"a": [i for i in range(100)]})
     alg = SampleAlgorithmFactory.create(
         df_alice,
         total_num,
@@ -102,7 +102,7 @@ def test_random_sample():
     reference_replacement_random_ids = [0, 4, 10, 11, 14, 56, 74, 85, 88, 99]
     assert replacement_random_ids == reference_replacement_random_ids
     print(replacement_random_ids)
-    logging.info(f'random_ids:{replacement_random_ids}')
+    logging.info(f"random_ids:{replacement_random_ids}")
 
     # no replacement
     noreplacement_random_ids = RandomSampleAlgorithm._random_algorithm(
@@ -117,7 +117,7 @@ def test_random_sample():
 
 
 def test_system_sample_rounding_error():
-    df_alice = pd.DataFrame({'a': [i for i in range(99)]})
+    df_alice = pd.DataFrame({"a": [i for i in range(99)]})
     total_num = 99
 
     alg = SampleAlgorithmFactory.create(
@@ -134,7 +134,7 @@ def test_system_sample_rounding_error():
 
 
 def test_system_sample():
-    df_alice = pd.DataFrame({'a': [i for i in range(100)]})
+    df_alice = pd.DataFrame({"a": [i for i in range(100)]})
     total_num = 100
 
     alg = SystemSampleAlgorithm(df_alice, total_num, 0.1)
@@ -208,7 +208,7 @@ def test_stratify_sample():
         Stratify(
             frac=0.8,
             random_state=RANDOM_STATE,
-            observe_feature='',
+            observe_feature="",
             replacements=[False, False, False],
             quantiles=quantiles,
             weights=weights,
@@ -216,7 +216,7 @@ def test_stratify_sample():
     )
     assert isinstance(alg, StratifySampleAlgorithm)
 
-    bucket_idxes = StratifySampleAlgorithm._split_buckets(df_alice, 'amount', quantiles)
+    bucket_idxes = StratifySampleAlgorithm._split_buckets(df_alice, "amount", quantiles)
     assert bucket_idxes == [
         [0, 4, 6, 12, 13],
         [1, 2, 3, 5, 11, 15, 16, 17, 18],
@@ -228,7 +228,7 @@ def test_stratify_sample():
     random_ids, report = alg._stratify_algorithm(
         RANDOM_STATE,
         replacements,
-        'amount',
+        "amount",
         df_alice,
         quantiles,
         total_num,
@@ -247,7 +247,7 @@ def test_stratify_sample():
     random_ids, _ = alg._stratify_algorithm(
         RANDOM_STATE,
         replacements,
-        'amount',
+        "amount",
         df_alice,
         quantiles,
         total_num,
@@ -261,7 +261,7 @@ def test_stratify_sample():
     random_ids, _ = alg._stratify_algorithm(
         RANDOM_STATE,
         replacements,
-        'amount',
+        "amount",
         df_alice,
         quantiles,
         total_num,
@@ -274,7 +274,7 @@ def test_stratify_sample():
     random_ids, _ = alg._stratify_algorithm(
         RANDOM_STATE,
         replacements,
-        'amount',
+        "amount",
         df_alice,
         quantiles,
         total_num,
@@ -296,7 +296,7 @@ def test_stratify_sample():
         alg._stratify_algorithm(
             RANDOM_STATE,
             replacements,
-            'amount',
+            "amount",
             df_alice,
             quantiles,
             total_num,
@@ -316,7 +316,7 @@ def test_stratify_sample_illegal():
         match="quantiles is necessary for Stratify sample, but get null",
     ):
         StratifySampleAlgorithm(
-            df_alice, 100, 0.1, RANDOM_STATE, '', [False, False], quantiles, weights
+            df_alice, 100, 0.1, RANDOM_STATE, "", [False, False], quantiles, weights
         )
 
     # quantiles.size + 1 != replacements.size
@@ -326,7 +326,7 @@ def test_stratify_sample_illegal():
     expected_msg = f"len(quantiles) + 1 must equal len(replacements), but got len(quantiles):{len(quantiles)}, len(replacements):{len(weights)}"
     with pytest.raises(AssertionError, match=re.escape(expected_msg)):
         StratifySampleAlgorithm(
-            df_alice, 100, 0.1, RANDOM_STATE, '', replacements, quantiles, weights
+            df_alice, 100, 0.1, RANDOM_STATE, "", replacements, quantiles, weights
         )
 
     with pytest.raises(
@@ -338,7 +338,7 @@ def test_stratify_sample_illegal():
             100,
             0.8,
             RANDOM_STATE,
-            '',
+            "",
             [True, True, True],
             [1, 2],
             [0.4, 0.4, 0.4],
@@ -353,7 +353,7 @@ def test_stratify_sample_illegal():
             100,
             0.8,
             RANDOM_STATE,
-            '',
+            "",
             [True, True, True],
             [1, 2],
             [0.4, 0.4, 0.1],
@@ -361,7 +361,7 @@ def test_stratify_sample_illegal():
 
     # empty weights ok
     StratifySampleAlgorithm(
-        df_alice, 100, 0.8, RANDOM_STATE, '', [True, True, True], [1, 2], []
+        df_alice, 100, 0.8, RANDOM_STATE, "", [True, True, True], [1, 2], []
     )
 
 
@@ -404,13 +404,13 @@ def test_sample_vertical(sf_production_setup_comp):
         name="sample",
         version="1.0.0",
         attrs={
-            'sample_algorithm': 'stratify',
-            'sample_algorithm/stratify/frac': 0.8,
-            'sample_algorithm/stratify/random_state': 1234,
-            'sample_algorithm/stratify/observe_feature': "id1",
-            'sample_algorithm/stratify/replacements': [False, False],
-            'sample_algorithm/stratify/quantiles': [3.1],
-            'sample_algorithm/stratify/weights': [0.4, 0.6],
+            "sample_algorithm": "stratify",
+            "sample_algorithm/stratify/frac": 0.8,
+            "sample_algorithm/stratify/random_state": 1234,
+            "sample_algorithm/stratify/observe_feature": "id1",
+            "sample_algorithm/stratify/replacements": [False, False],
+            "sample_algorithm/stratify/quantiles": [3.1],
+            "sample_algorithm/stratify/weights": [0.4, 0.6],
         },
         inputs=[
             DistData(
@@ -452,7 +452,7 @@ def test_sample_vertical(sf_production_setup_comp):
 
     logging.info(f"stratify sample {res['tracer_report']}")
     comp_ret = Report()
-    res = res['eval_result']
+    res = res["eval_result"]
     assert len(res.outputs) == 2
     res.outputs[1].meta.Unpack(comp_ret)
     logging.info(comp_ret)
@@ -513,10 +513,10 @@ def test_sample_vertical_replacement(sf_production_setup_comp):
         name="sample",
         version="1.0.0",
         attrs={
-            'sample_algorithm': 'random',
-            'sample_algorithm/random/frac': 0.8,
-            'sample_algorithm/random/random_state': 1234,
-            'sample_algorithm/random/replacement': True,
+            "sample_algorithm": "random",
+            "sample_algorithm/random/frac": 0.8,
+            "sample_algorithm/random/random_state": 1234,
+            "sample_algorithm/random/replacement": True,
         },
         inputs=[
             DistData(
@@ -584,7 +584,7 @@ def test_sample_individual(sf_production_setup_comp):
     self_party = sf_cluster_config.private_config.self_party
     storage = make_storage(storage_config)
 
-    if self_party == 'alice':
+    if self_party == "alice":
         df_alice = pd.DataFrame(
             {
                 "id1": [1, 2, 3, 4, 5, 6],
@@ -601,10 +601,10 @@ def test_sample_individual(sf_production_setup_comp):
         name="sample",
         version="1.0.0",
         attrs={
-            'sample_algorithm': 'random',
-            'sample_algorithm/random/frac': 0.8,
-            'sample_algorithm/random/random_state': 1234,
-            'sample_algorithm/random/replacement': False,
+            "sample_algorithm": "random",
+            "sample_algorithm/random/frac": 0.8,
+            "sample_algorithm/random/random_state": 1234,
+            "sample_algorithm/random/replacement": False,
         },
         inputs=[
             DistData(

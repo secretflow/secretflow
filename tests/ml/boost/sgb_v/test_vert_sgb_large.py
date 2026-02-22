@@ -27,7 +27,7 @@ from secretflow.ml.boost.sgb_v.model import load_model
 from secretflow.utils.simulation.datasets import load_dermatology, load_linear
 from tests.sf_fixtures import SFProdParams
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
 
 def _run_sgb(
@@ -40,7 +40,7 @@ def _run_sgb(
     subsample,
     colsample,
     audit_dict={},
-    tree_grow_method='level',
+    tree_grow_method="level",
     enable_goss=False,
     num_boost_round=2,
 ):
@@ -48,38 +48,38 @@ def _run_sgb(
     sgb = Sgb(env.heu)
     start = time.perf_counter()
     params = {
-        'tree_growing_method': tree_grow_method,
+        "tree_growing_method": tree_grow_method,
         # for first_tree_with_label_holder_feature is True
-        'num_boost_round': num_boost_round,
-        'max_depth': 5,
-        'max_leaf': 2**3,
-        'sketch_eps': 0.25,
-        'objective': 'logistic' if logistic else 'linear',
-        'reg_lambda': 0.1,
-        'gamma': 1,
-        'rowsample_by_tree': subsample,
-        'colsample_by_tree': colsample,
-        'base_score': 0.5,
-        'audit_paths': audit_dict,
-        'seed': 42,
-        'fixed_point_parameter': 20,
+        "num_boost_round": num_boost_round,
+        "max_depth": 5,
+        "max_leaf": 2**3,
+        "sketch_eps": 0.25,
+        "objective": "logistic" if logistic else "linear",
+        "reg_lambda": 0.1,
+        "gamma": 1,
+        "rowsample_by_tree": subsample,
+        "colsample_by_tree": colsample,
+        "base_score": 0.5,
+        "audit_paths": audit_dict,
+        "seed": 42,
+        "fixed_point_parameter": 20,
         # Turn these two options on for benchmarking or debugging.
         # Verbose mode will produce more logging information.
-        'verbose': True,
+        "verbose": True,
         # Wait execution mode will syncronize operations and therefore reduce performance, but we now can measure component's time more accurately.
         # Wait execution mode execution time is expected to be slower than that when use in production.
-        'wait_execution': False,
-        'first_tree_with_label_holder_feature': False,
-        'enable_goss': enable_goss,
-        'enable_quantization': True,  # surprisingly, quantization may also improve auc on some datasets
-        'enable_packbits': False,
-        'eval_metric': 'roc_auc' if logistic else 'mse',
-        'enable_monitor': True,
-        'enable_early_stop': False,
-        'validation_fraction': 0.1,
-        'stopping_rounds': 1,
-        'stopping_tolerance': 0.01,
-        'save_best_model': False,
+        "wait_execution": False,
+        "first_tree_with_label_holder_feature": False,
+        "enable_goss": enable_goss,
+        "enable_quantization": True,  # surprisingly, quantization may also improve auc on some datasets
+        "enable_packbits": False,
+        "eval_metric": "roc_auc" if logistic else "mse",
+        "enable_monitor": True,
+        "enable_early_stop": False,
+        "validation_fraction": 0.1,
+        "stopping_rounds": 1,
+        "stopping_tolerance": 0.01,
+        "save_best_model": False,
     }
     sample_weight = np.ones(y.shape)
     sample_weight_v = FedNdarray(
@@ -138,7 +138,7 @@ def _run_sgb(
     )
 
 
-@pytest.mark.skip(reason='only used for local performance test')
+@pytest.mark.skip(reason="only used for local performance test")
 @pytest.mark.mpc(parties=3, params=SFProdParams.ABY3)
 def test_sgb_cleartext_benchmark(sf_production_setup_devices):
     devices = sf_production_setup_devices

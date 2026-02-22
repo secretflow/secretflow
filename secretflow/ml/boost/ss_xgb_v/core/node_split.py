@@ -24,15 +24,15 @@ from secretflow.utils import sigmoid as appr_sig
 
 @unique
 class RegType(Enum):
-    Linear = 'linear'
-    Logistic = 'logistic'
+    Linear = "linear"
+    Logistic = "logistic"
 
 
-'''
+"""
 stateless functions use in XGB model's node split.
 please keep functions stateless to make jax happy
 see https://jax.readthedocs.io/en/latest/jax-101/07-state.html
-'''
+"""
 
 
 def sigmoid(pred: np.ndarray) -> np.ndarray:
@@ -47,7 +47,7 @@ def compute_obj(
     H: np.ndarray,
     reg_lambda: float,
 ) -> np.ndarray:
-    '''
+    """
     compute objective values of input buckets.
 
     Args:
@@ -56,7 +56,7 @@ def compute_obj(
 
     Return:
         objective values.
-    '''
+    """
     return (G / (H + reg_lambda)) * G
 
 
@@ -66,7 +66,7 @@ def compute_weight(
     reg_lambda: float,
     learning_rate: float,
 ) -> np.ndarray:
-    '''
+    """
     compute weight values of tree leaf nodes.
 
     Args:
@@ -76,7 +76,7 @@ def compute_weight(
 
     Return:
         weight values.
-    '''
+    """
     w = -((G / (H + reg_lambda)) * learning_rate)
     return jnp.select([H == 0], [0], w)
 
@@ -84,7 +84,7 @@ def compute_weight(
 def compute_gh(
     y: np.ndarray, pred: np.ndarray, objective: RegType
 ) -> Tuple[np.ndarray, np.ndarray]:
-    '''
+    """
     compute first and second order gradient of each sample.
 
     Args:
@@ -94,7 +94,7 @@ def compute_gh(
 
     Return:
         weight values.
-    '''
+    """
     if objective == RegType.Linear:
         g = pred - y
         h = jnp.ones(pred.shape)
@@ -114,9 +114,9 @@ def tree_setup(
     sub_choices: np.ndarray,
     objective: RegType,
 ) -> Tuple[np.ndarray, np.ndarray]:
-    '''
+    """
     Set up pre-tree context.
-    '''
+    """
     assert y.shape == pred.shape
 
     if sub_choices is not None:
@@ -180,7 +180,7 @@ def find_best_split_bucket(
     GHs: List[List[np.ndarray]],
     reg_lambda: float,
 ) -> Tuple[np.ndarray, Dict[str, Any]]:
-    '''
+    """
     compute the gradient sums of the containing instances in each split bucket
     and find best split bucket for each node which has the max split gain.
 
@@ -191,7 +191,7 @@ def find_best_split_bucket(
 
     Return:
         idx of split bucket for each node.
-    '''
+    """
     GHs = list(zip(*GHs))
 
     # gradient sums of left child nodes after splitting by each bucket
@@ -232,7 +232,7 @@ def root_select(samples: int) -> List[np.ndarray]:
 def get_child_select(
     nodes_s: List[np.ndarray], lchilds_ss: List[np.ndarray], fragments: int
 ) -> List[np.ndarray]:
-    '''
+    """
     compute the next level's select indexes.
 
     Args:
@@ -241,7 +241,7 @@ def get_child_select(
 
     Return:
         sample select indexes for nodes in next tree level.
-    '''
+    """
     lchilds_ss = list(zip(*lchilds_ss))
     lchilds_s = [jnp.concatenate(ss, axis=None) for ss in lchilds_ss]
     nodes_s = list(zip(*nodes_s))
@@ -261,7 +261,7 @@ def get_child_select(
 
 
 def predict_tree_weight(selects: List[np.ndarray], weights: np.ndarray) -> np.ndarray:
-    '''
+    """
     get final pred for this tree.
 
     Args:
@@ -270,7 +270,7 @@ def predict_tree_weight(selects: List[np.ndarray], weights: np.ndarray) -> np.nd
 
     Return:
         pred
-    '''
+    """
     select = selects[0]
     for i in range(1, len(selects)):
         select = select * selects[i]

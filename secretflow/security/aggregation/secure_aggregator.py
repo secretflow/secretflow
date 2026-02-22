@@ -36,7 +36,7 @@ class _Masker:
         return self._pub_key
 
     def gen_rng(self, pub_keys: Dict[str, int]) -> None:
-        assert pub_keys, f'Public keys is None or empty.'
+        assert pub_keys, "Public keys is None or empty."
         self._rngs = {
             party: np.random.default_rng(
                 int(self._dh.generate_secret(self._pri_key, peer_pub_key), base=16)
@@ -53,7 +53,7 @@ class _Masker:
         ],
         weight=None,
     ) -> Tuple[Union[List[np.ndarray], np.ndarray], np.dtype]:
-        assert data is not None, 'Data shall not be None or empty.'
+        assert data is not None, "Data shall not be None or empty."
         is_list = isinstance(data, list)
         if not is_list:
             data = [data]
@@ -66,18 +66,18 @@ class _Masker:
                 datum = datum.values
             assert isinstance(
                 datum, np.ndarray
-            ), f'Accept ndarray or dataframe/series only but got {type(datum)}'
+            ), f"Accept ndarray or dataframe/series only but got {type(datum)}"
             if dtype is None:
                 dtype = datum.dtype
             else:
                 assert (
                     datum.dtype == dtype
-                ), f'Data should have same dtypes but got {datum.dtype} {dtype}.'
+                ), f"Data should have same dtypes but got {datum.dtype} {dtype}."
             is_float = np.issubdtype(datum.dtype, np.floating)
             if not is_float:
                 assert np.issubdtype(
                     datum.dtype, np.integer
-                ), f'Data type are neither integer nor float.'
+                ), "Data type are neither integer nor float."
                 if datum.dtype != np.int64:
                     datum = datum.astype(np.int64)
             # Do multiple before encoding to finite field.
@@ -173,7 +173,7 @@ class SecureAggregator(Aggregator):
     def __init__(self, device: PYU, participants: List[PYU], fxp_bits: int = 18):
         assert len(set(participants)) == len(
             participants
-        ), 'Should not have duplicated devices.'
+        ), "Should not have duplicated devices."
         self._device = device
         self._participants = set(participants)
         self._fxp_bits = fxp_bits
@@ -187,14 +187,14 @@ class SecureAggregator(Aggregator):
             masker.gen_rng(pub_keys)
 
     def _check_data(self, data: List[PYUObject]):
-        assert data, f'The data should not be None or empty.'
+        assert data, "The data should not be None or empty."
         assert len(data) == len(
             self._maskers
-        ), f'Length of the data not equals devices: {len(data)} vs {len(self._maskers)}'
+        ), f"Length of the data not equals devices: {len(data)} vs {len(self._maskers)}"
         devices_of_data = set(datum.device for datum in data)
         assert (
             devices_of_data == self._participants
-        ), 'Devices of the data must be corresponding with this aggregator.'
+        ), "Devices of the data must be corresponding with this aggregator."
 
     @classmethod
     def _is_list(cls, masked_data: Union[List, Any]) -> bool:
@@ -202,10 +202,10 @@ class SecureAggregator(Aggregator):
         for masked_datum in masked_data[1:]:
             assert (
                 isinstance(masked_datum, list) == is_list
-            ), f'Some data are list where some others are not.'
+            ), "Some data are list where some others are not."
             assert not is_list or len(masked_datum) == len(
                 masked_datum[0]
-            ), f'Lengths of datum in data are different.'
+            ), "Lengths of datum in data are different."
         return is_list
 
     def sum(self, data: List[PYUObject], axis=None):
@@ -213,7 +213,7 @@ class SecureAggregator(Aggregator):
             for dtype in dtypes[1:]:
                 assert (
                     dtype == dtypes[0]
-                ), f'Data should have same dtypes but got {dtype} {dtypes[0]}.'
+                ), f"Data should have same dtypes but got {dtype} {dtypes[0]}."
             is_float = np.issubdtype(dtypes[0], np.floating)
 
             if is_nesting_list(masked_data):
@@ -243,7 +243,7 @@ class SecureAggregator(Aggregator):
             for dtype in dtypes[1:]:
                 assert (
                     dtype == dtypes[0]
-                ), f'Data should have same dtypes but got {dtype} {dtypes[0]}.'
+                ), f"Data should have same dtypes but got {dtype} {dtypes[0]}."
             is_float = np.issubdtype(dtypes[0], np.floating)
             sum_weights = np.sum(weights, axis=axis) if weights else len(masked_data)
             if is_nesting_list(masked_data):
@@ -271,12 +271,12 @@ class SecureAggregator(Aggregator):
         if weights is not None and isinstance(weights, (list, tuple, np.ndarray)):
             assert len(weights) == len(
                 data
-            ), f'Length of the weights not equals data: {len(weights)} vs {len(data)}.'
+            ), f"Length of the weights not equals data: {len(weights)} vs {len(data)}."
             for i, w in enumerate(weights):
                 if isinstance(w, DeviceObject):
                     assert (
                         w.device == data[i].device
-                    ), 'Device of weight is not same with the corresponding data.'
+                    ), "Device of weight is not same with the corresponding data."
                     _weights.append(w.to(self._device))
                 else:
                     _weights.append(w)

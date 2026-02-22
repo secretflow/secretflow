@@ -30,11 +30,11 @@ from secretflow.device import PYU
 from ..preprocessing import PreprocessingMixin
 
 
-@register(domain='preprocessing', version='1.0.0')
+@register(domain="preprocessing", version="1.0.0")
 class Substitution(PreprocessingMixin, Component, IServingExporter):
-    '''
+    """
     unified substitution component
-    '''
+    """
 
     input_ds: Input = Field.input(
         desc="Input vertical table.",

@@ -38,15 +38,15 @@ from secretflow.device import PYU, wait
 
 @register(domain="data_prep", version="1.0.0")
 class UnbalancePsiCache(Component):
-    '''
+    """
     Generate cache for unbalance psi on both sides.
-    '''
+    """
 
     client: str = Field.party_attr(
         desc="Party of client(party with the smaller dataset)."
     )
     keys: list[str] = Field.table_column_attr(
-        'input_ds',
+        "input_ds",
         desc="Keys to be used for psi.",
         limit=Interval.closed_open(1, None),
     )
@@ -82,8 +82,8 @@ class UnbalancePsiCache(Component):
         na_rep = random_str
 
         root_dir = os.path.join(ctx.data_dir, random_str)
-        server_csv_path = os.path.join(root_dir, f'{random_str}.csv')
-        cache_dir_name = 'cache'
+        server_csv_path = os.path.join(root_dir, f"{random_str}.csv")
+        cache_dir_name = "cache"
         cache_path = os.path.join(root_dir, cache_dir_name)
 
         with PathCleanUp({server_party: root_dir, self.client: root_dir}):
@@ -111,11 +111,11 @@ class UnbalancePsiCache(Component):
                 version=UB_PSI_CACHE_MAX,
                 files={server_pyu.party: [cache_path], client_pyu.party: [cache_path]},
                 public_info={
-                    'server_csv_schema': base64.b64encode(
+                    "server_csv_schema": base64.b64encode(
                         schema.SerializeToString()
                     ).decode(),
-                    'server_csv_na_rep': na_rep,
-                    'cache_dir_name': cache_dir_name,
+                    "server_csv_na_rep": na_rep,
+                    "cache_dir_name": cache_dir_name,
                     "server": server_party,
                     "client": self.client,
                 },

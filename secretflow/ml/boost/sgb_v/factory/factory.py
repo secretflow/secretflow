@@ -46,7 +46,7 @@ from .components import LeafWiseTreeTrainer, LevelWiseTreeTrainer
 @dataclass
 class SGBFactoryParams:
     tree_growing_method: TreeGrowingMethod = default_params.tree_growing_method
-    eval_metric: str = 'roc_auc'
+    eval_metric: str = "roc_auc"
     enable_monitor: bool = False
     enable_early_stop: bool = False
     validation_fraction: float = 0.1
@@ -70,7 +70,7 @@ class SGBFactory:
 
     def __init__(self, heu=None):
         # params_dict is either default or user set, should not change by program
-        self.params_dict = {'tree_growing_method': default_params.tree_growing_method}
+        self.params_dict = {"tree_growing_method": default_params.tree_growing_method}
         self.factory_params = SGBFactoryParams()
         self.heu = heu
 
@@ -83,20 +83,20 @@ class SGBFactory:
             logging.warning(f"The following params are not effective: {unused_params}")
 
         self.params_dict = params
-        if 'tree_growing_method' in params:
+        if "tree_growing_method" in params:
             self.factory_params.tree_growing_method = TreeGrowingMethod(
-                params['tree_growing_method']
+                params["tree_growing_method"]
             )
         keywords = [
-            'eval_metric',
-            'enable_monitor',
-            'enable_early_stop',
-            'validation_fraction',
-            'stopping_rounds',
-            'stopping_tolerance',
-            'seed',
-            'save_best_model',
-            'tweedie_variance_power',
+            "eval_metric",
+            "enable_monitor",
+            "enable_early_stop",
+            "validation_fraction",
+            "stopping_rounds",
+            "stopping_tolerance",
+            "seed",
+            "save_best_model",
+            "tweedie_variance_power",
         ]
         set_params_from_dict(self.factory_params, self.params_dict, keywords)
 
@@ -107,14 +107,14 @@ class SGBFactory:
         assert self.heu is not None, "HEU must be set"
         if self.heu.schema == phe.parse_schema_type("elgamal"):
             assert self.params_dict.get(
-                'enable_quantization', False
+                "enable_quantization", False
             ), "When the schema is elgamal, we must enable quantization to avoid runtime errors."
             assert self.params_dict.get(
-                'quantization_scale', default_params.quantization_scale
+                "quantization_scale", default_params.quantization_scale
             ) * (
                 1
                 << self.params_dict.get(
-                    'fixed_point_parameter', default_params.fixed_point_parameter
+                    "fixed_point_parameter", default_params.fixed_point_parameter
                 )
             ) < (
                 # this value is set in the HEU, later may become configurable

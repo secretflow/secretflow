@@ -21,16 +21,16 @@ from secretflow.component.core.progressor import HttpProgressor
 class MockResponse:
     @staticmethod
     def json():
-        return {'key': 'value'}
+        return {"key": "value"}
 
     @property
     def status_code(self):
         return 200
 
 
-@patch('requests.post', return_value=MockResponse())
+@patch("requests.post", return_value=MockResponse())
 def test_http_progressor(mock_post):
-    url = 'http://example.com'
+    url = "http://example.com"
     p = HttpProgressor(url)
     for i in range(10):
         p.update((i + 1) / 10.0, None)

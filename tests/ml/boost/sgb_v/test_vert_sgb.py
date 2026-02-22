@@ -27,7 +27,7 @@ from secretflow.ml.boost.sgb_v.model import load_model
 from secretflow.utils.simulation.datasets import load_dermatology, load_linear
 from tests.sf_fixtures import SFProdParams
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
 
 def _run_sgb(
@@ -42,7 +42,7 @@ def _run_sgb(
     audit_dict={},
     auc_bar=0.87,
     mse_hat=1.1,
-    tree_grow_method='level',
+    tree_grow_method="level",
     enable_goss=False,
     num_boost_round=2,
     num_tree_cap=2,
@@ -51,38 +51,38 @@ def _run_sgb(
     sgb = Sgb(env.heu)
     start = time.perf_counter()
     params = {
-        'tree_growing_method': tree_grow_method,
+        "tree_growing_method": tree_grow_method,
         # for first_tree_with_label_holder_feature is True
-        'num_boost_round': num_boost_round + 1,
-        'max_depth': 3,
-        'max_leaf': 2**3,
-        'sketch_eps': 0.25,
-        'objective': 'logistic' if logistic else 'linear',
-        'reg_lambda': 0.1,
-        'gamma': 1,
-        'rowsample_by_tree': subsample,
-        'colsample_by_tree': colsample,
-        'base_score': 0.5,
-        'audit_paths': audit_dict,
-        'seed': 42,
-        'fixed_point_parameter': 20,
+        "num_boost_round": num_boost_round + 1,
+        "max_depth": 3,
+        "max_leaf": 2**3,
+        "sketch_eps": 0.25,
+        "objective": "logistic" if logistic else "linear",
+        "reg_lambda": 0.1,
+        "gamma": 1,
+        "rowsample_by_tree": subsample,
+        "colsample_by_tree": colsample,
+        "base_score": 0.5,
+        "audit_paths": audit_dict,
+        "seed": 42,
+        "fixed_point_parameter": 20,
         # Turn these two options on for benchmarking or debugging.
         # Verbose mode will produce more logging information.
-        'verbose': False,
+        "verbose": False,
         # Wait execution mode will syncronize operations and therefore reduce performance, but we now can measure component's time more accurately.
         # Wait execution mode execution time is expected to be slower than that when use in production.
-        'wait_execution': False,
-        'first_tree_with_label_holder_feature': True,
-        'enable_goss': enable_goss,
-        'enable_quantization': True,  # surprisingly, quantization may also improve auc on some datasets
-        'enable_packbits': False,
-        'eval_metric': 'roc_auc' if logistic else 'mse',
-        'enable_monitor': True,
-        'enable_early_stop': True,
-        'validation_fraction': 0.1,
-        'stopping_rounds': 1,
-        'stopping_tolerance': 0.01,
-        'save_best_model': False,
+        "wait_execution": False,
+        "first_tree_with_label_holder_feature": True,
+        "enable_goss": enable_goss,
+        "enable_quantization": True,  # surprisingly, quantization may also improve auc on some datasets
+        "enable_packbits": False,
+        "eval_metric": "roc_auc" if logistic else "mse",
+        "enable_monitor": True,
+        "enable_early_stop": True,
+        "validation_fraction": 0.1,
+        "stopping_rounds": 1,
+        "stopping_tolerance": 0.01,
+        "save_best_model": False,
     }
     sample_weight = np.ones(y.shape)
     sample_weight_v = FedNdarray(
@@ -156,7 +156,7 @@ def _run_sgb(
 def _run_npc_linear(env, test_name, parts, label_device, auc=0.87):
     vdf = load_linear(parts=parts)
 
-    label_data = vdf['y']
+    label_data = vdf["y"]
     y = reveal(label_data.partitions[label_device].data).values
     label_data = (label_data.values)[:500, :]
     y = y[:500, :]
@@ -181,7 +181,7 @@ def _run_npc_linear(env, test_name, parts, label_device, auc=0.87):
         {},
         auc,
         2.3,
-        'leaf',
+        "leaf",
         True,
     )
 
@@ -231,7 +231,7 @@ def test_breast_cancer(sf_production_setup_devices):
     devices = sf_production_setup_devices
 
     ds = load_breast_cancer()
-    x, y = ds['data'], ds['target']
+    x, y = ds["data"], ds["target"]
 
     v_data = FedNdarray(
         {
@@ -282,7 +282,7 @@ def test_breast_cancer(sf_production_setup_devices):
         {},
         0.9,
         2.3,
-        'leaf',
+        "leaf",
         num_boost_round=10,
         num_tree_cap=3,
     )
@@ -300,7 +300,7 @@ def test_dermatology(sf_production_setup_devices):
         .fillna(0)
         .replace({None: 0})
     )
-    label_data = vdf['class']
+    label_data = vdf["class"]
     y = reveal(label_data.partitions[devices.alice].data).values
     v_data = vdf.drop(columns="class").values
     label_data = label_data.values
@@ -333,6 +333,6 @@ def test_dermatology(sf_production_setup_devices):
         audit_dict,
         0.9,
         1,
-        'leaf',
+        "leaf",
         True,
     )

@@ -34,12 +34,12 @@ from secretflow.stats.ss_pearsonr_v import PearsonR
 
 @register(domain="stats", version="1.0.0", name="ss_pearsonr")
 class SSPearsonr(Component):
-    '''
+    """
     Calculate Pearson's product-moment correlation coefficient for vertical partitioning dataset
     by using secret sharing.
 
     - For large dataset(large than 10w samples & 200 features), recommend to use [Ring size: 128, Fxp: 40] options for SPU device.
-    '''
+    """
 
     feature_selects: list[str] = Field.table_column_attr(
         "input_ds",

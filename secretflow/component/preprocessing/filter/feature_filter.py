@@ -29,9 +29,9 @@ from secretflow.component.core import (
 
 @register(domain="data_filter", version="1.0.0")
 class FeatureFilter(Component):
-    '''
+    """
     Drop features from the dataset.
-    '''
+    """
 
     drop_features: list[str] = Field.table_column_attr(
         "input_ds",

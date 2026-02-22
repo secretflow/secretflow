@@ -43,13 +43,13 @@ from .ss_xgb import SSXGBExportMixin
 
 @register(domain="ml.train", version="1.0.0", name="ss_xgb_train")
 class SSXGBTrain(SSXGBExportMixin, Component, IServingExporter):
-    '''
+    """
     This method provides both classification and regression tree boosting (also known as GBDT, GBM)
     for vertical partitioning dataset setting by using secret sharing.
 
     - SS-XGB is short for secret sharing XGB.
     - More details: https://arxiv.org/pdf/2005.08479.pdf
-    '''
+    """
 
     num_boost_round: int = Field.attr(
         desc="Number of boosting iterations.",

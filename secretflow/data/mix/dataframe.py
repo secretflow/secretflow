@@ -34,8 +34,8 @@ class PartitionWay(Enum):
     VERATICAL: vertical partitioning.
     """
 
-    HORIZONTAL = 'horizontal'
-    VERTICAL = 'vertical'
+    HORIZONTAL = "horizontal"
+    VERTICAL = "vertical"
 
 
 @dataclass
@@ -103,34 +103,34 @@ class MixDataFrame:
 
     @staticmethod
     def _check_partitions(partitions):
-        assert partitions, 'Partitions should not be None or empty.'
+        assert partitions, "Partitions should not be None or empty."
         assert isinstance(
             partitions, (list, tuple)
-        ), 'Partitions should be tuple or list.'
+        ), "Partitions should be tuple or list."
         first_part = partitions[0]
         assert isinstance(
             first_part, (HDataFrame, VDataFrame)
-        ), f'Not all partitions are HDataFrames or VDataFrames.'
+        ), "Not all partitions are HDataFrames or VDataFrames."
         part_type = type(first_part)
 
         for part in partitions[1:]:
             assert isinstance(
                 part, part_type
-            ), f'All partitions should have same type but got {part_type} and {type(part)}.'
+            ), f"All partitions should have same type but got {part_type} and {type(part)}."
             assert len(part.partitions) == len(
                 first_part.partitions
-            ), f'All partitions should have same partitions quantities.'
+            ), "All partitions should have same partitions quantities."
             if part_type == VDataFrame:
                 assert (
                     part.columns == first_part.columns
-                ), 'All partitions should have same columns when partitioned horizontally.'
+                ), "All partitions should have same columns when partitioned horizontally."
             else:
                 assert len(part) == len(
                     first_part
-                ), 'All partitions should have same length when partitioned vertically.'
+                ), "All partitions should have same length when partitioned vertically."
 
     def __setattr__(self, __name: str, __value: Any):
-        if __name == 'partitions':
+        if __name == "partitions":
             self._check_partitions(__value)
             if not isinstance(__value, tuple):
                 __value = tuple(__value)
@@ -144,7 +144,7 @@ class MixDataFrame:
         elif isinstance(self.partitions[0], VDataFrame):
             return PartitionWay.HORIZONTAL
         else:
-            raise RuntimeError(f'Unknown partition type: {type(self.partitions[0])}')
+            raise RuntimeError(f"Unknown partition type: {type(self.partitions[0])}")
 
     def mean(self, *args, **kwargs) -> pd.Series:
         """
@@ -157,7 +157,7 @@ class MixDataFrame:
         """
         means = [part.mean(*args, **kwargs) for part in self.partitions]
         if self.partition_way == PartitionWay.HORIZONTAL:
-            numeric_only = kwargs.get('numeric_only', False)
+            numeric_only = kwargs.get("numeric_only", False)
             cnts = [part.count(numeric_only=numeric_only) for part in self.partitions]
             return pd.Series(
                 np.average(means, weights=cnts, axis=0), index=means[0].index
@@ -297,7 +297,7 @@ class MixDataFrame:
         else:
             return shapes[0][0], sum([shape[1] for shape in shapes])
 
-    def copy(self) -> 'MixDataFrame':
+    def copy(self) -> "MixDataFrame":
         """
         Shallow copy of this dataframe.
 
@@ -314,8 +314,8 @@ class MixDataFrame:
         columns=None,
         level=None,
         inplace=False,
-        errors='raise',
-    ) -> Union['MixDataFrame', None]:
+        errors="raise",
+    ) -> Union["MixDataFrame", None]:
         """Drop specified labels from rows or columns.
 
         All arguments are same with :py:meth:`pandas.DataFrame.drop`.
@@ -347,7 +347,7 @@ class MixDataFrame:
         inplace=False,
         limit=None,
         downcast=None,
-    ) -> Union['MixDataFrame', None]:
+    ) -> Union["MixDataFrame", None]:
         """Fill NA/NaN values using the specified method.
 
         All arguments are same with :py:meth:`pandas.DataFrame.fillna`.
@@ -378,7 +378,7 @@ class MixDataFrame:
     def _col_index(self, col) -> Dict[int, Union[str, List[str]]]:
         assert (
             col.tolist() if isinstance(col, Index) else col
-        ), f'Column to index is None or empty!'
+        ), "Column to index is None or empty!"
         part_col = {}
         listed_col = col.tolist() if isinstance(col, Index) else col
         if not isinstance(listed_col, (list, tuple)):
@@ -401,10 +401,10 @@ class MixDataFrame:
                 break
 
             if not found:
-                raise KeyError(f'Item {key} does not exist.')
+                raise KeyError(f"Item {key} does not exist.")
         return part_col
 
-    def __getitem__(self, item) -> 'MixDataFrame':
+    def __getitem__(self, item) -> "MixDataFrame":
         if self.partition_way == PartitionWay.HORIZONTAL:
             return MixDataFrame(partitions=[part[item] for part in self.partitions])
         else:
@@ -416,16 +416,16 @@ class MixDataFrame:
     def __setitem__(self, key, value):
         if isinstance(value, (HDataFrame, VDataFrame, Partition)):
             raise InvalidArgumentError(
-                'Can not assgin a HDataFrame/VDataFrame/Partition to MixDataFrame.'
+                "Can not assgin a HDataFrame/VDataFrame/Partition to MixDataFrame."
             )
         elif isinstance(value, MixDataFrame):
             assert len(value.partitions) == len(self.partitions), (
-                'Partitions length of the MixDataFrame to assign not equals to this dataframe: '
-                f'{len(value.partitions)} != {len(self.partitions)}'
+                "Partitions length of the MixDataFrame to assign not equals to this dataframe: "
+                f"{len(value.partitions)} != {len(self.partitions)}"
             )
             assert type(value.partitions[0]) == type(self.partitions[0]), (
-                'Can not assgin a MixDataFrame with partition type '
-                f'{type(value.partitions[0])} differs with {type(self.partitions[0])}.'
+                "Can not assgin a MixDataFrame with partition type "
+                f"{type(value.partitions[0])} differs with {type(self.partitions[0])}."
             )
             if self.partition_way == PartitionWay.HORIZONTAL:
                 for i, part_df in enumerate(value.partitions):

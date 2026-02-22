@@ -26,16 +26,16 @@ from .xgb_tree import XgbTree
 
 @proxy(PYUObject)
 class XgbTreeWorker:
-    '''
+    """
     use in XGB model.
     do some compute works that only use one partition' dataset.
-    '''
+    """
 
     def __init__(self, idx: int) -> None:
         self.work_idx = idx
 
     def predict_weight_select(self, x: np.ndarray, tree: XgbTree) -> np.ndarray:
-        '''
+        """
         computer leaf nodes' sample selects known by this partition.
 
         Args:
@@ -44,7 +44,7 @@ class XgbTreeWorker:
 
         Return:
             leaf nodes' selects
-        '''
+        """
         x = x if isinstance(x, np.ndarray) else np.array(x)
         return hnp.tree_predict(x, tree.split_features, tree.split_values)
 
@@ -52,11 +52,11 @@ class XgbTreeWorker:
         return qcut(x, self.buckets)
 
     def _build_maps(self, x: np.ndarray):
-        '''
+        """
         split features into buckets and build maps use in train.
-        '''
+        """
         # order_map: record sample belong to which bucket of all features.
-        self.order_map = np.zeros((x.shape[0], x.shape[1]), dtype=np.int8, order='F')
+        self.order_map = np.zeros((x.shape[0], x.shape[1]), dtype=np.int8, order="F")
         # split_points: bucket split points for all features.
         self.split_points = []
         # feature_buckets: how many buckets in each feature.
@@ -71,13 +71,13 @@ class XgbTreeWorker:
             self.feature_buckets.append(total_buckets)
             # last bucket is split all samples into left child.
             # using infinity to simulation xgboost pruning.
-            split_point.append(float('inf'))
+            split_point.append(float("inf"))
             self.split_points.append(split_point)
 
     def build_bucket_map(self, start: int, length: int) -> np.ndarray:
-        '''
+        """
         Build bucket_map fragment base on order_map.
-        '''
+        """
         end = start + length
         assert end <= self.order_map.shape[0]
 
@@ -94,11 +94,11 @@ class XgbTreeWorker:
         return buckets_map
 
     def global_setup(self, x: np.ndarray, buckets: int, seed: int):
-        '''
+        """
         Set up global context.
-        '''
+        """
         np.random.seed(seed)
-        x = np.array(x, order='F')
+        x = np.array(x, order="F")
         # max buckets in each feature.
         self.buckets = buckets
         self._build_maps(x)
@@ -106,19 +106,19 @@ class XgbTreeWorker:
     def update_buckets_count(
         self, buckets_count: List[Tuple[int, int]], buckets_choices: np.ndarray
     ) -> np.ndarray:
-        '''
+        """
         save how many buckets in each partition's features.
         and add offset for buckets_choices if colsample < 1
-        '''
+        """
         self.buckets_count = [b[0] for b in buckets_count]
         if buckets_choices is not None:
             return buckets_choices + sum([b[1] for b in buckets_count[: self.work_idx]])
         return None
 
     def tree_setup(self, colsample: float) -> Tuple[np.ndarray, Tuple[int, int]]:
-        '''
+        """
         Set up tree context and do col sample if colsample < 1
-        '''
+        """
         self.tree = XgbTree()
         if colsample < 1:
             choices = math.ceil(self.features * colsample)
@@ -150,9 +150,9 @@ class XgbTreeWorker:
         return self.tree
 
     def _find_split_bucket(self, split_bucket: int) -> int:
-        '''
+        """
         check if this partition contains split bucket.
-        '''
+        """
         pre_end_pos = 0
         for work_idx in range(len(self.buckets_count)):
             current_end_pod = pre_end_pos + self.buckets_count[work_idx]
@@ -167,9 +167,9 @@ class XgbTreeWorker:
         assert False, "should not be here, _is_primary_split"
 
     def _get_split_feature(self, split_bucket: int) -> Tuple[int, int]:
-        '''
+        """
         find split bucket is belong to which feature.
-        '''
+        """
         pre_end_pos = 0
         for f_idx in range(len(self.feature_buckets)):
             if self.col_choices is not None and f_idx not in self.col_choices:
@@ -181,9 +181,9 @@ class XgbTreeWorker:
         assert False, "should not be here, _get_split_feature"
 
     def do_split(self, split_buckets: List[int]) -> List[np.ndarray]:
-        '''
+        """
         record split info and generate next level's left children select.
-        '''
+        """
         lchild_selects = []
         for s in split_buckets:
             s = self._find_split_bucket(s)

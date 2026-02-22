@@ -65,33 +65,33 @@ class LeafManager(Component):
             if actor.device == self.label_holder:
                 self.leaf_actor = actor
                 break
-        self.leaf_actor.register_class('LeafActor', LeafActor)
+        self.leaf_actor.register_class("LeafActor", LeafActor)
 
     def del_actors(self):
         del self.leaf_actor
 
     def clear_leaves(self):
-        self.leaf_actor.invoke_class_method('LeafActor', 'clear_leaves')
+        self.leaf_actor.invoke_class_method("LeafActor", "clear_leaves")
 
     def extend_leaves(
         self, pruned_node_selects: List[np.ndarray], pruned_node_indices: List[int]
     ):
         self.leaf_actor.invoke_class_method(
-            'LeafActor', 'extend_leaves', pruned_node_selects, pruned_node_indices
+            "LeafActor", "extend_leaves", pruned_node_selects, pruned_node_indices
         )
 
     def get_leaf_selects(self):
-        return self.leaf_actor.invoke_class_method('LeafActor', 'get_leaf_selects')
+        return self.leaf_actor.invoke_class_method("LeafActor", "get_leaf_selects")
 
     def get_leaf_indices(self):
-        return self.leaf_actor.invoke_class_method('LeafActor', 'get_leaf_indices')
+        return self.leaf_actor.invoke_class_method("LeafActor", "get_leaf_indices")
 
     def compute_leaf_weights(self, g, h):
         reg_lambda = self.params.reg_lambda
         lr = self.params.learning_rate
         return self.leaf_actor.invoke_class_method(
-            'LeafActor',
-            'compute_leaf_weights',
+            "LeafActor",
+            "compute_leaf_weights",
             reg_lambda,
             lr,
             g,

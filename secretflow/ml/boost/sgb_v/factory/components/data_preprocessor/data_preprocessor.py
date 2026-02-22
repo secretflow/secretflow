@@ -47,11 +47,11 @@ class DataPreprocessor(Component):
         print_params(self.params)
 
     def set_params(self, params: dict):
-        if 'objective' in params:
-            self.params.objective = RegType(params['objective'])
+        if "objective" in params:
+            self.params.objective = RegType(params["objective"])
 
     def get_params(self, params: dict):
-        params['objective'] = self.params.objective
+        params["objective"] = self.params.objective
 
     def set_devices(self, _):
         return

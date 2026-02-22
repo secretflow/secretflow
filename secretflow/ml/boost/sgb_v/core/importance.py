@@ -72,6 +72,6 @@ SUPPORTED_IMPORTANCE_TYPE_STATS = {
 }
 
 SUPPORTED_IMPORTANCE_DESCRIPTIONS = {
-    'gain': 'the average gain across all splits the feature is used in.',
-    'weight': 'the number of times a feature is used to split the data across all trees.',
+    "gain": "the average gain across all splits the feature is used in.",
+    "weight": "the number of times a feature is used to split the data across all trees.",
 }

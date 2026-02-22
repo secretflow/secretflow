@@ -705,10 +705,10 @@ def _inner_test_model_export(sf_production_setup_comp, features_in_one_party, he
 
 @pytest.mark.mpc
 def test_model_export_features_in_one_party_true_phe_true(sf_production_setup_comp):
-    '''
+    """
     In order to accommodate the parallel execution feature of pytest tests to speed up ci pipeline,
     parameters originally configured by parameterize need to be split across two different test_ functions.
-    '''
+    """
     _inner_test_model_export(
         sf_production_setup_comp, features_in_one_party=True, he_mode=True
     )
@@ -716,10 +716,10 @@ def test_model_export_features_in_one_party_true_phe_true(sf_production_setup_co
 
 @pytest.mark.mpc
 def test_model_export_features_in_one_party_false_phe_true(sf_production_setup_comp):
-    '''
+    """
     In order to accommodate the parallel execution feature of pytest tests to speed up ci pipeline,
     parameters originally configured by parameterize need to be split across two different test_ functions.
-    '''
+    """
     _inner_test_model_export(
         sf_production_setup_comp, features_in_one_party=False, he_mode=True
     )
@@ -727,10 +727,10 @@ def test_model_export_features_in_one_party_false_phe_true(sf_production_setup_c
 
 @pytest.mark.mpc
 def test_model_export_features_in_one_party_false_phe_false(sf_production_setup_comp):
-    '''
+    """
     In order to accommodate the parallel execution feature of pytest tests to speed up ci pipeline,
     parameters originally configured by parameterize need to be split across two different test_ functions.
-    '''
+    """
     _inner_test_model_export(
         sf_production_setup_comp, features_in_one_party=False, he_mode=False
     )
@@ -738,10 +738,10 @@ def test_model_export_features_in_one_party_false_phe_false(sf_production_setup_
 
 @pytest.mark.mpc
 def test_model_export_features_in_one_party_true_phe_false(sf_production_setup_comp):
-    '''
+    """
     In order to accommodate the parallel execution feature of pytest tests to speed up ci pipeline,
     parameters originally configured by parameterize need to be split across two different test_ functions.
-    '''
+    """
     _inner_test_model_export(
         sf_production_setup_comp, features_in_one_party=True, he_mode=False
     )
