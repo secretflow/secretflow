@@ -23,11 +23,34 @@ from secretflow.compute import Table
 from secretflow.device import PYU, PYUObject, wait
 
 
+def _strip_index_columns(table: pa.Table) -> pa.Table:
+    """Remove pyarrow-generated index columns (e.g., __index_level_0__) that
+    may differ between training and inference data due to operations like
+    train_test_split with reset_index.
+
+    This ensures schema compatibility when applying binning rules built on
+    data with a different index structure.
+
+    Args:
+        table: Input pyarrow Table that may contain index columns.
+
+    Returns:
+        A pyarrow Table with index-level columns removed.
+    """
+    index_cols = [c for c in table.column_names if c.startswith("__index_level_")]
+    if index_cols:
+        for col in reversed(index_cols):
+            idx = table.column_names.index(col)
+            table = table.remove_column(idx)
+    return table
+
+
 def apply_binning_rules(
     rules: Dict, input: Union[Dict[str, np.dtype], pa.Table, pa.Schema]
 ) -> sc.Table:
     rules = {v["name"]: v for v in rules["variables"]}
     if isinstance(input, pa.Table):
+        input = _strip_index_columns(input)
         table = Table.from_pyarrow(input)
     else:
         table = Table.from_schema(input)
