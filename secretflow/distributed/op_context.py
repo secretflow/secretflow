@@ -35,16 +35,20 @@ class SFOpContext:
 
     def _init_strategy(self):
         # support secretflow_fl in hacking.
-        if self._mode not in self._strategies:
+        if self._mode in self._strategies:
+            strategy = self._strategies[self._mode]
+        elif self._mode == DISTRIBUTION_MODE.SIMULATION:  # 支持仿真模式
             import importlib
 
             try:
-                importlib.import_module("sfl.distributed")
-            except Exception as e:
-                logging.error(f"import sfl.distributed fail.{e}")
-
-        if self._mode in self._strategies:
-            strategy = self._strategies[self._mode]
+                _sfd = importlib.import_module('sfl.distributed.op_strategy')
+                strategy = getattr(_sfd, "SimulationStrategy")
+            except (ImportError, AttributeError) as e:
+                logging.error(f"import sfl.distributed fail: {e}")
+                raise NotSupportedError(
+                    f"Illegal distribute mode, {self._mode} not registered. "
+                    f"Simulation mode requires 'sfl' package and 'SimulationStrategy' class."
+                ) from e
         else:
             raise NotSupportedError(
                 f"Illegal distribute mode, {self._mode} not registered."
