@@ -95,15 +95,15 @@ msgid "Less than 0.02 -> Not useful for prediction"
 msgstr "小于0.02 -> 对预测无用"
 
 #: ../../user_guide/preprocessing/WeightOfEvidenceEncoding.ipynb:608
-msgid "0.02 to 0.1 -> Weak predictive Power"
+msgid "0.02 to 0.1 -> Weak predictive power"
 msgstr "0.02到0.1 -> 弱预测能力"
 
 #: ../../user_guide/preprocessing/WeightOfEvidenceEncoding.ipynb:610
-msgid "0.1 to 0.3 -> Medium predictive Power"
+msgid "0.1 to 0.3 -> Medium predictive power"
 msgstr "0.1到0.3 -> 中等预测能力"
 
 #: ../../user_guide/preprocessing/WeightOfEvidenceEncoding.ipynb:612
-msgid "0.3 to 0.5 -> Strong predictive Power"
+msgid "0.3 to 0.5 -> Strong predictive power"
 msgstr "0.3到0.5 -> 强预测能力"
 
 #: ../../user_guide/preprocessing/WeightOfEvidenceEncoding.ipynb:614
@@ -115,7 +115,7 @@ msgid "let’s select top 2 feature iv"
 msgstr "让我们选择前两个最重要的特征iv"
 
 #: ../../user_guide/preprocessing/WeightOfEvidenceEncoding.ipynb:667
-msgid "Congradulations! In this tutorial we have learnt how to"
+msgid "Congratulations! In this tutorial we have learnt how to"
 msgstr "恭喜! 在本教程中，我们学习了如何"
 
 #: ../../user_guide/preprocessing/WeightOfEvidenceEncoding.ipynb:669
