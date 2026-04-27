@@ -114,7 +114,7 @@ msgid ""
 msgstr "隐语提供了 `MinMaxScaler` 用于把特征缩放到最大和最小值之间。MinMaxScaler的输入和输出形式均为DataFrame。"
 
 #: ../../tutorial/data_preprocessing_with_data_frame.ipynb:553
-msgid "Here is an exmaple to scale ``sepal length (cm)`` to the [0, 1] range."
+msgid "Here is an example to scale ``sepal length (cm)`` to the [0, 1] range."
 msgstr "下面是将 `sepal length (cm)` 缩放到[0, 1]范围的示例。"
 
 #: ../../tutorial/data_preprocessing_with_data_frame.ipynb:615
@@ -128,7 +128,7 @@ msgid ""
 msgstr "隐语提供了 `StandardScaler` 进行方差缩放。StandardScaler的输入和输出行为均为DataFrame。"
 
 #: ../../tutorial/data_preprocessing_with_data_frame.ipynb:619
-msgid "Here is an exmaple to scale ``sepal length (cm)`` to unit variance."
+msgid "Here is an example to scale ``sepal length (cm)`` to unit variance."
 msgstr "下面是一个将 `sepal length (cm)` 进行方差缩放的例子。"
 
 #: ../../tutorial/data_preprocessing_with_data_frame.ipynb:681
