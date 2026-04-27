@@ -1,4 +1,4 @@
-# SOME DESCRIPTIVE TITLE.
+﻿# SOME DESCRIPTIVE TITLE.
 # Copyright (C) 2022 Ant Group Co., Ltd.
 # This file is distributed under the same license as the SecretFlow package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2023.
@@ -37,7 +37,7 @@ msgid "注意： 以下代码仅供演示用途，在演示过程中可能会揭
 msgstr ""
 
 #: ../../tutorial/risk_control_scenario.ipynb:37
-msgid "本次实验将会展示如何使用隐语进行在风控领域常用的Logistic Regeression模型和XGB模型的模型研发工作。"
+msgid "本次实验将会展示如何使用隐语进行在风控领域常用的Logistic Regression模型和XGB模型的模型研发工作。"
 msgstr ""
 
 #: ../../tutorial/risk_control_scenario.ipynb:39
